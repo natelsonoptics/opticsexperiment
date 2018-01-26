@@ -1,0 +1,11 @@
+ai_x = 'Dev1/ai3'
+ai_y = 'Dev1/ai4'
+ao_x = 'Dev1/ao1'
+ao_y = 'Dev1/ao2'
+vendor = 0x0A2D  # for lock in amplifier
+product = 0x001B  # for lock in amplifier
+pm100_address = 'USB0::0x1313::0x8070::P0000542::INSTR'
+stepper_outputs = "Dev1/port0/line8:11"
+keithley_address = 'GPIB12::12::INSTR'
+tdc001_serial_number = 83825803
+kdc101_serial_number = 27251504
