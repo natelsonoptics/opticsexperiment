@@ -4,7 +4,7 @@ from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageSca
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='sweep scan iphotoX. Press CTRL+C to quit')
+    parser = argparse.ArgumentParser(description='sweep scan thermovoltage. Press CTRL+C to quit')
     parser.add_argument("-f", metavar='data directory', type=str, help='directory for data files')
     parser.add_argument("-xc", metavar='x_center', type=float, help='x center position. default: 80', default=80)
     parser.add_argument("-yc", metavar='y_center', type=float, help='y center position. default: 80', default=80)
