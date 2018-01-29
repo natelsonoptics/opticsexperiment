@@ -2,11 +2,11 @@
 
 import tkinter as tk
 import tkinter.filedialog
-
 from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
+from optics.heating_measurement.heating_scan import  HeatingScan
 
 
-class ThermovoltageGUI:
+class SetupGUI:
     def __init__(self, master, caption, fields, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
                  sr7270_top=None, sr7270_bottom=None):
         self.master = master
@@ -24,7 +24,6 @@ class ThermovoltageGUI:
         self.npc3sg_input = npc3sg_input
         self.sr7270_top = sr7270_top
         self.sr7270_bottom = sr7270_bottom
-
 
     def makeform(self):
         for key in self.fields:
@@ -61,6 +60,17 @@ class ThermovoltageGUI:
                                 self.sr7270_top, self.sr7270_bottom)
         run.main()
 
+    def heating_scan(self, event=None):
+        self.fetch(event)
+        run = HeatingScan(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
+                          int(self.inputs['scan']), float(self.inputs['gain']), float(self.inputs['bias (mV)']),
+                          float(self.inputs['oscillator amplitude (mV)']), int(self.inputs['x pixel density']),
+                          int(self.inputs['y pixel density']), int(self.inputs['x range']),
+                          int(self.inputs['y range']), int(self.inputs['x center']), int(self.inputs['y center']),
+                          float(self.inputs['polarization']), self.npc3sg_x, self.npc3sg_y, self.npc3sg_input,
+                          self.sr7270_top, self.sr7270_bottom)
+        run.main()
+
     def onclick_browse(self):
         self.filepath.set(tkinter.filedialog.askdirectory())
 
@@ -69,6 +79,15 @@ class ThermovoltageGUI:
         self.makeform()
         self.master.bind('<Return>', self.thermovoltage_scan)
         b1 = tk.Button(self.master, text='Run', command=self.thermovoltage_scan)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def build_heating_scan_gui(self):
+        self.browse_button.pack()
+        self.makeform()
+        self.master.bind('<Return>', self.heating_scan)
+        b1 = tk.Button(self.master, text='Run', command=self.heating_scan)
         b1.pack(side=tk.LEFT, padx=5, pady=5)
         b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b2.pack(side=tk.LEFT, padx=5, pady=5)
