@@ -4,7 +4,7 @@ import tkinter as tk
 import tkinter.filedialog
 from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
 from optics.heating_measurement.heating_scan import HeatingScan
-from optics.thermovoltage_measurement.thermovoltage_time import ThermvolageTime
+from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
 
 
 class SetupGUI:
@@ -74,10 +74,10 @@ class SetupGUI:
 
     def thermovoltage_time(self, event=None):
         self.fetch(event)
-        run = ThermvolageTime(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
-                              int(self.inputs['scan']), float(self.input['gain']),
-                              float(self.input['rate (per second) Default = None']), float(self.input['max time (s)']),
-                              float(self.input['polarization']), self.npc3sg_input, self.sr7270_bottom)
+        run = ThermovoltageTime(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
+                                int(self.inputs['scan']), float(self.inputs['gain']),
+                                float(self.inputs['rate (per second)']), float(self.inputs['max time (s)']),
+                                float(self.inputs['polarization']), self.npc3sg_input, self.sr7270_bottom)
         run.main()
 
     def onclick_browse(self):
