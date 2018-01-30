@@ -9,7 +9,7 @@ from os import path
 
 class ThermovoltageTime:
     def __init__(self, filepath, notes, device, scan, gain, rate, maxtime, polarization,
-                 npc3sg_input, sr7270_bottom):
+                 npc3sg_input, sr7270_bottom, powermeter):
         self.filepath = filepath
         self.notes = notes
         self.device = device
@@ -18,6 +18,7 @@ class ThermovoltageTime:
         self.polarization = polarization
         self.npc3sg_input = npc3sg_input
         self.sr7270_bottom = sr7270_bottom
+        self.powermeter = powermeter
         self.rate = rate
         self.maxtime = maxtime
         self.writer = None
@@ -36,6 +37,7 @@ class ThermovoltageTime:
         self.writer.writerow(['x laser position:', position[0]])
         self.writer.writerow(['y laser position:', position[1]])
         self.writer.writerow(['polarization:', self.polarization])
+        self.writer.writerow(['power (W):', self.powermeter.read_power()])
         self.writer.writerow(['notes:', self.notes])
         self.writer.writerow(['end:', 'end of header'])
         self.writer.writerow(['time', 'x_raw', 'y_raw', 'x_v', 'y_v'])

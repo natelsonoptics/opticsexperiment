@@ -14,7 +14,7 @@ from os import path
 
 class ThermovoltageScan:
     def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc, polarization,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom):
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter):
         self.filepath = filepath
         self.notes = notes
         self.device = device
@@ -33,6 +33,7 @@ class ThermovoltageScan:
         self.npc3sg_input = npc3sg_input
         self.sr7270_top = sr7270_top
         self.sr7270_bottom = sr7270_bottom
+        self.powermeter = powermeter
         self.norm = thermovoltage_plot.MidpointNormalize(midpoint=0)
         self.z1 = np.zeros((self.xd, self.yd))
         self.z2 = np.zeros((self.xd, self.yd))
@@ -54,6 +55,7 @@ class ThermovoltageScan:
         self.writer.writerow(['x center:', self.xc])
         self.writer.writerow(['y center:', self.yc])
         self.writer.writerow(['polarization:', self.polarization])
+        self.writer.writerow(['power (W):', self.powermeter.read_power()])
         self.writer.writerow(['notes:', self.notes])
         self.writer.writerow(['end:', 'end of header'])
         self.writer.writerow(['x_raw', 'y_raw', 'x_v', 'y_v', 'x_pixel', 'y_pixel'])

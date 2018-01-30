@@ -1,4 +1,4 @@
-from optics.hardware_control import sr7270, npc3sg_analog, hardware_addresses_and_constants
+from optics.hardware_control import sr7270, npc3sg_analog, hardware_addresses_and_constants, pm100d
 from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
 
 
@@ -24,11 +24,13 @@ if __name__ == "__main__":
             npc3sg_analog.create_ai_task(hardware_addresses_and_constants.ai_x, hardware_addresses_and_constants.ai_y) \
                     as npc3sg_input, \
             sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) \
-                    as (sr7270_top, sr7270_bottom):
+                    as (sr7270_top, sr7270_bottom), \
+            pm100d.connect(hardware_addresses_and_constants.pm100d_address) as powermeter:
         try:
             thermovoltage_scan = ThermovoltageScan(args.f, args.notes, args.device, args.scan, args.gain, args.xd,
                                                    args.yd, args.xr, args.yr, args.xc, args.yc, args.pol,
-                                                   npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom)
+                                                   npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom,
+                                                   powermeter)
             thermovoltage_scan.main()
         except KeyboardInterrupt:
             print('aborted via keyboard interrupt')
