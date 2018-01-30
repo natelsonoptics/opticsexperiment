@@ -3,7 +3,8 @@
 import tkinter as tk
 import tkinter.filedialog
 from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
-from optics.heating_measurement.heating_scan import  HeatingScan
+from optics.heating_measurement.heating_scan import HeatingScan
+from optics.thermovoltage_measurement.thermovoltage_time import ThermvolageTime
 
 
 class SetupGUI:
@@ -71,6 +72,14 @@ class SetupGUI:
                           self.sr7270_top, self.sr7270_bottom)
         run.main()
 
+    def thermovoltage_time(self, event=None):
+        self.fetch(event)
+        run = ThermvolageTime(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
+                              int(self.inputs['scan']), float(self.input['gain']),
+                              float(self.input['rate (per second) Default = None']), float(self.input['max time (s)']),
+                              float(self.input['polarization']), self.npc3sg_input, self.sr7270_bottom)
+        run.main()
+
     def onclick_browse(self):
         self.filepath.set(tkinter.filedialog.askdirectory())
 
@@ -88,6 +97,15 @@ class SetupGUI:
         self.makeform()
         self.master.bind('<Return>', self.heating_scan)
         b1 = tk.Button(self.master, text='Run', command=self.heating_scan)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def build_thermovoltage_time_gui(self):
+        self.browse_button.pack()
+        self.makeform()
+        self.master.bind('<Return>', self.thermovoltage_time)
+        b1 = tk.Button(self.master, text='Run', command=self.thermovoltage_time)
         b1.pack(side=tk.LEFT, padx=5, pady=5)
         b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b2.pack(side=tk.LEFT, padx=5, pady=5)
