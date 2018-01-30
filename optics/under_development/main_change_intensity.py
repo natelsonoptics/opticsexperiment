@@ -1,6 +1,6 @@
 import time
 
-from optics.hardware_control import pm100d, stepper, hardware_addresses_and_constants
+from optics.hardware_control import pm100d, attenuator_wheel, hardware_addresses_and_constants
 
 if __name__ == "__main__":
     import argparse
@@ -15,8 +15,8 @@ if __name__ == "__main__":
     # sample and stops when the power is in the desired range
 
 
-    with pm100d.connect(hardware_addresses_and_constants.pm100_address) as pm, \
-            stepper.create_do_task(hardware_addresses_and_constants.stepper_outputs) as motor:
+    with pm100d.connect(hardware_addresses_and_constants.pm100d_address) as pm, \
+            attenuator_wheel.create_do_task(hardware_addresses_and_constants.stepper_outputs) as motor:
         if not args.max_power:
             max_power = 10
         else:
