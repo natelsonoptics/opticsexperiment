@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
 import tkinter as tk
-from optics.hardware_control import attenuator_wheel, pm100d, hardware_addresses_and_constants
+
 from optics.gui.gui_builds import SetupGUI
+from optics.hardware_control import attenuator_wheel, pm100d, hardware_addresses_and_constants
 
 if __name__ == '__main__':
     root = tk.Tk()
