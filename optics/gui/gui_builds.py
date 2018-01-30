@@ -8,11 +8,12 @@ from optics.heating_measurement.heating_scan import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
 from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
 from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
+from optics.under_development.thermovoltage_polarization import ThermovoltagePolarization
 
 
 class SetupGUI:
     def __init__(self, master, caption, fields, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None):
+                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizercontroller=None):
         self.master = master
         self.master.title(caption)
         self.fields = fields
@@ -31,7 +32,9 @@ class SetupGUI:
         self.sr7270_bottom = sr7270_bottom
         self.powermeter = powermeter
         self.attenuatorwheel = attenuatorwheel
+        self.polarizercontroller = polarizercontroller
         self.textbox = None
+        self.textbox2 = None
 
     def makeform(self):
         for key in self.fields:
@@ -100,6 +103,19 @@ class SetupGUI:
         self.textbox.insert(tk.END, run.read_power()*1000)
         self.textbox.pack()
 
+    def changepolarization(self):
+        self.fetch()
+        self.polarizercontroller.move_nearest(float(self.inputs['desired polarization']) / 2)
+        self.readpolarization()
+
+    def readpolarization(self):
+        self.textbox.delete(1.0, tk.END)
+        self.textbox.insert(tk.END, self.polarizercontroller.read_position() * 2)
+        self.textbox.pack()
+        self.textbox2.delete(1.0, tk.END)
+        self.textbox2.insert(tk.END, (self.polarizercontroller.read_position() % 90) * 2)
+        self.textbox2.pack()
+
     def thermovoltage_intensity(self, event=None):
         self.fetch(event)
         run = ThermovoltageIntensity(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
@@ -107,6 +123,14 @@ class SetupGUI:
                                      float(self.inputs['max time (s)']), float(self.inputs['polarization']),
                                      int(self.inputs['steps']), self.npc3sg_input, self.sr7270_top, self.sr7270_bottom,
                                      self.powermeter, self.attenuatorwheel)
+        run.main()
+
+    def thermovoltage_polarization(self, event=None):
+        self.fetch(event)
+        run = ThermovoltagePolarization(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
+                                        int(self.inputs['scan']), float(self.inputs['gain']),
+                                        float(self.inputs['max time (s)']), self.npc3sg_input, self.sr7270_bottom,
+                                        self.powermeter, self.polarizercontroller)
         run.main()
 
     def onclick_browse(self):
@@ -139,7 +163,7 @@ class SetupGUI:
         b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b2.pack(side=tk.LEFT, padx=5, pady=5)
 
-    def build_intensity_gui(self):
+    def build_change_intensity_gui(self):
         self.makeform()
         row = tk.Frame(self.master)
         lab = tk.Label(row, width=15, text='Power (mW)', anchor='w')
@@ -157,11 +181,43 @@ class SetupGUI:
         b4 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b4.pack(side=tk.LEFT, padx=5, pady=5)
 
+    def build_change_polarization_gui(self):
+        self.makeform()
+        row = tk.Frame(self.master)
+        lab = tk.Label(row, width=15, text='current polarization', anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self.textbox = tk.Text(row, height=1, width=10)
+        self.textbox.insert(tk.END, self.polarizercontroller.read_position() * 2)
+        self.textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+        row = tk.Frame(self.master)
+        lab = tk.Label(row, width=15, text='modulus polarization', anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self.textbox2 = tk.Text(row, height=1, width=10)
+        self.textbox2.insert(tk.END, (self.polarizercontroller.read_position() % 90) * 2)
+        self.textbox2.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+        b1 = tk.Button(self.master, text='Change polarization', command=self.changepolarization)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self.master, text='Read polarization', command=self.readpolarization)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        b3 = tk.Button(self.master, text='Quit', command=self.master.quit)
+        b3.pack(side=tk.LEFT, padx=5, pady=5)
+
     def build_thermovoltage_intensity_gui(self):
         self.browse_button.pack()
         self.makeform()
         self.master.bind('<Return>', self.thermovoltage_intensity)
         b1 = tk.Button(self.master, text='Run', command=self.thermovoltage_intensity)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def build_thermovoltage_polarization_gui(self):
+        self.browse_button.pack()
+        self.makeform()
+        self.master.bind('<Return>', self.thermovoltage_polarization)
+        b1 = tk.Button(self.master, text='Run', command=self.thermovoltage_polarization)
         b1.pack(side=tk.LEFT, padx=5, pady=5)
         b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b2.pack(side=tk.LEFT, padx=5, pady=5)

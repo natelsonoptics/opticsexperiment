@@ -1,6 +1,6 @@
 import matplotlib
 matplotlib.use('TkAgg')
-from optics.hardware_control import sr7270, npc3sg_analog, polarizer_controller, hardware_addresses_and_constants
+from optics.hardware_control import sr7270, npc3sg_analog, polarizercontroller, hardware_addresses_and_constants
 import matplotlib.pyplot as plt
 import time
 import csv
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     with sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) as (sr7270_top, sr7270_bottom), \
         open(args.f, 'w', newline='') as fn,  \
             npc3sg_analog.create_ai_task(hardware_addresses_and_constants.ai_x, hardware_addresses_and_constants.ai_y) as npc3sg_input, \
-            polarizer_controller.connect_tdc001(hardware_addresses_and_constants.tdc001_serial_number) as polarizer:
+            polarizercontroller.connect_tdc001(hardware_addresses_and_constants.tdc001_serial_number) as polarizer:
         try:
             start_time = time.time()
             w = csv.writer(fn)

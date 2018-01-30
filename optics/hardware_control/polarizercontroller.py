@@ -1,8 +1,7 @@
+import clr  # installs DOTNET DLLs
 import contextlib
 import sys
-import clr  # installs DOTNET DLLs
 import time
-
 
 sys.path.append("C:\\Program Files\\Thorlabs\\Kinesis") #  adds DLL path to PATH
 
@@ -44,7 +43,7 @@ def connect_tdc001(serial_number):
     motorSettings = device.LoadMotorConfiguration(str(serial_number))
     currentDeviceSettings = device.MotorDeviceSettings
     try:
-        yield Polarizer_Controller(device)
+        yield PolarizerController(device)
     finally:
         device.Disconnect()
 
@@ -67,12 +66,12 @@ def connect_kdc101(serial_number):
     motorSettings = device.LoadMotorConfiguration(str(serial_number))  # This is important to leave in, but I'm not sure why
     currentDeviceSettings = device.MotorDeviceSettings  # This is important to leave in, but I'm not sure why
     try:
-        yield Polarizer_Controller(device)
+        yield PolarizerController(device)
     finally:
         device.Disconnect()
 
 
-class Polarizer_Controller:
+class PolarizerController:
     def __init__(self, device):
         self._device = device
 
