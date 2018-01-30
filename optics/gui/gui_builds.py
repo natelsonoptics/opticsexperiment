@@ -2,10 +2,12 @@
 
 import tkinter as tk
 import tkinter.filedialog
-from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
-from optics.heating_measurement.heating_scan import HeatingScan
-from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
+
 from optics.hardware_control.change_intensity import ChangeIntensity
+from optics.heating_measurement.heating_scan import HeatingScan
+from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
+from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
+from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
 
 
 class SetupGUI:
@@ -86,6 +88,27 @@ class SetupGUI:
                                 self.powermeter)
         run.main()
 
+    def step(self, direction):
+        self.fetch()
+        run = ChangeIntensity(self.attenuatorwheel, self.powermeter)
+        run.step(int(self.inputs['steps']), direction=direction)
+        self.power()
+
+    def power(self):
+        self.textbox.delete(1.0, tk.END)
+        run = ChangeIntensity(self.attenuatorwheel, self.powermeter)
+        self.textbox.insert(tk.END, run.read_power()*1000)
+        self.textbox.pack()
+
+    def thermovoltage_intensity(self, event=None):
+        self.fetch(event)
+        run = ThermovoltageIntensity(self.inputs['file path'], self.inputs['notes'], self.inputs['device'],
+                                     int(self.inputs['scan']), float(self.inputs['gain']),
+                                     float(self.inputs['max time (s)']), float(self.inputs['polarization']),
+                                     int(self.inputs['steps']), self.npc3sg_input, self.sr7270_top, self.sr7270_bottom,
+                                     self.powermeter, self.attenuatorwheel)
+        run.main()
+
     def onclick_browse(self):
         self.filepath.set(tkinter.filedialog.askdirectory())
 
@@ -116,18 +139,6 @@ class SetupGUI:
         b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b2.pack(side=tk.LEFT, padx=5, pady=5)
 
-    def step(self, direction):
-        self.fetch()
-        run = ChangeIntensity(self.attenuatorwheel, self.powermeter)
-        run.step(int(self.inputs['steps']), direction=direction)
-        self.power()
-
-    def power(self):
-        self.textbox.delete(1.0, tk.END)
-        run = ChangeIntensity(self.attenuatorwheel, self.powermeter)
-        self.textbox.insert(tk.END, run.read_power()*1000)
-        self.textbox.pack()
-
     def build_intensity_gui(self):
         self.makeform()
         row = tk.Frame(self.master)
@@ -145,6 +156,15 @@ class SetupGUI:
         b3.pack(side=tk.LEFT, padx=5, pady=5)
         b4 = tk.Button(self.master, text='Quit', command=self.master.quit)
         b4.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def build_thermovoltage_intensity_gui(self):
+        self.browse_button.pack()
+        self.makeform()
+        self.master.bind('<Return>', self.thermovoltage_intensity)
+        b1 = tk.Button(self.master, text='Run', command=self.thermovoltage_intensity)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self.master, text='Quit', command=self.master.quit)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
 
 
 
