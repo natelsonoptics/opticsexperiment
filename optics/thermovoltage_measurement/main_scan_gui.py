@@ -15,8 +15,9 @@ if __name__ == '__main__':
             sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) \
                     as (sr7270_top, sr7270_bottom):
         try:
-            thermovoltage_scan_gui = SetupGUI(root, title, fields, npc3sg_x, npc3sg_y, npc3sg_input,
-                                              sr7270_top, sr7270_bottom)
+            thermovoltage_scan_gui = SetupGUI(root, title, fields, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y,
+                                              npc3sg_input=npc3sg_input, sr7270_top=sr7270_top,
+                                              sr7270_bottom=sr7270_bottom)
             thermovoltage_scan_gui.build_thermovoltage_scan_gui()
             root.mainloop()
         except KeyboardInterrupt:
