@@ -7,7 +7,7 @@ from optics.misc_utility import conversions
 import os
 from os import path
 
-class ThermvolageTime:
+class ThermovoltageTime:
     def __init__(self, filepath, notes, device, scan, gain, rate, maxtime, polarization,
                  npc3sg_input, sr7270_bottom):
         self.filepath = filepath
@@ -28,12 +28,13 @@ class ThermvolageTime:
         self.min_voltage_y = 0
         self.start_time = None
         self.voltages = None
-        self.sleep = 3 * self.sr7270_bottom.read_tc()[0] if not self.rate else 1 / self.rate
+        self.sleep = 1 / self.rate
 
     def write_header(self):
+        position = self.npc3sg_input.read()
         self.writer.writerow(['gain:', self.gain])
-        self.writer.writerow(['x laser position:', self.npc3sg_input.read()[0]])
-        self.writer.writerow(['y laser position:', self.npc3sg_input.read()[1]])
+        self.writer.writerow(['x laser position:', position[0]])
+        self.writer.writerow(['y laser position:', position[1]])
         self.writer.writerow(['polarization:', self.polarization])
         self.writer.writerow(['notes:', self.notes])
         self.writer.writerow(['end:', 'end of header'])
@@ -93,6 +94,7 @@ class ThermvolageTime:
         self.fig.canvas.draw()
 
     def main(self):
+        self.makefile()
         with open(self.file, 'w', newline='') as inputfile:
             try:
                 self.start_time = time.time()
