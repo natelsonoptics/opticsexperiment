@@ -13,7 +13,7 @@ from optics.heating_plot import heating_plot
 
 class HeatingScan:
     def __init__(self, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc, polarization,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom):
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter):
         self.filepath = filepath
         self.notes = notes
         self.device = device
@@ -34,6 +34,7 @@ class HeatingScan:
         self.npc3sg_input = npc3sg_input
         self.sr7270_top = sr7270_top
         self.sr7270_bottom = sr7270_bottom
+        self.powermeter = powermeter
         self.z1 = np.zeros((self.xd, self.yd))
         self.z2 = np.zeros((self.xd, self.yd))
 
@@ -55,8 +56,9 @@ class HeatingScan:
         self.writer.writerow(['x center:', self.xc])
         self.writer.writerow(['y center:', self.yc])
         self.writer.writerow(['polarization:', self.polarization])
-        self.writer.writerow(['applied voltage:', self.sr7270_top.read_applied_voltage()[0]])
-        self.writer.writerow(['osc amplitude:', self.sr7270_top.read_oscillator_amplitude()[0]])
+        self.writer.writerow(['power (W):', self.powermeter.read_power()])
+        self.writer.writerow(['applied voltage (V):', self.sr7270_top.read_applied_voltage()[0]])
+        self.writer.writerow(['osc amplitude (V):', self.sr7270_top.read_oscillator_amplitude()[0]])
         self.writer.writerow(['osc frequency:', self.sr7270_top.read_oscillator_frequency()[0]])
         self.writer.writerow(['time constant:', self.sr7270_bottom.read_tc()[0]])
         self.writer.writerow(['top time constant:', self.sr7270_top.read_tc1()[0]])
