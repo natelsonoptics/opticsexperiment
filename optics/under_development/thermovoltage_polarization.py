@@ -9,8 +9,8 @@ from os import path
 
 
 class ThermovoltagePolarization:
-    def __init__(self, filepath, notes, device, scan, gain, maxtime, npc3sg_input, sr7270_bottom, powermeter,
-                 polarizercontroller):
+    def __init__(self, filepath, notes, device, scan, gain, npc3sg_input, sr7270_bottom, powermeter,
+                 polarizer):
         self.writer = None
         self.npc3sg_input = npc3sg_input
         self.gain = gain
@@ -19,10 +19,9 @@ class ThermovoltagePolarization:
         self.filepath = filepath
         self.scan = scan
         self.device = device
-        self.polarizercontroller = polarizercontroller
+        self.polarizer = polarizer
         self.sr7270_bottom = sr7270_bottom
         self.imagefile = None
-        self.maxtime = maxtime
         self.file = None
         self.start_time = None
         self.fig = plt.figure()
@@ -33,7 +32,7 @@ class ThermovoltagePolarization:
         self.max_voltage_y = 0
         self.min_voltage_y = 0
         self.voltages = None
-        self.waveplate_angle = int(round(float(str(polarizercontroller.read_position())))) % 360
+        self.waveplate_angle = int(round(float(str(polarizer.read_position())))) % 360
         self.max_waveplate_angle = self.waveplate_angle + 180
         self.start_time = None
 
@@ -66,9 +65,9 @@ class ThermovoltagePolarization:
         for i in range(self.waveplate_angle, self.max_waveplate_angle):
             if i > 360:
                 i = i - 360
-            self.polarizercontroller.move(i)
+            self.polarizer.move(i)
             time.sleep(1.5)
-            polarization = float(str(self.polarizercontroller.read_position())) * 2
+            polarization = float(str(self.polarizer.read_position())) * 2
             # converts waveplate angle to polarizaiton angle
             raw = self.sr7270_bottom.read_xy()
             self.voltages = [conversions.convert_x_to_iphoto(x, self.gain) for x in raw]
