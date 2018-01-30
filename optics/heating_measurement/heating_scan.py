@@ -104,10 +104,10 @@ class HeatingScan:
                 self.npc3sg_x.move(j)
                 time.sleep(0.3)
                 raw = self.sr7270_bottom.read_xy()
-                voltages = [conversions.convert_x_to_iphoto(x, self.gain) for x in raw]
-                self.writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])
-                self.z1[x_ind][y_ind] = voltages[0] * 1000000
-                self.z2[x_ind][y_ind] = voltages[1] * 1000000
+                currents = [conversions.convert_x_to_iphoto(x, self.gain) for x in raw]
+                self.writer.writerow([raw[0], raw[1], currents[0], currents[1], x_ind, y_ind])
+                self.z1[x_ind][y_ind] = currents[0] * 1000
+                self.z2[x_ind][y_ind] = currents[1] * 1000
                 self.update_plot(self.im1, self.z1, -np.amax(np.abs(self.z1)), np.amax(np.abs(self.z1)))
                 self.update_plot(self.im2, self.z2, -np.amax(np.abs(self.z2)), np.amax(np.abs(self.z2)))
                 plt.tight_layout()
