@@ -3,6 +3,8 @@ import contextlib
 import sys
 import time
 
+import numpy as np
+
 sys.path.append("C:\\Program Files\\Thorlabs\\Kinesis") #  adds DLL path to PATH
 
 #  DOTNET (x64) DLLs. These need to be UNBLOCKED to be found (right click -> properties -> unblock
@@ -13,6 +15,7 @@ clr.AddReference("Thorlabs.MotionControl.KCube.DCServoCLI")  # KDC101 DLL
 clr.AddReference("Thorlabs.MotionControl.DeviceManagerCLI")
 clr.AddReference("Thorlabs.MotionControl.GenericMotorCLI")
 clr.AddReference("Thorlabs.MotionControl.TCube.DCServoUI")
+clr.AddReference("Thorlabs.MotionControl.GenericMotorCLI")
 clr.AddReference("System")
 
 
@@ -21,6 +24,8 @@ clr.AddReference("System")
 from Thorlabs.MotionControl.DeviceManagerCLI import DeviceManagerCLI
 from Thorlabs.MotionControl.TCube.DCServoCLI import TCubeDCServo  # TDC001
 from Thorlabs.MotionControl.KCube.DCServoCLI import KCubeDCServo  # KDC101
+from Thorlabs.MotionControl.GenericMotorCLI import MotorDirection
+from Thorlabs.MotionControl.GenericMotorCLI.AdvancedMotor import GenericAdvancedMotorCLI
 from System import Decimal
 
 
@@ -74,6 +79,7 @@ def connect_kdc101(serial_number):
 class PolarizerController:
     def __init__(self, device):
         self._device = device
+        self._turns = 0
 
     def move(self, position):
         calibrated_position = 1.183 * position # This is from Xifan and I making sure that the CR1-Z6 read the *same*
@@ -87,13 +93,25 @@ class PolarizerController:
         # value as it displayed. There is an offset of around 1.183 times the value due to slipping.
         # This should be changed once a new motor is purchased
         current_position = float(str(self._device.Position))
-        if calibrated_position - 1.5 < current_position % (90 * 1.183) < calibrated_position + 1.5:
-            return None
-        for i in range(106):
-            if calibrated_position - 1.5 < (current_position + i) % (90 * 1.183) < calibrated_position + 1.5:
-                break
-        self._device.MoveTo(Decimal(current_position + i), self._device.InitializeWaitHandler())
+        if position in (0, 45):
+            if calibrated_position - 1.1 < current_position % (90 * 1.183) < calibrated_position + 1.1:
+                return None
+            for i in range(180):
+                if calibrated_position - 1.1 < (current_position + i) % (90 * 1.183) < calibrated_position + 1.1:
+                    break
+        else:
+            if calibrated_position - 1.1 < current_position % (180 * 1.183) < calibrated_position + 1.1:
+                return None
+            for i in range(180):
+                if calibrated_position - 1.1 < (current_position + i) % (180 * 1.183) < calibrated_position + 1.1:
+                    break
+        #self._device.MoveRelative(MotorDirection.Forward, Decimal(i), self._device.InitializeWaitHandler())
+        new_position = current_position + i
+        self._device.MoveTo(Decimal(new_position), self._device.InitializeWaitHandler())
         # this is a System.Decimal!
+
+    def home(self):
+        self._device.Home(self._device.InitializeWaitHandler())
 
     def read_position(self, wait_ms=0):
         time.sleep(wait_ms/1000)
