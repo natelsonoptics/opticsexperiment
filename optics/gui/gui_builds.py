@@ -5,9 +5,9 @@ import tkinter.filedialog
 
 from optics.heating_measurement.heating_scan import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
+from optics.thermovoltage_measurement.thermovoltage_polarization import ThermovoltagePolarization
 from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
 from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
-from optics.under_development.thermovoltage_polarization import ThermovoltagePolarization
 
 
 class SetupGUI:

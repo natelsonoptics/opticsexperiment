@@ -3,7 +3,7 @@ import contextlib
 import sys
 import time
 
-import numpy as np
+from optics.hardware_control.hardware_addresses_and_constants import polarizer_offset
 
 sys.path.append("C:\\Program Files\\Thorlabs\\Kinesis") #  adds DLL path to PATH
 
@@ -18,14 +18,11 @@ clr.AddReference("Thorlabs.MotionControl.TCube.DCServoUI")
 clr.AddReference("Thorlabs.MotionControl.GenericMotorCLI")
 clr.AddReference("System")
 
-
 #  Import the namespaces as modules - they are going to look like these are invalid,  but they aren't
 
 from Thorlabs.MotionControl.DeviceManagerCLI import DeviceManagerCLI
 from Thorlabs.MotionControl.TCube.DCServoCLI import TCubeDCServo  # TDC001
 from Thorlabs.MotionControl.KCube.DCServoCLI import KCubeDCServo  # KDC101
-from Thorlabs.MotionControl.GenericMotorCLI import MotorDirection
-from Thorlabs.MotionControl.GenericMotorCLI.AdvancedMotor import GenericAdvancedMotorCLI
 from System import Decimal
 
 
@@ -79,31 +76,31 @@ def connect_kdc101(serial_number):
 class PolarizerController:
     def __init__(self, device):
         self._device = device
-        self._turns = 0
+        self._polarizer_offset = polarizer_offset
 
     def move(self, position):
-        calibrated_position = 1.183 * position # This is from Xifan and I making sure that the CR1-Z6 read the *same*
+        calibrated_position = self._polarizer_offset * position # This is from Xifan and I making sure that the CR1-Z6 read the *same*
         # value as it displayed. There is an offset of around 1.183 times the value due to slipping.
         # This should be changed once a new motor is purchased
         self._device.MoveTo(Decimal(calibrated_position), self._device.InitializeWaitHandler())
         # this is a System.Decimal!
 
     def move_nearest(self, position):
-        calibrated_position = 1.183 * position # This is from Xifan and I making sure that the CR1-Z6 read the *same*
+        calibrated_position = self._polarizer_offset * position # This is from Xifan and I making sure that the CR1-Z6 read the *same*
         # value as it displayed. There is an offset of around 1.183 times the value due to slipping.
         # This should be changed once a new motor is purchased
         current_position = float(str(self._device.Position))
         if position in (0, 45):
-            if calibrated_position - 1.1 < current_position % (90 * 1.183) < calibrated_position + 1.1:
+            if calibrated_position - 1.1 < current_position % (90 * self._polarizer_offset) < calibrated_position + 1.1:
                 return None
             for i in range(180):
-                if calibrated_position - 1.1 < (current_position + i) % (90 * 1.183) < calibrated_position + 1.1:
+                if calibrated_position - 1.1 < (current_position + i) % (90 * self._polarizer_offset) < calibrated_position + 1.1:
                     break
         else:
-            if calibrated_position - 1.1 < current_position % (180 * 1.183) < calibrated_position + 1.1:
+            if calibrated_position - 1.1 < current_position % (180 * self._polarizer_offset) < calibrated_position + 1.1:
                 return None
             for i in range(180):
-                if calibrated_position - 1.1 < (current_position + i) % (180 * 1.183) < calibrated_position + 1.1:
+                if calibrated_position - 1.1 < (current_position + i) % (180 * self._polarizer_offset) < calibrated_position + 1.1:
                     break
         #self._device.MoveRelative(MotorDirection.Forward, Decimal(i), self._device.InitializeWaitHandler())
         new_position = current_position + i
@@ -115,5 +112,5 @@ class PolarizerController:
 
     def read_position(self, wait_ms=0):
         time.sleep(wait_ms/1000)
-        calibrated_position = float(str(self._device.Position)) / 1.183
+        calibrated_position = float(str(self._device.Position)) / self._polarizer_offset
         return calibrated_position
