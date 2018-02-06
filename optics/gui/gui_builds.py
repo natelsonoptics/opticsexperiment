@@ -3,6 +3,8 @@
 import tkinter as tk
 import tkinter.filedialog
 
+import numpy as np
+
 from optics.heating_measurement.heating_scan import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
 from optics.thermovoltage_measurement.thermovoltage_polarization import ThermovoltagePolarization
@@ -77,8 +79,8 @@ class SetupGUI:
                           float(self._inputs['oscillator amplitude (mV)']), int(self._inputs['x pixel density']),
                           int(self._inputs['y pixel density']), int(self._inputs['x range']),
                           int(self._inputs['y range']), int(self._inputs['x center']), int(self._inputs['y center']),
-                          float(self._inputs['polarization']), self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
-                          self._sr7270_top, self._sr7270_bottom, self._powermeter)
+                          self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
+                          self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer)
         run.main()
 
     def thermovoltage_time(self, event=None):
@@ -131,6 +133,14 @@ class SetupGUI:
                                         int(self._inputs['scan']), float(self._inputs['gain']), self._npc3sg_input,
                                         self._sr7270_bottom, self._powermeter, self._polarizer)
         run.main()
+
+    def changeposition(self, event=None):
+        self.fetch(event)
+        self._npc3sg_x.move(int(self._inputs['x']))
+        self._npc3sg_y.move(int(self._inputs['y']))
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack()
 
     def onclick_browse(self):
         self._filepath.set(tkinter.filedialog.askdirectory())
@@ -219,6 +229,20 @@ class SetupGUI:
         self.makeform()
         self._master.bind('<Return>', self.thermovoltage_polarization)
         b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_polarization)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self._master, text='Quit', command=self._master.quit)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def build_change_position_gui(self):
+        self.makeform()
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=15, text='Current Position', anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self._textbox = tk.Text(row, height=1, width=10)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+        b1 = tk.Button(self._master, text='Change Position', command=self.changeposition)
         b1.pack(side=tk.LEFT, padx=5, pady=5)
         b2 = tk.Button(self._master, text='Quit', command=self._master.quit)
         b2.pack(side=tk.LEFT, padx=5, pady=5)
