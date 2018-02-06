@@ -3,17 +3,17 @@ matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
 import time
-import numpy as np
 import matplotlib.pyplot as plt
 from tkinter import *
 import warnings
 import os
 from os import path
 from optics.heating_plot import heating_plot
+import numpy as np
 
 class HeatingScan:
-    def __init__(self, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc, polarization,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter):
+    def __init__(self, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc,
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer):
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -27,7 +27,8 @@ class HeatingScan:
         self._xr = xr  # x range
         self._xc = xc  # x center position
         self._yc = yc  # y center position
-        self._polarization = polarization
+        self._polarizer = polarizer
+        self._polarization = (np.round(self._polarizer.read_position() * 2, 0) % 180)
         self._fig, (self._ax1, self._ax2) = plt.subplots(2)
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
@@ -107,8 +108,8 @@ class HeatingScan:
                 self._writer.writerow([raw[0], raw[1], currents[0], currents[1], x_ind, y_ind])
                 self._z1[x_ind][y_ind] = currents[0] * 1000
                 self._z2[x_ind][y_ind] = currents[1] * 1000
-                self.update_plot(self._im1, self._z1, -np.amax(np.abs(self._z1)), np.amax(np.abs(self._z1)))
-                self.update_plot(self._im2, self._z2, -np.amax(np.abs(self._z2)), np.amax(np.abs(self._z2)))
+                self.update_plot(self._im1, self._z1, np.amin(self._z1), np.amax(self._z1))
+                self.update_plot(self._im2, self._z2, np.amin(self._z2), np.amax(self._z2))
                 plt.tight_layout()
                 self._fig.canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
         self._npc3sg_x.move(0)
@@ -126,11 +127,11 @@ class HeatingScan:
                 self._sr7270_top.change_oscillator_amplitude(self._osc)
                 self.write_header()
                 self.run_scan()
-                heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
-                heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
+                heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
+                heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(self._z2), np.amin(self._z2))
                 plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
-                heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
-                heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
+                heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
+                heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(self._z2), np.amin(self._z2))
                 self._fig.show()  # shows the completed scan
                 warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
                 # that was never written

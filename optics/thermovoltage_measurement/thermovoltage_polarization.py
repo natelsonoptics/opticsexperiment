@@ -86,8 +86,7 @@ class ThermovoltagePolarization:
                 self._writer = csv.writer(inputfile)
                 self.write_header()
                 self.setup_plots()
-                while time.time() - self._start_time < self.maxtime:
-                    self.measure()
+                self.measure()
                 plt.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
                 plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data

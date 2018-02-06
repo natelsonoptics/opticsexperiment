@@ -13,7 +13,7 @@ if __name__ == '__main__':
             sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) \
                     as (sr7270_top, sr7270_bottom), \
             pm100d.connect(hardware_addresses_and_constants.pm100d_address) as powermeter, \
-            attenuator_wheel.create_do_task(hardware_addresses_and_constants.stepper_outputs) as attenuatorwheel:
+            attenuator_wheel.create_do_task(hardware_addresses_and_constants.attenuator_wheel_outputs) as attenuatorwheel:
         try:
             thermovoltage_intensity_gui = SetupGUI(root, title, fields, npc3sg_input=npc3sg_input,
                                                    sr7270_top=sr7270_top, sr7270_bottom=sr7270_bottom,

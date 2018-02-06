@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument("-osc", metavar='osc', type=float, help="oscillator amplitude in mV. optional")
     args = parser.parse_args()
 
-    with attenuator_wheel.create_do_task(hardware_addresses_and_constants.stepper_outputs) as motor, \
+    with attenuator_wheel.create_do_task(hardware_addresses_and_constants.attenuator_wheel_outputs) as motor, \
             sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) as (sr7270_top, sr7270_bottom), \
             open(args.f, 'w', newline='') as fn,  \
             npc3sg_analog.create_ai_task(hardware_addresses_and_constants.ai_x, hardware_addresses_and_constants.ai_y) as npc3sg_input, \
