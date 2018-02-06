@@ -1,9 +1,8 @@
+import matplotlib
+matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 import tkinter as tk
 import tkinter.filedialog
-import tkinter.filedialog
-
 import numpy as np
-
 from optics.hardware_control import attenuator_wheel, pm100d, hardware_addresses_and_constants, sr7270, npc3sg_analog, \
     polarizercontroller
 from optics.heating_measurement.heating_scan import HeatingScan
@@ -52,10 +51,10 @@ class BaseGUI:
         lab = tk.Label(row, width=20, text='map scans', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
-        b1 = tk.Button(row, text='thermovoltage scan',
+        b1 = tk.Button(row, text='thermovoltage',
                        command=lambda measurementtype='ptemap': self.new_window(measurementtype))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b2 = tk.Button(row, text='heating scan',
+        b2 = tk.Button(row, text='heating',
                        command=lambda measurementtype='heatmap': self.new_window(measurementtype))
         b2.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
@@ -63,10 +62,10 @@ class BaseGUI:
         lab = tk.Label(row, width=20, text='polarization scans', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
-        b3 = tk.Button(row, text='thermovoltage scan',
+        b3 = tk.Button(row, text='thermovoltage',
                        command=lambda measurementtype='ptepolarization': self.new_window(measurementtype))
         b3.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b4 = tk.Button(row, text='heating scan',
+        b4 = tk.Button(row, text='heating',
                        command=lambda measurementtype='heatpolarization': self.new_window(measurementtype))
         b4.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
@@ -74,10 +73,10 @@ class BaseGUI:
         lab = tk.Label(row, width=20, text='intensity scans', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
-        b5 = tk.Button(row, text='thermovoltage scan',
+        b5 = tk.Button(row, text='thermovoltage',
                        command=lambda measurementtype='pteintensity': self.new_window(measurementtype))
         b5.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b6 = tk.Button(row, text='heating scan',
+        b6 = tk.Button(row, text='heating',
                        command=lambda measurementtype='heatintensity': self.new_window(measurementtype))
         b6.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
@@ -85,10 +84,10 @@ class BaseGUI:
         lab = tk.Label(row, width=20, text='time scans', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
-        b7 = tk.Button(row, text='thermovoltage scan',
+        b7 = tk.Button(row, text='thermovoltage',
                        command=lambda measurementtype='ptetime': self.new_window(measurementtype))
         b7.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b8 = tk.Button(row, text='heating scan',
+        b8 = tk.Button(row, text='heating',
                        command=lambda measurementtype='heattime': self.new_window(measurementtype))
         b8.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
@@ -157,8 +156,8 @@ class LockinMeasurementGUI:
                                 int(self._inputs['scan']), float(self._inputs['gain']), int(self._inputs['x pixel density']),
                                 int(self._inputs['y pixel density']), int(self._inputs['x range']),
                                 int(self._inputs['y range']), int(self._inputs['x center']), int(self._inputs['y center']),
-                                float(self._inputs['polarization']), self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
-                                self._sr7270_top, self._sr7270_bottom, self._powermeter)
+                                self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
+                                self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer)
         run.main()
 
     def heating_scan(self, event=None):
@@ -239,7 +238,7 @@ class LockinMeasurementGUI:
         self._master.title(caption)
         label = tk.Label(self._master, text=caption)
         label.pack()
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'polarization': 90, 'gain': 1000,
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
                         'x pixel density': 15, 'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80,
                         'y center': 80}
         self._browse_button.pack()

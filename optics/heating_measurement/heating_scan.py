@@ -28,7 +28,8 @@ class HeatingScan:
         self._xc = xc  # x center position
         self._yc = yc  # y center position
         self._polarizer = polarizer
-        self._polarization = (np.round(self._polarizer.read_position() * 2, 0) % 180)
+        self._measuredpolarization = self._polarizer.read_position() * 2
+        self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
         self._fig, (self._ax1, self._ax2) = plt.subplots(2)
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
@@ -56,6 +57,7 @@ class HeatingScan:
         self._writer.writerow(['x center:', self._xc])
         self._writer.writerow(['y center:', self._yc])
         self._writer.writerow(['polarization:', self._polarization])
+        self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
         self._writer.writerow(['applied voltage (V):', self._sr7270_top.read_applied_voltage()[0]])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()[0]])

@@ -13,8 +13,8 @@ from os import path
 
 
 class ThermovoltageScan:
-    def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc, polarization,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter):
+    def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer):
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -26,7 +26,9 @@ class ThermovoltageScan:
         self._xr = xr  # x range
         self._xc = xc  # x center position
         self._yc = yc  # y center position
-        self._polarization = polarization
+        self._polarizer = polarizer
+        self._measuredpolarization = self._polarizer.read_position() * 2
+        self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
         self._fig, (self._ax1, self._ax2) = plt.subplots(2)
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
@@ -55,6 +57,7 @@ class ThermovoltageScan:
         self._writer.writerow(['x center:', self._xc])
         self._writer.writerow(['y center:', self._yc])
         self._writer.writerow(['polarization:', self._polarization])
+        self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
