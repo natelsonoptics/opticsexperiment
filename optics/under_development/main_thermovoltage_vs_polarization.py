@@ -46,14 +46,14 @@ if __name__ == "__main__":
             min_voltage_x = 0
             max_voltage_y = 0
             min_voltage_y = 0
-            waveplate_angle = int(round(float(str(polarizer.read_position())))) % 360
+            waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
             max_angle = waveplate_angle + 180
             for i in range(waveplate_angle, max_angle):
                 if i > 360:
                     i = i - 360
                 polarizer.move(i)
                 time.sleep(1.5)
-                polarization = float(str(polarizer.read_position())) * 2  #  converts waveplate angle to polarizaiton angle
+                polarization = float(str(polarizer.read_waveplate_position())) * 2  #  converts waveplate angle to polarizaiton angle
                 voltages = [conversions.convert_x_to_iphoto(x, args.gain) for x in sr7270_bottom.read_xy()]
                 time_now = time.time()- start_time
                 w.writerow([time_now, polarization, voltages[0], voltages[1]])

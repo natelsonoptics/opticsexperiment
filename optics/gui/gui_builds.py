@@ -5,10 +5,10 @@ import tkinter.filedialog
 
 import numpy as np
 
-from optics.heating_measurement.heating_scan import HeatingScan
+from optics.heating_measurement.heating_map import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
+from optics.thermovoltage_measurement.thermovoltage_map import ThermovoltageScan
 from optics.thermovoltage_measurement.thermovoltage_polarization import ThermovoltagePolarization
-from optics.thermovoltage_measurement.thermovoltage_scan import ThermovoltageScan
 from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
 
 
@@ -92,6 +92,15 @@ class SetupGUI:
                                 self._powermeter)
         run.main()
 
+    def r_theta_time(self, event=None):
+        self.fetch(event)
+        run = RThetaTime(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+                                int(self._inputs['scan']), float(self._inputs['gain']),
+                                float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
+                                float(self._inputs['polarization']), self._npc3sg_input, self._sr7270_bottom,
+                                self._powermeter)
+        run.main()
+
     def step(self, direction):
         self.fetch()
         self._attenuatorwheel.step(int(self._inputs['steps']), direction=direction)
@@ -109,10 +118,10 @@ class SetupGUI:
 
     def readpolarization(self):
         self._textbox.delete(1.0, tk.END)
-        self._textbox.insert(tk.END, self._polarizer.read_position() * 2)
+        self._textbox.insert(tk.END, self._polarizer.read_waveplate_position() * 2)
         self._textbox.pack()
         self._textbox2.delete(1.0, tk.END)
-        self._textbox2.insert(tk.END, (self._polarizer.read_position() % 180) * 2)
+        self._textbox2.insert(tk.END, (self._polarizer.read_waveplate_position() % 180) * 2)
         self._textbox2.pack()
 
     def homepolarizer(self):
@@ -197,14 +206,14 @@ class SetupGUI:
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
         self._textbox = tk.Text(row, height=1, width=10)
-        self._textbox.insert(tk.END, self._polarizer.read_position() * 2)
+        self._textbox.insert(tk.END, self._polarizer.read_waveplate_position() * 2)
         self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
         row = tk.Frame(self._master)
         lab = tk.Label(row, width=15, text='modulus polarization', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
         self._textbox2 = tk.Text(row, height=1, width=10)
-        self._textbox2.insert(tk.END, (self._polarizer.read_position() % 90) * 2)
+        self._textbox2.insert(tk.END, (self._polarizer.read_waveplate_position() % 90) * 2)
         self._textbox2.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
         b1 = tk.Button(self._master, text='Change polarization', command=self.changepolarization)
         b1.pack(side=tk.LEFT, padx=5, pady=5)

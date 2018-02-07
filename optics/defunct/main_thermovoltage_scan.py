@@ -1,11 +1,10 @@
 from optics.hardware_control import sr7270, npc3sg_analog, hardware_addresses_and_constants, pm100d
-from optics.heating_measurement.heating_scan import HeatingScan
+from optics.thermovoltage_measurement.thermovoltage_map import ThermovoltageScan
 
 
 if __name__ == "__main__":
     import argparse
-    import argparse
-    parser = argparse.ArgumentParser(description='sweep scan iphotoX. Press CTRL+C to quit')
+    parser = argparse.ArgumentParser(description='sweep scan thermovoltage. Press CTRL+C to quit')
     parser.add_argument("-f", metavar='data directory', type=str, help='directory for data files')
     parser.add_argument("-xc", metavar='x_center', type=float, help='x center position. default: 80', default=80)
     parser.add_argument("-yc", metavar='y_center', type=float, help='y center position. default: 80', default=80)
@@ -18,8 +17,6 @@ if __name__ == "__main__":
     parser.add_argument("-device", metavar='device', type=str, help='device name')
     parser.add_argument("-scan", metavar='scan', type=int, help="scan number", default=0)
     parser.add_argument("-notes", metavar='notes', type=str, help='notes must be in double quotation marks')
-    parser.add_argument("-bias", metavar='bias', type=float, help="DC bias in millivolts")
-    parser.add_argument("-osc", metavar='osc', type=float, help="oscillator amplitude in mV")
     args = parser.parse_args()
 
     with npc3sg_analog.create_ao_task(hardware_addresses_and_constants.ao_x) as npc3sg_x, \
@@ -30,9 +27,10 @@ if __name__ == "__main__":
                     as (sr7270_top, sr7270_bottom), \
             pm100d.connect(hardware_addresses_and_constants.pm100d_address) as powermeter:
         try:
-            heating_scan = HeatingScan(args.f, args.notes, args.device, args.scan, args.gain, args.bias, args.osc,
-                                       args.xd, args.yd, args.xr, args.yr, args.xc, args.yc, args.pol, npc3sg_x,
-                                       npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter)
-            heating_scan.main()
+            thermovoltage_scan = ThermovoltageScan(args.f, args.notes, args.device, args.scan, args.gain, args.xd,
+                                                   args.yd, args.xr, args.yr, args.xc, args.yc, args.pol,
+                                                   npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom,
+                                                   powermeter)
+            thermovoltage_scan.main()
         except KeyboardInterrupt:
             print('aborted via keyboard interrupt')
