@@ -16,7 +16,10 @@ from PyDAQmx.DAQmxConstants import *
 # from PyDAQmx.DAQmxConstants import *
 
 
-class MultiChannelAnalogInput():
+
+
+
+class MultiChannelAnalogInput:
     """Class to create a multi-channel analog input
 
     Usage: AI = MultiChannelInput(physicalChannel)

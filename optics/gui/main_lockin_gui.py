@@ -3,8 +3,8 @@ matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 import tkinter as tk
 import tkinter.filedialog
 import numpy as np
-from optics.hardware_control import attenuator_wheel, pm100d, hardware_addresses_and_constants, sr7270, npc3sg_analog, \
-    polarizercontroller, daq
+from optics.hardware_control import attenuator_wheel, pm100d, sr7270, npc3sg, polarizercontroller, daq
+import optics.hardware_control.hardware_addresses_and_constants as hw
 from optics.heating_measurement.heating_map import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
 from optics.thermovoltage_measurement.thermovoltage_polarization import ThermovoltagePolarization
@@ -508,17 +508,13 @@ class LockinMeasurementGUI:
 
 
 def main():
-    with npc3sg_analog.create_ao_task(hardware_addresses_and_constants.ao_x) as npc3sg_x, \
-            npc3sg_analog.create_ao_task(hardware_addresses_and_constants.ao_y) as npc3sg_y, \
-            npc3sg_analog.create_ai_task(hardware_addresses_and_constants.ai_x, hardware_addresses_and_constants.ai_y) \
-                    as npc3sg_input, \
-            sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) \
-                    as (sr7270_top, sr7270_bottom), \
-            pm100d.connect(hardware_addresses_and_constants.pm100d_address) as powermeter, \
-            polarizercontroller.connect_kdc101(hardware_addresses_and_constants.kdc101_serial_number) as polarizer, \
-            attenuator_wheel.create_do_task(hardware_addresses_and_constants.attenuator_wheel_outputs) as \
-                    attenuatorwheel, daq.create_ai_task(hardware_addresses_and_constants.ai_dc1,
-                                                        hardware_addresses_and_constants.ai_dc2) as daq_input:
+    with daq.create_ao_task(hw.ao_x) as npc3sg_x, daq.create_ao_task(hw.ao_y) as npc3sg_y, \
+            npc3sg.connect_input([hw.ai_x, hw.ai_y]) as npc3sg_input, \
+            sr7270.create_endpoints(hw.vendor, hw.product) as (sr7270_top, sr7270_bottom), \
+            pm100d.connect(hw.pm100d_address) as powermeter, \
+            polarizercontroller.connect_kdc101(hw.kdc101_serial_number) as polarizer, \
+            attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs) as attenuatorwheel, \
+            daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000) as daq_input:
         root = tk.Tk()
         app = BaseGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
                       sr7270_top=sr7270_top, sr7270_bottom=sr7270_bottom, powermeter=powermeter,

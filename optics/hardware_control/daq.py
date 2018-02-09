@@ -5,9 +5,9 @@ import PyDAQmx
 from PyDAQmx import Task
 from PyDAQmx.DAQmxFunctions import *
 from PyDAQmx.DAQmxConstants import *
-from PyDAQmx.DAQmxConstants import DAQmx_Val_RSE, DAQmx_Val_Volts, DAQmx_Val_GroupByChannel
 
-# if you get errors, make sure that these are your imported modules after you commit:
+# if you get errors, make sure that these are your imported modules after you commit because "optimizing imports" means
+# that some of these will get skipped:
 # import contextlib
 # import time
 # import PyDAQmx
@@ -29,7 +29,9 @@ class MultiChannelAnalogInput:
         readAll(), return a dictionary name:value
     """
 
-    def __init__(self, physicalChannel, limit=None, reset=False):
+    def __init__(self, physicalChannel, limit=None, reset=False, points=1, average=True):
+        self._points = points
+        self._average = average
         if type(physicalChannel) == type(""):
             self.physicalChannel = [physicalChannel]
         else:
@@ -62,27 +64,32 @@ class MultiChannelAnalogInput:
             name = self.physicalChannel[0]
         taskHandle = self.taskHandles[name]
         DAQmxStartTask(taskHandle)
-        data = numpy.zeros(1000)
+        data = numpy.zeros(self._points)
         #        data = AI_data_type()
         read = int32()
-        DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByChannel, data, 1000, byref(read), None)
+        DAQmxReadAnalogF64(taskHandle, self._points, 10.0, DAQmx_Val_GroupByChannel, data, self._points, byref(read),
+                           None)
         DAQmxStopTask(taskHandle)
-        return np.average(data)
+        if self._average:
+            return np.average(data)
+        else:
+            return data
 
 
 class AnalogInput:
-    def __init__(self, multiple_ai):
+    def __init__(self, multiple_ai, sleep=0.1):
         self._multiple_ai = multiple_ai
+        self._sleep = sleep
 
     def read(self):
-        time.sleep(0.1)
+        time.sleep(self._sleep)
         voltage = self._multiple_ai.readAll()
         return [voltage[i] for i in voltage]
 
 
 @contextlib.contextmanager
-def create_ai_task(ai_daq, ai_daq2):
-    multiple_ai = MultiChannelAnalogInput([ai_daq, ai_daq2])
+def create_ai_task(ai_channels, points=1):
+    multiple_ai = MultiChannelAnalogInput(ai_channels, points=1)
     multiple_ai.configure()
     try:
         yield AnalogInput(multiple_ai)
@@ -101,11 +108,11 @@ class AnalogOutput:
 
 
 @contextlib.contextmanager
-def create_ao_task(channel):
+def create_ao_task(ao_channel):
     task = Task()
-    task.CreateAOVoltageChan(channel, "", -10.0, 10.0, PyDAQmx.DAQmx_Val_Volts, None)
+    task.CreateAOVoltageChan(ao_channel, "", -10.0, 10.0, PyDAQmx.DAQmx_Val_Volts, None)
     task.StartTask()
     try:
-        yield Controller(task)
+        yield AnalogOutput(task)
     finally:
         task.StopTask()
