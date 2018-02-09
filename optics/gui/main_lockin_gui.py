@@ -4,7 +4,7 @@ import tkinter as tk
 import tkinter.filedialog
 import numpy as np
 from optics.hardware_control import attenuator_wheel, pm100d, hardware_addresses_and_constants, sr7270, npc3sg_analog, \
-    polarizercontroller
+    polarizercontroller, daq
 from optics.heating_measurement.heating_map import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
 from optics.thermovoltage_measurement.thermovoltage_polarization import ThermovoltagePolarization
@@ -13,10 +13,12 @@ from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTim
 from optics.heating_measurement.heating_time import HeatingTime
 from optics.heating_measurement.heating_intensity import HeatingIntensity
 from optics.heating_measurement.heating_polarization import HeatingPolarization
+from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
 
 class BaseGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizer=None):
+                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizer=None,
+                 daq_input=None):
         self._master = master
         self._master.title('Optics setup measurements')
         self._npc3sg_x = npc3sg_x
@@ -27,6 +29,7 @@ class BaseGUI:
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
         self._polarizer = polarizer
+        self._daq_input = daq_input
         self._newWindow = None
         self._app = None
 
@@ -35,10 +38,13 @@ class BaseGUI:
         self._app = LockinMeasurementGUI(self._newWindow, npc3sg_x=self._npc3sg_x, npc3sg_y=self._npc3sg_y,
                                          npc3sg_input=self._npc3sg_input, sr7270_top=self._sr7270_top,
                                          sr7270_bottom=self._sr7270_bottom, powermeter=self._powermeter,
-                                         attenuatorwheel=self._attenuatorwheel, polarizer=self._polarizer)
+                                         attenuatorwheel=self._attenuatorwheel, polarizer=self._polarizer,
+                                         daq_input=self._daq_input)
         measurement = {'heatmap': self._app.build_heating_scan_gui,
                        'ptemap': self._app.build_thermovoltage_scan_gui,
-                       'heatpolarization': self._app.build_heating_polarization_gui(),
+                       'ptemapdc': self._app.build_thermovoltage_scan_dc_gui,
+                       'heatpolarization': self._app.build_heating_polarization_gui,
+                       'ptepolarization': self._app.build_thermovoltage_polarization_gui,
                        'heatintensity': self._app.build_heating_intensity_gui,
                        'pteintensity': self._app.build_thermovoltage_intensity_gui,
                        'heattime': self._app.build_heating_time_gui,
@@ -59,6 +65,14 @@ class BaseGUI:
         b2 = tk.Button(row, text='heating',
                        command=lambda measurementtype='heatmap': self.new_window(measurementtype))
         b2.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=20, text='DC map scans', anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        b13 = tk.Button(row, text='thermovoltage',
+                       command=lambda measurementtype='ptemapdc': self.new_window(measurementtype))
+        b13.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
         row = tk.Frame(self._master)
         lab = tk.Label(row, width=20, text='polarization scans', anchor='w')
@@ -113,7 +127,8 @@ class BaseGUI:
 
 class LockinMeasurementGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizer=None):
+                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizer=None,
+                 daq_input=None):
         self._master = master
         self._fields = {}
         self._entries = []
@@ -130,6 +145,7 @@ class LockinMeasurementGUI:
         self._textbox2 = None
         self._filepath = tk.StringVar()
         self._browse_button = tk.Button(self._master, text="Browse", command=self.onclick_browse)
+        self._daq_input = daq_input
 
     def makeform(self):
         for key in self._fields:
@@ -155,11 +171,23 @@ class LockinMeasurementGUI:
     def thermovoltage_scan(self, event=None):
         self.fetch(event)
         run = ThermovoltageScan(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                int(self._inputs['scan']), float(self._inputs['gain']), int(self._inputs['x pixel density']),
-                                int(self._inputs['y pixel density']), int(self._inputs['x range']),
-                                int(self._inputs['y range']), int(self._inputs['x center']), int(self._inputs['y center']),
-                                self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
-                                self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer)
+                                int(self._inputs['scan']), float(self._inputs['gain']),
+                                int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
+                                int(self._inputs['x range']), int(self._inputs['y range']),
+                                int(self._inputs['x center']), int(self._inputs['y center']), self._npc3sg_x,
+                                self._npc3sg_y, self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
+                                self._powermeter, self._polarizer)
+        run.main()
+
+    def thermovoltage_scan_dc(self, event=None):
+        self.fetch(event)
+        run = ThermovoltageScanDC(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+                                  int(self._inputs['scan']), float(self._inputs['gain']),
+                                  int(self._inputs['x pixel density']),
+                                  int(self._inputs['y pixel density']), int(self._inputs['x range']),
+                                  int(self._inputs['y range']), int(self._inputs['x center']),
+                                  int(self._inputs['y center']), self._npc3sg_x, self._npc3sg_y, self._daq_input,
+                                  self._powermeter, self._polarizer)
         run.main()
 
     def heating_scan(self, event=None):
@@ -278,6 +306,21 @@ class LockinMeasurementGUI:
         b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
         b2.pack(side=tk.LEFT, padx=5, pady=5)
 
+    def build_thermovoltage_scan_dc_gui(self):
+        caption = "DC thermovoltage map scan"
+        self._master.title(caption)
+        label = tk.Label(self._master, text=caption)
+        label.pack()
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'x pixel density': 15,
+                        'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
+        self._browse_button.pack()
+        self.makeform()
+        self._master.bind('<Return>', self.thermovoltage_scan_dc)
+        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_scan_dc)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
+        b2.pack(side=tk.LEFT, padx=5, pady=5)
+
     def build_heating_scan_gui(self):
         caption = "Heating map scan"
         self._master.title(caption)
@@ -340,14 +383,14 @@ class LockinMeasurementGUI:
         self._fields = {'desired polarization': 90}
         self.makeform()
         row = tk.Frame(self._master)
-        lab = tk.Label(row, width=15, text='current polarization', anchor='w')
+        lab = tk.Label(row, width=20, text='current polarization', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
         self._textbox = tk.Text(row, height=1, width=10)
         self._textbox.insert(tk.END, self._polarizer.read_polarization())
         self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
         row = tk.Frame(self._master)
-        lab = tk.Label(row, width=15, text='modulus polarization', anchor='w')
+        lab = tk.Label(row, width=20, text='modulus polarization', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
         self._textbox2 = tk.Text(row, height=1, width=10)
@@ -392,19 +435,19 @@ class LockinMeasurementGUI:
         b2.pack(side=tk.LEFT, padx=5, pady=5)
 
     def build_heating_polarization_gui(self):
-        caption = "Heating vs. polarization"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'bias (mV)': 5,
-                        'oscillator amplitude (mV)': 7}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.thermovoltage_polarization)
-        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_polarization)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+       caption = "Heating vs. polarization"
+       self._master.title(caption)
+       label = tk.Label(self._master, text=caption)
+       label.pack()
+       self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'bias (mV)': 5,
+                       'oscillator amplitude (mV)': 7}
+       self._browse_button.pack()
+       self.makeform()
+       self._master.bind('<Return>', self.heating_polarization)
+       b1 = tk.Button(self._master, text='Run', command=self.heating_polarization)
+       b1.pack(side=tk.LEFT, padx=5, pady=5)
+       b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
+       b2.pack(side=tk.LEFT, padx=5, pady=5)
 
     def build_change_position_gui(self):
         caption = "Change laser position"
@@ -445,7 +488,7 @@ class LockinMeasurementGUI:
         self._master.title(caption)
         label = tk.Label(self._master, text=caption)
         label.pack()
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'steps': 2,
                         'rate (per second)': 3, 'max time (s)': 600, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
         self._browse_button.pack()
         self.makeform()
@@ -473,11 +516,13 @@ def main():
                     as (sr7270_top, sr7270_bottom), \
             pm100d.connect(hardware_addresses_and_constants.pm100d_address) as powermeter, \
             polarizercontroller.connect_kdc101(hardware_addresses_and_constants.kdc101_serial_number) as polarizer, \
-            attenuator_wheel.create_do_task(hardware_addresses_and_constants.attenuator_wheel_outputs) as attenuatorwheel:
+            attenuator_wheel.create_do_task(hardware_addresses_and_constants.attenuator_wheel_outputs) as \
+                    attenuatorwheel, daq.create_ai_task(hardware_addresses_and_constants.ai_dc1,
+                                                        hardware_addresses_and_constants.ai_dc2) as daq_input:
         root = tk.Tk()
         app = BaseGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
                       sr7270_top=sr7270_top, sr7270_bottom=sr7270_bottom, powermeter=powermeter,
-                      attenuatorwheel=attenuatorwheel, polarizer=polarizer)
+                      attenuatorwheel=attenuatorwheel, polarizer=polarizer, daq_input=daq_input)
         app.build()
         root.mainloop()
 

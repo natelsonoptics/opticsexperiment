@@ -6,6 +6,7 @@ import csv
 from optics.misc_utility import conversions
 import os
 from os import path
+import numpy as np
 
 class ThermovoltageTime:
     def __init__(self, filepath, notes, device, scan, gain, rate, maxtime,

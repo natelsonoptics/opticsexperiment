@@ -83,10 +83,16 @@ class HeatingPolarization:
             # converts waveplate angle to polarizaiton angle
             raw = self._sr7270_bottom.read_xy()
             self._iphoto = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
+            if abs(self._iphoto[0]) > self._max_iphoto_x:
+                self._max_iphoto_x = abs(self._iphoto[0])
+            if abs(self._iphoto[1]) > self._max_iphoto_y:
+                self._max_iphoto_y = abs(self._iphoto[1])
             time_now = time.time() - self._start_time
             self._writer.writerow([time_now, polarization, raw[0], raw[1], self._iphoto[0], self._iphoto[1]])
             self._ax1.scatter(conversions.degrees_to_radians(polarization), abs(self._iphoto[0]) * 1000, c='c', s=2)
+            self._ax1.set_rmax(self._max_iphoto_x * 1.1 * 1000)
             self._ax2.scatter(conversions.degrees_to_radians(polarization), abs(self._iphoto[1]) * 1000, c='c', s=2)
+            self._ax2.set_rmax(self._max_iphoto_y * 1.1 * 1000)
             plt.tight_layout()
             self._fig.canvas.draw()
 

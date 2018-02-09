@@ -1,9 +1,7 @@
 import contextlib
 import time
 
-import PyDAQmx
 import numpy as np
-from PyDAQmx import Task
 from PyDAQmx.DAQmxFunctions import *
 
 
@@ -52,12 +50,12 @@ class MultiChannelAnalogInput():
             name = self.physicalChannel[0]
         taskHandle = self.taskHandles[name]
         DAQmxStartTask(taskHandle)
-        data = numpy.zeros((1,), dtype=numpy.float64)
+        data = numpy.zeros(1000)
         #        data = AI_data_type()
         read = int32()
-        DAQmxReadAnalogF64(taskHandle, 1, 10.0, DAQmx_Val_GroupByChannel, data, 1, byref(read), None)
+        DAQmxReadAnalogF64(taskHandle, 1000, 10.0, DAQmx_Val_GroupByChannel, data, 1000, byref(read), None)
         DAQmxStopTask(taskHandle)
-        return data[0]
+        return np.average(data)
 
 
 class Reader:
@@ -67,64 +65,14 @@ class Reader:
     def read(self):
         time.sleep(0.1)
         voltage = self._multiple_ai.readAll()
-        return [voltage[i] / 10 * 160 for i in voltage]
+        return [voltage[i] for i in voltage]
 
 
 @contextlib.contextmanager
-def create_ai_task_with_daq_ai(ai_x, ai_y, ai_daq):
-    multiple_ai = MultiChannelAnalogInput([ai_x, ai_y, ai_daq])
+def create_ai_task(ai_daq, ai_daq2):
+    multiple_ai = MultiChannelAnalogInput([ai_daq, ai_daq2])
     multiple_ai.configure()
     try:
         yield Reader(multiple_ai)
     finally:
         print('done')
-
-
-class ReaderWithDAQAIChannel:
-    def __init__(self, multiple_ai):
-        self._multiple_ai = multiple_ai
-
-    def read(self):
-        time.sleep(0.1)
-        voltage = self._multiple_ai.readAll()
-        return [voltage[i] / 10 * 160 for i in voltage[0:2]], voltage[2]
-
-
-@contextlib.contextmanager
-def create_ai_task(ai_x, ai_y):
-    multiple_ai = MultiChannelAnalogInput([ai_x, ai_y])
-    multiple_ai.configure()
-    try:
-        yield Reader(multiple_ai)
-    finally:
-        print('done')
-
-
-class Controller:
-    def __init__(self, task):
-        self._task = task
-
-    def move(self, position):
-        voltage = np.clip((position / 160 * 10), 0, 10)  # converts to the voltage to analog control
-        # voltage range is 0-10 V
-        self._task.WriteAnalogScalarF64(1, 10.0, voltage, None)
-
-
-@contextlib.contextmanager
-def create_ao_task(channel):
-    task = Task()
-    task.CreateAOVoltageChan(channel, "", -10.0, 10.0, PyDAQmx.DAQmx_Val_Volts, None)
-    task.StartTask()
-    try:
-        yield Controller(task)
-    finally:
-        task.StopTask()
-
-
-
-
-
-
-
-
-

@@ -7,7 +7,6 @@ from optics.misc_utility import conversions
 import os
 from os import path
 
-
 class ThermovoltagePolarization:
     def __init__(self, filepath, notes, device, scan, gain, npc3sg_input, sr7270_bottom, powermeter,
                  polarizer):
@@ -28,9 +27,7 @@ class ThermovoltagePolarization:
         self._ax1 = self._fig.add_subplot(211, projection='polar')
         self._ax2 = self._fig.add_subplot(212, projection='polar')
         self._max_voltage_x = 0
-        self._min_voltage_x = 0
         self._max_voltage_y = 0
-        self._min_voltage_y = 0
         self._voltages = None
         self._waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
@@ -71,10 +68,18 @@ class ThermovoltagePolarization:
             # converts waveplate angle to polarizaiton angle
             raw = self._sr7270_bottom.read_xy()
             self._voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
+            if abs(self._voltages[0]) > self._max_voltage_x:
+                self._max_voltage_x = abs(self._voltages[0])
+            if abs(self._voltages[1]) > self._max_voltage_y:
+                self._max_voltage_y = abs(self._voltages[1])
             time_now = time.time() - self._start_time
             self._writer.writerow([time_now, polarization, raw[0], raw[1], self._voltages[0], self._voltages[1]])
-            self._ax1.scatter(conversions.degrees_to_radians(polarization), abs(self._voltages[0]) * 1000000, c='c', s=2)
-            self._ax2.scatter(conversions.degrees_to_radians(polarization), abs(self._voltages[1]) * 1000000, c='c', s=2)
+            self._ax1.scatter(conversions.degrees_to_radians(polarization), abs(self._voltages[0]) * 1000000,
+                              c='c', s=2)
+            self._ax1.set_rmax(self._max_voltage_x * 1000000 * 1.1)
+            self._ax2.scatter(conversions.degrees_to_radians(polarization), abs(self._voltages[1]) * 1000000,
+                              c='c', s=2)
+            self._ax2.set_rmax(self._max_voltage_y * 1000000 * 1.1)
             plt.tight_layout()
             self._fig.canvas.draw()
 

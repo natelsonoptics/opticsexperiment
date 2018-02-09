@@ -122,6 +122,6 @@ class PolarizerController:
         calibrated_position = float(str(self._device.Position)) / self._polarizer_offset
         return calibrated_position  # polarization is 2 times this value!
 
-    def read_polarization_angle(self, wait_ms=0):
-        waveplate = self.read_polarization_angle(wait_ms)
+    def read_polarization(self, wait_ms=0):
+        waveplate = self.read_waveplate_position(wait_ms)
         return waveplate * 2
