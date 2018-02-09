@@ -1,11 +1,22 @@
 import contextlib
 import time
-
 import numpy as np
+import PyDAQmx
 from PyDAQmx.DAQmxFunctions import *
+from PyDAQmx.DAQmxConstants import *
+from PyDAQmx.DAQmxConstants import DAQmx_Val_RSE, DAQmx_Val_Volts, DAQmx_Val_GroupByChannel
+
+# if you get errors, make sure that these are your imported modules after you commit:
+# import contextlib
+# import time
+# import PyDAQmx
+# import numpy as np
+# from PyDAQmx import Task
+# from PyDAQmx.DAQmxFunctions import *
+# from PyDAQmx.DAQmxConstants import *
 
 
-class MultiChannelAnalogInput():
+class MultiChannelAnalogInput:
     """Class to create a multi-channel analog input
 
     Usage: AI = MultiChannelInput(physicalChannel)
@@ -58,7 +69,7 @@ class MultiChannelAnalogInput():
         return np.average(data)
 
 
-class Reader:
+class AnalogInput:
     def __init__(self, multiple_ai):
         self._multiple_ai = multiple_ai
 
@@ -73,6 +84,27 @@ def create_ai_task(ai_daq, ai_daq2):
     multiple_ai = MultiChannelAnalogInput([ai_daq, ai_daq2])
     multiple_ai.configure()
     try:
-        yield Reader(multiple_ai)
+        yield AnalogInput(multiple_ai)
     finally:
         print('done')
+
+
+class AnalogOutput:
+    def __init__(self, task):
+        self._task = task
+
+    def move(self, position):
+        voltage = np.clip((position / 160 * 10), 0, 10)  # converts to the voltage to analog control
+        # voltage range is 0-10 V
+        self._task.WriteAnalogScalarF64(1, 10.0, voltage, None)
+
+
+@contextlib.contextmanager
+def create_ao_task(channel):
+    task = Task()
+    task.CreateAOVoltageChan(channel, "", -10.0, 10.0, PyDAQmx.DAQmx_Val_Volts, None)
+    task.StartTask()
+    try:
+        yield Controller(task)
+    finally:
+        task.StopTask()
