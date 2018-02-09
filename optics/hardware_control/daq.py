@@ -2,6 +2,7 @@ import contextlib
 import time
 import numpy as np
 import PyDAQmx
+from PyDAQmx import Task
 from PyDAQmx.DAQmxFunctions import *
 from PyDAQmx.DAQmxConstants import *
 from PyDAQmx.DAQmxConstants import DAQmx_Val_RSE, DAQmx_Val_Volts, DAQmx_Val_GroupByChannel
