@@ -7,6 +7,16 @@ from PyDAQmx import Task
 from PyDAQmx.DAQmxFunctions import *
 
 
+# if you get errors, make sure that these are your imported modules after you commit:
+# import contextlib
+# import time
+# import PyDAQmx
+# import numpy as np
+# from PyDAQmx import Task
+# from PyDAQmx.DAQmxFunctions import *
+# from PyDAQmx.DAQmxConstants import *
+
+
 class MultiChannelAnalogInput():
     """Class to create a multi-channel analog input
 
