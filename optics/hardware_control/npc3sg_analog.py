@@ -69,27 +69,6 @@ class Reader:
         voltage = self._multiple_ai.readAll()
         return [voltage[i] / 10 * 160 for i in voltage]
 
-
-@contextlib.contextmanager
-def create_ai_task_with_daq_ai(ai_x, ai_y, ai_daq):
-    multiple_ai = MultiChannelAnalogInput([ai_x, ai_y, ai_daq])
-    multiple_ai.configure()
-    try:
-        yield Reader(multiple_ai)
-    finally:
-        print('done')
-
-
-class ReaderWithDAQAIChannel:
-    def __init__(self, multiple_ai):
-        self._multiple_ai = multiple_ai
-
-    def read(self):
-        time.sleep(0.1)
-        voltage = self._multiple_ai.readAll()
-        return [voltage[i] / 10 * 160 for i in voltage[0:2]], voltage[2]
-
-
 @contextlib.contextmanager
 def create_ai_task(ai_x, ai_y):
     multiple_ai = MultiChannelAnalogInput([ai_x, ai_y])
