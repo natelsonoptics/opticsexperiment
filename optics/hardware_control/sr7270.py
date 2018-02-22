@@ -119,6 +119,10 @@ class LockIn:
         self._ep0.write('tc1 ' + str(tc_value[seconds]))
         LockIn.read(self)  # throws away junk
 
+    def read_r_theta(self):
+        self._ep0.write('mp.')
+        return LockIn.read(self)
+
 
 
 

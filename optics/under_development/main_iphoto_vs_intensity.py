@@ -1,6 +1,6 @@
 import matplotlib
 
-from optics.hardware_control import sr7270, pm100d, npc3sg_analog, stepper, hardware_addresses_and_constants
+from optics.hardware_control import sr7270, pm100d, npc3sg_analog, attenuator_wheel, hardware_addresses_and_constants
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -39,11 +39,11 @@ if __name__ == "__main__":
     parser.add_argument("-osc", metavar='osc', type=float, help="oscillator amplitude in mV. optional")
     args = parser.parse_args()
 
-    with stepper.create_do_task(hardware_addresses_and_constants.stepper_outputs) as motor, \
+    with attenuator_wheel.create_do_task(hardware_addresses_and_constants.attenuator_wheel_outputs) as motor, \
             sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) as (sr7270_top, sr7270_bottom), \
             open(args.f, 'w', newline='') as fn,  \
             npc3sg_analog.create_ai_task(hardware_addresses_and_constants.ai_x, hardware_addresses_and_constants.ai_y) as npc3sg_input, \
-            pm100d.connect(hardware_addresses_and_constants.pm100_address) as power_meter:
+            pm100d.connect(hardware_addresses_and_constants.pm100d_address) as power_meter:
         try:
             start_time = time.time()
             w = csv.writer(fn)

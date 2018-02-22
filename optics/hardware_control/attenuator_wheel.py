@@ -1,10 +1,12 @@
-from PyDAQmx.DAQmxFunctions import *
-from PyDAQmx.DAQmxConstants import *
-import PyDAQmx
 import contextlib
-from PyDAQmx import Task
-import numpy as np
 import time
+
+import PyDAQmx
+import numpy as np
+from PyDAQmx import Task
+from PyDAQmx.DAQmxConstants import *
+from PyDAQmx.DAQmxFunctions import *
+
 
 class Stepper:
     def __init__(self, task):
@@ -14,11 +16,10 @@ class Stepper:
         # True moves forward, False moves backward
         if wait < 0.005:
             wait = 0.005
-        #steps = np.int(np.ceil(degrees * 75 / 360)) # one full rotation is 75 steps
         data1 = np.array([1, 0, 1, 0], dtype=np.uint8)
         data2 = np.array([0, 1, 1, 0], dtype=np.uint8)
         data3 = np.array([0, 1, 0, 1], dtype=np.uint8)
-        data4 =np.array([1, 0, 0, 1], dtype=np.uint8)
+        data4 = np.array([1, 0, 0, 1], dtype=np.uint8)
         forward = [data1, data2, data3, data4]
         time.sleep(0.5)
         for i in range(steps):

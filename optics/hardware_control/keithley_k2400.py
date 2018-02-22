@@ -1,5 +1,7 @@
-import visa
 import contextlib
+
+import visa
+
 
 @contextlib.contextmanager
 def connect(address):
@@ -21,6 +23,7 @@ class SourceMeter:
         self._inst.write(":SOUR:VOLT:MODE FIXED")
         self._inst.write(':SOUR:VOLT:RANG 1')
         self._inst.write(':SENS:CURR:PROT 0.1')  # sets compliance to 100 mA
+        self._inst.write(':SENS:CURR:RANG 0.1')
 
     def measure_current(self):
         # self._inst.write(':SENS:CURR:RANG 0.1')
