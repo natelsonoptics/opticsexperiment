@@ -13,31 +13,6 @@ def thermovoltagemapplot(voltage, plotlabel, max_val=None, min_val=None):
     im.set_clim(min_val, max_val)
     plt.show()
 
-# basepath = 'C:\\Users\\NatLabUser\\Desktop\\data\\2017\\Nov 17\\main_thermovoltage_measurement\\16e_mg_2_mg_e5\\'
-# files = [1, 4, 5, 8, 9, 12, 13, 16, 19]
-# filepaths = [basepath + str(f) + '.csv' for f in files]
-#
-# with open(filepaths[0]) as fin:
-#     header = {}
-#     for i, line in enumerate(fin):
-#         key, value = (token.strip() for token in line.split(":,", maxsplit=1))
-#         header[key] = value
-#         if i >= 7:
-#             break
-#     data = pd.read_csv(fin, sep=',')
-#     voltages = data['x_v'].values.reshape(int(header['y scan density']), int(header['x scan density']))
-# for f in filepaths[1:]:
-#     with open(f) as fin:
-#         for i, line in enumerate(fin):
-#             key, value = (token.strip() for token in line.split(":,", maxsplit=1))
-#             header[key] = value
-#             if i >= 7:
-#                 break
-#         data = pd.read_csv(fin, sep=',')
-#         voltage = data['x_v'].values.reshape(int(header['y scan density']), int(header['x scan density']))
-#         voltages = np.concatenate([voltages, voltage])
-# thermovoltagemapplot(voltages.T*1000000, "test", max_val=5, min_val=-5)
-
 
 if __name__ == "__main__":
     import argparse

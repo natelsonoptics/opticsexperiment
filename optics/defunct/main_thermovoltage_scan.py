@@ -1,6 +1,6 @@
-from optics.hardware_control import sr7270, npc3sg_analog, hardware_addresses_and_constants, pm100d
+from optics.defunct import npc3sg_analog
+from optics.hardware_control import sr7270, hardware_addresses_and_constants, pm100d
 from optics.thermovoltage_measurement.thermovoltage_map import ThermovoltageScan
-
 
 if __name__ == "__main__":
     import argparse

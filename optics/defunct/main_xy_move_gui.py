@@ -1,7 +1,8 @@
 import tkinter as tk
 
+from optics.defunct import npc3sg_analog
 from optics.gui.gui_builds import SetupGUI
-from optics.hardware_control import npc3sg_analog, hardware_addresses_and_constants
+from optics.hardware_control import hardware_addresses_and_constants
 
 if __name__ == '__main__':
     with npc3sg_analog.create_ao_task(hardware_addresses_and_constants.ao_x) as npc3sg_x, \

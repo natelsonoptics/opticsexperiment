@@ -112,6 +112,24 @@ class ThermovoltageScan:
         self._npc3sg_x.move(0)
         self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
 
+    def run_scan_reverse(self):
+        for y_ind, i in enumerate(reversed(self._y_val)):
+            self._npc3sg_y.move(i)
+            for x_ind, j in enumerate(reversed(self._x_val)):
+                self._npc3sg_x.move(j)
+                time.sleep(0.3)
+                raw = self._sr7270_bottom.read_xy()
+                voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
+                self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])
+                self._z1[x_ind][y_ind] = voltages[0] * 1000000
+                self._z2[x_ind][y_ind] = voltages[1] * 1000000
+                self.update_plot(self._im1, self._z1, -np.amax(np.abs(self._z1)), np.amax(np.abs(self._z1)))
+                self.update_plot(self._im2, self._z2, -np.amax(np.abs(self._z2)), np.amax(np.abs(self._z2)))
+                plt.tight_layout()
+                self._fig.canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
+        self._npc3sg_x.move(0)
+        self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
+
     def main(self):
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile:

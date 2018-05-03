@@ -1,6 +1,7 @@
 import matplotlib
 
-from optics.hardware_control import sr7270, pm100d, npc3sg_analog, attenuator_wheel, hardware_addresses_and_constants
+from optics.defunct import npc3sg_analog
+from optics.hardware_control import sr7270, pm100d, attenuator_wheel, hardware_addresses_and_constants
 
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt

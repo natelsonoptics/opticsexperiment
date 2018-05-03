@@ -1,4 +1,5 @@
-from optics.hardware_control import npc3sg_analog, hardware_addresses_and_constants
+from optics.defunct import npc3sg_analog
+from optics.hardware_control import hardware_addresses_and_constants
 
 if __name__ == "__main__":
     import argparse

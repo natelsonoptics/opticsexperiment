@@ -1,6 +1,7 @@
 import matplotlib
 matplotlib.use('TkAgg')
-from optics.hardware_control import sr7270, npc3sg_analog, polarizercontroller, hardware_addresses_and_constants
+from optics.hardware_control import sr7270, polarizercontroller, hardware_addresses_and_constants
+from optics.defunct import npc3sg_analog
 import matplotlib.pyplot as plt
 import time
 import csv

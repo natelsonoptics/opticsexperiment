@@ -2,7 +2,8 @@ import time
 
 import numpy as np
 
-from optics.hardware_control import sr7270, npc3sg_analog, hardware_addresses_and_constants
+from optics.defunct import npc3sg_analog
+from optics.hardware_control import sr7270, hardware_addresses_and_constants
 from optics.misc_utility import parser_tool, conversions
 
 if __name__ == "__main__":
