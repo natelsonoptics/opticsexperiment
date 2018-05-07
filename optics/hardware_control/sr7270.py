@@ -51,9 +51,6 @@ class LockIn:
     def read(self):
         return parser_tool.parse(''.join(chr(x) for x in self._dev.read(self._ep1, 100, 100)))
 
-    #def read_dev(self):
-    #    return self._dev.read(self._ep1, 100, 100)
-
     def change_applied_voltage(self, millivolts):
         self._ep0.write('dac 3 ' + str(millivolts / 10))
         LockIn.read(self)  # throws away junk

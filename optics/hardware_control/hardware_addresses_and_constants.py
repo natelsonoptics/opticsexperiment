@@ -12,3 +12,5 @@ keithley_address = 'GPIB12::12::INSTR'
 tdc001_serial_number = 83825803
 kdc101_serial_number = 27251504
 polarizer_offset = 1.183  # set to 1 if no offset - it's multiplicative
+cryostation_port = 7773
+cryostation_ip_address = '169.254.116.144'
