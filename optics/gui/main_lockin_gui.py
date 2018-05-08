@@ -54,73 +54,37 @@ class BaseGUI:
                        'polarization': self._app.build_change_polarization_gui}
         measurement[measurementtype]()
 
-    def build(self):
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='map scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b1 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptemap': self.new_window(measurementtype))
+    def makebutton(self, master, text, measurement_type):
+        b1 = tk.Button(master, text=text,
+                       command=lambda measurementtype=measurement_type: self.new_window(measurementtype))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b2 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heatmap': self.new_window(measurementtype))
-        b2.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
+    def makerow(self, title):
         row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='DC map scans', anchor='w')
+        lab = tk.Label(row, width=20, text=title, anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
-        b13 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptemapdc': self.new_window(measurementtype))
-        b13.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        return row
 
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='polarization scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b3 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptepolarization': self.new_window(measurementtype))
-        b3.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b4 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heatpolarization': self.new_window(measurementtype))
-        b4.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='intensity scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b5 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='pteintensity': self.new_window(measurementtype))
-        b5.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b6 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heatintensity': self.new_window(measurementtype))
-        b6.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='time scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b7 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptetime': self.new_window(measurementtype))
-        b7.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b8 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heattime': self.new_window(measurementtype))
-        b8.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='change parameters', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b9 = tk.Button(row, text='position',
-                       command=lambda measurementtype='position': self.new_window(measurementtype))
-        b9.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b10 = tk.Button(row, text='intensity',
-                       command=lambda measurementtype='intensity': self.new_window(measurementtype))
-        b10.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b11 = tk.Button(row, text='polarization',
-                       command=lambda measurementtype='polarization': self.new_window(measurementtype))
-        b11.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
+    def build(self):
+        row = self.makerow('map scans')
+        self.makebutton(row, 'thermovoltage', 'ptemap')
+        self.makebutton(row, 'heating', 'heatmap')
+        row = self.makerow('DC map scans')
+        self.makebutton(row, 'thermovoltage', 'ptemapdc')
+        row = self.makerow('polarization scans')
+        self.makebutton(row, 'thermovoltage', 'ptepolarization')
+        self.makebutton(row, 'heating', 'heatpolarization')
+        row = self.makerow('intensity scans')
+        self.makebutton(row, 'thermovoltage', 'pteintensity')
+        self.makebutton(row, 'heating', 'heatintensity')
+        row = self.makerow('time scans')
+        self.makebutton(row, 'thermovoltage', 'ptetime')
+        self.makebutton(row, 'heating', 'heattime')
+        row = self.makerow('change parameters')
+        self.makebutton(row, 'position', 'position')
+        self.makebutton(row, 'intensity', 'intensity')
+        self.makebutton(row, 'polarization', 'polarization')
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
 
