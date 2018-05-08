@@ -54,7 +54,7 @@ class BaseGUI:
                        'polarization': self._app.build_change_polarization_gui}
         measurement[measurementtype]()
 
-    def makebutton(self, master, text, measurement_type):
+    def make_measurement_button(self, master, text, measurement_type):
         b1 = tk.Button(master, text=text,
                        command=lambda measurementtype=measurement_type: self.new_window(measurementtype))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
@@ -68,23 +68,23 @@ class BaseGUI:
 
     def build(self):
         row = self.makerow('map scans')
-        self.makebutton(row, 'thermovoltage', 'ptemap')
-        self.makebutton(row, 'heating', 'heatmap')
+        self.make_measurement_button(row, 'thermovoltage', 'ptemap')
+        self.make_measurement_button(row, 'heating', 'heatmap')
         row = self.makerow('DC map scans')
-        self.makebutton(row, 'thermovoltage', 'ptemapdc')
+        self.make_measurement_button(row, 'thermovoltage', 'ptemapdc')
         row = self.makerow('polarization scans')
-        self.makebutton(row, 'thermovoltage', 'ptepolarization')
-        self.makebutton(row, 'heating', 'heatpolarization')
+        self.make_measurement_button(row, 'thermovoltage', 'ptepolarization')
+        self.make_measurement_button(row, 'heating', 'heatpolarization')
         row = self.makerow('intensity scans')
-        self.makebutton(row, 'thermovoltage', 'pteintensity')
-        self.makebutton(row, 'heating', 'heatintensity')
+        self.make_measurement_button(row, 'thermovoltage', 'pteintensity')
+        self.make_measurement_button(row, 'heating', 'heatintensity')
         row = self.makerow('time scans')
-        self.makebutton(row, 'thermovoltage', 'ptetime')
-        self.makebutton(row, 'heating', 'heattime')
+        self.make_measurement_button(row, 'thermovoltage', 'ptetime')
+        self.make_measurement_button(row, 'heating', 'heattime')
         row = self.makerow('change parameters')
-        self.makebutton(row, 'position', 'position')
-        self.makebutton(row, 'intensity', 'intensity')
-        self.makebutton(row, 'polarization', 'polarization')
+        self.make_measurement_button(row, 'position', 'position')
+        self.make_measurement_button(row, 'intensity', 'intensity')
+        self.make_measurement_button(row, 'polarization', 'polarization')
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
 
