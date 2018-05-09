@@ -54,73 +54,37 @@ class BaseGUI:
                        'polarization': self._app.build_change_polarization_gui}
         measurement[measurementtype]()
 
-    def build(self):
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='map scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b1 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptemap': self.new_window(measurementtype))
+    def make_measurement_button(self, master, text, measurement_type):
+        b1 = tk.Button(master, text=text,
+                       command=lambda measurementtype=measurement_type: self.new_window(measurementtype))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b2 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heatmap': self.new_window(measurementtype))
-        b2.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
 
+    def makerow(self, title):
         row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='DC map scans', anchor='w')
+        lab = tk.Label(row, width=20, text=title, anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
-        b13 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptemapdc': self.new_window(measurementtype))
-        b13.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        return row
 
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='polarization scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b3 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptepolarization': self.new_window(measurementtype))
-        b3.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b4 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heatpolarization': self.new_window(measurementtype))
-        b4.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='intensity scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b5 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='pteintensity': self.new_window(measurementtype))
-        b5.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b6 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heatintensity': self.new_window(measurementtype))
-        b6.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='time scans', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b7 = tk.Button(row, text='thermovoltage',
-                       command=lambda measurementtype='ptetime': self.new_window(measurementtype))
-        b7.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b8 = tk.Button(row, text='heating',
-                       command=lambda measurementtype='heattime': self.new_window(measurementtype))
-        b8.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='change parameters', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        b9 = tk.Button(row, text='position',
-                       command=lambda measurementtype='position': self.new_window(measurementtype))
-        b9.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b10 = tk.Button(row, text='intensity',
-                       command=lambda measurementtype='intensity': self.new_window(measurementtype))
-        b10.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b11 = tk.Button(row, text='polarization',
-                       command=lambda measurementtype='polarization': self.new_window(measurementtype))
-        b11.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
+    def build(self):
+        row = self.makerow('map scans')
+        self.make_measurement_button(row, 'thermovoltage', 'ptemap')
+        self.make_measurement_button(row, 'heating', 'heatmap')
+        row = self.makerow('DC map scans')
+        self.make_measurement_button(row, 'thermovoltage', 'ptemapdc')
+        row = self.makerow('polarization scans')
+        self.make_measurement_button(row, 'thermovoltage', 'ptepolarization')
+        self.make_measurement_button(row, 'heating', 'heatpolarization')
+        row = self.makerow('intensity scans')
+        self.make_measurement_button(row, 'thermovoltage', 'pteintensity')
+        self.make_measurement_button(row, 'heating', 'heatintensity')
+        row = self.makerow('time scans')
+        self.make_measurement_button(row, 'thermovoltage', 'ptetime')
+        self.make_measurement_button(row, 'heating', 'heattime')
+        row = self.makerow('change parameters')
+        self.make_measurement_button(row, 'position', 'position')
+        self.make_measurement_button(row, 'intensity', 'intensity')
+        self.make_measurement_button(row, 'polarization', 'polarization')
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
 
@@ -147,7 +111,12 @@ class LockinMeasurementGUI:
         self._browse_button = tk.Button(self._master, text="Browse", command=self.onclick_browse)
         self._daq_input = daq_input
 
-    def makeform(self):
+    def beginform(self, caption, browse_button=True):
+        self._master.title(caption)
+        label = tk.Label(self._master, text=caption)
+        label.pack()
+        if browse_button:
+            self._browse_button.pack()
         for key in self._fields:
             row = tk.Frame(self._master)
             lab = tk.Label(row, width=15, text=key, anchor='w')
@@ -161,6 +130,35 @@ class LockinMeasurementGUI:
             ent.insert(0, str(self._fields[key]))
             self._entries.append((key, ent))
         return self._entries
+
+    def endform(self, run_command):
+        self._master.bind('<Return>', run_command)
+        self.makebutton('Run', run_command)
+        self.makebutton('Quit', self._master.destroy)
+
+    def makebutton(self, caption, run_command, master=None):
+        if not master:
+            master = self._master
+        b1 = tk.Button(master, text=caption, command=run_command)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def maketextbox(self, title, displaytext):
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=15, text=title, anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self._textbox = tk.Text(row, height=1, width=10)
+        self._textbox.insert(tk.END, displaytext)
+        self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+
+    def maketextbox2(self, title, displaytext):  # TODO fix this
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=15, text=title, anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self._textbox2 = tk.Text(row, height=1, width=10)
+        self._textbox2.insert(tk.END, displaytext)
+        self._textbox2.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
 
     def fetch(self, event=None):  # stop trying to make fetch happen. It's not going to happen. -Regina, Mean Girls
         for entry in self._entries:
@@ -292,219 +290,103 @@ class LockinMeasurementGUI:
 
     def build_thermovoltage_scan_gui(self):
         caption = "Thermovoltage map scan"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
                         'x pixel density': 15, 'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80,
                         'y center': 80}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.thermovoltage_scan)
-        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_scan)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.thermovoltage_scan)
 
     def build_thermovoltage_scan_dc_gui(self):
         caption = "DC thermovoltage map scan"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'x pixel density': 15,
                         'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.thermovoltage_scan_dc)
-        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_scan_dc)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.thermovoltage_scan_dc)
 
     def build_heating_scan_gui(self):
         caption = "Heating map scan"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
                         'x pixel density': 15, 'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80,
                         'y center': 80, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.heating_scan)
-        b1 = tk.Button(self._master, text='Run', command=self.heating_scan)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.heating_scan)
 
     def build_thermovoltage_time_gui(self):
         caption = "Thermovoltage vs. time"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
                         'rate (per second)': 3, 'max time (s)': 600}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.thermovoltage_time)
-        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_time)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.thermovoltage_time)
 
     def build_change_intensity_gui(self):
         caption = "Change laser intensity"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'steps': 10}
-        self.makeform()
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=15, text='Power (mW)', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        self._textbox = tk.Text(row, height=1, width=10)
-        self._textbox.insert(tk.END, str('None'))
-        self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-        b1 = tk.Button(self._master, text='Forward', command=lambda: self.step(True))
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Backward', command=lambda: self.step(False))
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
-        b3 = tk.Button(self._master, text='Read power', command=self.power)
-        b3.pack(side=tk.LEFT, padx=5, pady=5)
-        b4 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b4.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption, False)
+        self.maketextbox('Power (mW)', str('None'))
+        self.makebutton('Forward', lambda: self.step(True))
+        self.makebutton('Backward', lambda: self.step(False))
+        self.makebutton('Read power', self.power)
+        self.makebutton('Quit', self._master.destroy)
 
-    def build_change_polarization_gui(self):
+    def build_change_polarization_gui(self): # TODO fix this
         caption = "Change laser polarization"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'desired polarization': 90}
-        self.makeform()
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='current polarization', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        self._textbox = tk.Text(row, height=1, width=10)
-        self._textbox.insert(tk.END, self._polarizer.read_polarization())
-        self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text='modulus polarization', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        self._textbox2 = tk.Text(row, height=1, width=10)
-        self._textbox2.insert(tk.END, (self._polarizer.read_waveplate_position() % 90) * 2)
-        self._textbox2.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-        b1 = tk.Button(self._master, text='Change polarization', command=self.changepolarization)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Read polarization', command=self.readpolarization)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
-        b4 = tk.Button(self._master, text='Home', command=self.homepolarizer)
-        b4.pack(side=tk.LEFT, padx=5, pady=5)
-        b3 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b3.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption, False)
+        self.maketextbox('current position', self._polarizer.read_polarization())
+        self.maketextbox2('modulus polarization', (self._polarizer.read_waveplate_position() % 90) * 2)
+        self.makebutton('Change polarization', self.changepolarization)
+        self.makebutton('Read polarization', self.readpolarization)
+        self.makebutton('Home', self.homepolarizer)
+        self.makebutton('Quit', self._master.destroy)
 
     def build_thermovoltage_intensity_gui(self):
         caption = "Thermovoltage vs. laser intensity"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
                         'steps': 2, 'max time (s)': 600}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.thermovoltage_intensity)
-        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_intensity)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.thermovoltage_intensity)
 
     def build_thermovoltage_polarization_gui(self):
         caption = "Thermovoltage vs. polarization"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.thermovoltage_polarization)
-        b1 = tk.Button(self._master, text='Run', command=self.thermovoltage_polarization)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.thermovoltage_polarization)
 
     def build_heating_polarization_gui(self):
        caption = "Heating vs. polarization"
-       self._master.title(caption)
-       label = tk.Label(self._master, text=caption)
-       label.pack()
        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'bias (mV)': 5,
                        'oscillator amplitude (mV)': 7}
-       self._browse_button.pack()
-       self.makeform()
-       self._master.bind('<Return>', self.heating_polarization)
-       b1 = tk.Button(self._master, text='Run', command=self.heating_polarization)
-       b1.pack(side=tk.LEFT, padx=5, pady=5)
-       b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-       b2.pack(side=tk.LEFT, padx=5, pady=5)
+       self.beginform(caption)
+       self.endform(self.heating_polarization)
 
     def build_change_position_gui(self):
         caption = "Change laser position"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'x': 80, 'y': 80}
-        self.makeform()
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=15, text='Current Position', anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        self._textbox = tk.Text(row, height=1, width=10)
-        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
-        self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-        b1 = tk.Button(self._master, text='Change Position', command=self.changeposition)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption, False)
+        self.maketextbox('Current Position', [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self.makebutton('Change Position', self.changeposition)
+        self.makebutton('Quit', self._master.destroy)
 
     def build_heating_time_gui(self):
         caption = "Heating vs. time"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
                         'rate (per second)': 3, 'max time (s)': 600, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.heating_time)
-        b1 = tk.Button(self._master, text='Run', command=self.heating_time)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.heating_time)
 
     def build_heating_intensity_gui(self):
         caption = "Heating vs. intensity"
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'steps': 2,
                         'rate (per second)': 3, 'max time (s)': 600, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
-        self._browse_button.pack()
-        self.makeform()
-        self._master.bind('<Return>', self.heating_intensity)
-        b1 = tk.Button(self._master, text='Run', command=self.heating_intensity)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.beginform(caption)
+        self.endform(self.heating_intensity)
 
     def build_coming_soon(self):
         caption = "Coming soon"
         self._master.title(caption)
         label = tk.Label(self._master, text=caption)
         label.pack()
-        b2 = tk.Button(self._master, text='Quit', command=self._master.destroy)
-        b2.pack(side=tk.LEFT, padx=5, pady=5)
+        self.makebutton('Quit', self._master.destroy)
 
 
 def main():
