@@ -198,18 +198,18 @@ if __name__ == "__main__":
 
 
     ## Initiate cooldown
-    #initiate_cooldown(cryostation_connection)
+    initiate_cooldown(cryostation_connection)
 
     # Wait for the system to cooldown to the target platform temperature and reach the target platform stability
-    #if wait_for_cooldown_and_stability(cryostation_connection):
-    #    print("Done with cooldown.")
-    #else:
-    #    print("Timed out during cooldown.")
-    #    exit(1)
+    if wait_for_cooldown_and_stability(cryostation_connection):
+        print("Done with cooldown.")
+    else:
+        print("Timed out during cooldown.")
+        exit(1)
 
     # Step-up the platform temperature, stabilizing at each step
-    #if step_up(cryostation_connection):
-    #    print("\nDone with step-up.")
-    #else:
-    #    print("\nTimed out during step-up.")
-    #    exit(1)
+    if step_up(cryostation_connection):
+        print("\nDone with step-up.")
+    else:
+        print("\nTimed out during step-up.")
+        exit(1)
