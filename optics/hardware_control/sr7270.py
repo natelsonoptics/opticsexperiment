@@ -8,38 +8,49 @@ from optics.misc_utility import parser_tool
 
 @contextlib.contextmanager
 def create_endpoints(vendor, product):
-    devices = tuple(usb.core.find(find_all=True, idVendor=vendor, idProduct=product))
-    dev_bottom = devices[0]
-    dev_bottom.set_configuration()
-    cfg = dev_bottom.get_active_configuration()
-    intf = cfg[(0, 0)]
-    ep0_bottom = intf[0]
-    ep1_bottom = intf[1]
-    dev_top = devices[1]
-    dev_top.set_configuration()
-    cfg2 = dev_top.get_active_configuration()
-    intf2 = cfg2[(0, 0)]
-    ep0_top = intf2[0]
-    ep1_top = intf2[1]
+    dev_bottom = None
+    dev_top = None
     try:
+        devices = tuple(usb.core.find(find_all=True, idVendor=vendor, idProduct=product))
+        dev_bottom = devices[0]
+        dev_bottom.set_configuration()
+        cfg = dev_bottom.get_active_configuration()
+        intf = cfg[(0, 0)]
+        ep0_bottom = intf[0]
+        ep1_bottom = intf[1]
+        dev_top = devices[1]
+        dev_top.set_configuration()
+        cfg2 = dev_top.get_active_configuration()
+        intf2 = cfg2[(0, 0)]
+        ep0_top = intf2[0]
+        ep1_top = intf2[1]
         yield LockIn(dev_top, ep0_top, ep1_top), LockIn(dev_bottom, ep0_bottom, ep1_bottom)
     finally:
-        usb.util.dispose_resources(dev_bottom)
-        usb.util.dispose_resources(dev_top)
+        if dev_top:
+            usb.util.dispose_resources(dev_bottom)
+            usb.util.dispose_resources(dev_top)
+        else:
+            print('SR7270 lock in amplifier communication error')
+            raise ValueError
 
 
 @contextlib.contextmanager
 def create_endpoints_single(vendor, product):
-    dev = usb.core.find(idVendor = vendor, idProduct = product)
-    dev.set_configuration()
-    cfg = dev.get_active_configuration()
-    intf = cfg[(0,0)]
-    ep0 = intf[0]
-    ep1 = intf[1]
+    dev = None
     try:
+        dev = usb.core.find(idVendor = vendor, idProduct = product)
+        dev.set_configuration()
+        cfg = dev.get_active_configuration()
+        intf = cfg[(0,0)]
+        ep0 = intf[0]
+        ep1 = intf[1]
         yield LockIn(dev, ep0, ep1)
     finally:
-        usb.util.dispose_resources(dev)
+        if dev:
+            usb.util.dispose_resources(dev)
+        else:
+            print('SR7270 lock in apmplifier communication error')
+            raise ValueError
 
 
 class LockIn:

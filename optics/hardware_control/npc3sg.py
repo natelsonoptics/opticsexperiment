@@ -24,4 +24,4 @@ def connect_input(ai_channels):
     try:
         yield NPC3SGReader(multiple_ai)
     finally:
-        print('done')
+        pass

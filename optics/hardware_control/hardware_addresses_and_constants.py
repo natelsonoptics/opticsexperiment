@@ -7,6 +7,7 @@ ai_dc2 = 'Dev1/ai2'
 vendor = 0x0A2D  # for lock in amplifier
 product = 0x001B  # for lock in amplifier
 pm100d_address = 'USB0::0x1313::0x8070::P0000542::INSTR'
+#pm100d_address = 'USB0::0x1313::0x8078::P0017646::INSTR'
 attenuator_wheel_outputs = "Dev1/port0/line8:11"  # DAQ outputs for attenuator wheel
 keithley_address = 'GPIB12::12::INSTR'
 tdc001_serial_number = 83825803

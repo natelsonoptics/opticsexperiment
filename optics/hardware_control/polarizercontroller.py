@@ -28,50 +28,60 @@ from System import Decimal
 
 @contextlib.contextmanager
 def connect_tdc001(serial_number):
-    DeviceManagerCLI.BuildDeviceList()
-    # Tell the device manager to get the list of all devices connected to the computer
-    serial_numbers = DeviceManagerCLI.GetDeviceList(TCubeDCServo.DevicePrefix)
-    # get available TCube DC Servos and check our serial number is correct
-    if str(serial_number) not in serial_numbers:
-        raise ValueError("Device is not connected.")
-    device = TCubeDCServo.CreateTCubeDCServo(str(serial_number))
-    device.Connect(str(serial_number))
-    device.WaitForSettingsInitialized(5000)
-    if not device.IsSettingsInitialized():
-        raise ValueError("Device initialization timeout")
-    device.LoadMotorConfiguration(str(serial_number))
-    device.StartPolling(250)
-    device.EnableDevice()
-    motorSettings = device.LoadMotorConfiguration(str(serial_number))
-    currentDeviceSettings = device.MotorDeviceSettings
+    device = None
     try:
+        DeviceManagerCLI.BuildDeviceList()
+        # Tell the device manager to get the list of all devices connected to the computer
+        serial_numbers = DeviceManagerCLI.GetDeviceList(TCubeDCServo.DevicePrefix)
+        # get available TCube DC Servos and check our serial number is correct
+        if str(serial_number) not in serial_numbers:
+            raise ValueError("Device is not connected.")
+        device = TCubeDCServo.CreateTCubeDCServo(str(serial_number))
+        device.Connect(str(serial_number))
+        device.WaitForSettingsInitialized(5000)
+        if not device.IsSettingsInitialized():
+            raise ValueError("Device initialization timeout")
+        device.LoadMotorConfiguration(str(serial_number))
+        device.StartPolling(250)
+        device.EnableDevice()
+        motorSettings = device.LoadMotorConfiguration(str(serial_number))
+        currentDeviceSettings = device.MotorDeviceSettings
         yield PolarizerController(device)
     finally:
-        device.Disconnect()
+        if device:
+            device.Disconnect()
+        else:
+            print('TDC101 polarizer controller communication error')
+            raise ValueError
 
 
 @contextlib.contextmanager
 def connect_kdc101(serial_number):
-    DeviceManagerCLI.BuildDeviceList() # Tell the device manager to get the list of all devices connected to the computer
-    serial_numbers = DeviceManagerCLI.GetDeviceList(KCubeDCServo.DevicePrefix)
-    # get available KCube Servos and check our serial number is correct
-    if str(serial_number) not in serial_numbers:
-        raise ValueError("Device is not connected.")
-    device = KCubeDCServo.CreateKCubeDCServo(str(serial_number))
-    device.Connect(str(serial_number))
-    device.WaitForSettingsInitialized(5000)
-    if not device.IsSettingsInitialized():
-        raise ValueError("Device initialization timeout")
-    device.LoadMotorConfiguration(str(serial_number))
-    device.StartPolling(250)
-    device.EnableDevice()
-    motorSettings = device.LoadMotorConfiguration(str(serial_number))  # This is important to leave in, but I'm not sure
-    # why
-    currentDeviceSettings = device.MotorDeviceSettings  # This is important to leave in, but I'm not sure why
+    device = None
     try:
+        DeviceManagerCLI.BuildDeviceList() # Tell the device manager to get the list of all devices connected to the computer
+        serial_numbers = DeviceManagerCLI.GetDeviceList(KCubeDCServo.DevicePrefix)
+        # get available KCube Servos and check our serial number is correct
+        if str(serial_number) not in serial_numbers:
+            raise ValueError("Device is not connected.")
+        device = KCubeDCServo.CreateKCubeDCServo(str(serial_number))
+        device.Connect(str(serial_number))
+        device.WaitForSettingsInitialized(5000)
+        if not device.IsSettingsInitialized():
+            raise ValueError("Device initialization timeout")
+        device.LoadMotorConfiguration(str(serial_number))
+        device.StartPolling(250)
+        device.EnableDevice()
+        motorSettings = device.LoadMotorConfiguration(str(serial_number))  # This is important to leave in, but I'm not sure
+        # why
+        currentDeviceSettings = device.MotorDeviceSettings  # This is important to leave in, but I'm not sure why
         yield PolarizerController(device)
     finally:
-        device.Disconnect()
+        if device:
+            device.Disconnect()
+        else:
+            print('KDC101 polarizer controller communication error')
+            raise ValueError
 
 
 class PolarizerController:

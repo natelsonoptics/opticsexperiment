@@ -14,6 +14,7 @@ from optics.heating_measurement.heating_time import HeatingTime
 from optics.heating_measurement.heating_intensity import HeatingIntensity
 from optics.heating_measurement.heating_polarization import HeatingPolarization
 from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
+from contextlib import ExitStack
 
 class BaseGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
@@ -390,19 +391,29 @@ class LockinMeasurementGUI:
 
 
 def main():
-    with daq.create_ao_task(hw.ao_x) as npc3sg_x, daq.create_ao_task(hw.ao_y) as npc3sg_y, \
-            npc3sg.connect_input([hw.ai_x, hw.ai_y]) as npc3sg_input, \
-            sr7270.create_endpoints(hw.vendor, hw.product) as (sr7270_top, sr7270_bottom), \
-            pm100d.connect(hw.pm100d_address) as powermeter, \
-            polarizercontroller.connect_kdc101(hw.kdc101_serial_number) as polarizer, \
-            attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs) as attenuatorwheel, \
-            daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000) as daq_input:
-        root = tk.Tk()
-        app = BaseGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
-                      sr7270_top=sr7270_top, sr7270_bottom=sr7270_bottom, powermeter=powermeter,
-                      attenuatorwheel=attenuatorwheel, polarizer=polarizer, daq_input=daq_input)
-        app.build()
-        root.mainloop()
+    try:
+        with ExitStack() as cm:
+            npc3sg_x = cm.enter_context(daq.create_ao_task(hw.ao_x))
+            npc3sg_y = cm.enter_context(daq.create_ao_task(hw.ao_y))
+            npc3sg_input = cm.enter_context(npc3sg.connect_input([hw.ai_x, hw.ai_y]))
+            (sr7270_top, sr7270_bottom) = cm.enter_context(sr7270.create_endpoints(hw.vendor, hw.product))
+            powermeter = cm.enter_context(pm100d.connect(hw.pm100d_address))
+            polarizer = cm.enter_context(polarizercontroller.connect_kdc101(hw.kdc101_serial_number))
+            attenuatorwheel = cm.enter_context(attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs))
+            daq_input = cm.enter_context(daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000))
+            root = tk.Tk()
+            app = BaseGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
+                          sr7270_top=sr7270_top, sr7270_bottom=sr7270_bottom, powermeter=powermeter,
+                          attenuatorwheel=attenuatorwheel, polarizer=polarizer, daq_input=daq_input)
+            app.build()
+            root.mainloop()
+    except Exception as err:
+        if 'NFOUND' in str(err):
+            print('PM100D power detector communication error')
+        else:
+            print(err)
+        input('Press enter to exit')
+
 
 if __name__ == '__main__':
     main()

@@ -11,7 +11,7 @@ def connect(address):
     try:
         yield SourceMeter(inst)
     finally:
-        print('done')
+        pass
 
 
 class SourceMeter:

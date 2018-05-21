@@ -94,7 +94,7 @@ def create_ai_task(ai_channels, points=1):
     try:
         yield AnalogInput(multiple_ai)
     finally:
-        print('done')
+        pass
 
 
 class AnalogOutput:
