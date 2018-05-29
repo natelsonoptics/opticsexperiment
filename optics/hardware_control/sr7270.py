@@ -64,48 +64,48 @@ class LockIn:
 
     def change_applied_voltage(self, millivolts):
         self._ep0.write('dac 3 ' + str(millivolts / 10))
-        LockIn.read(self)  # throws away junk
+        self.read()  # throws away junk
 
     def read_applied_voltage(self):
         self._ep0.write('dac. 3')
-        return LockIn.read(self)
+        return self.read()
 
     def change_oscillator_frequency(self, millihertz):
         self._ep0.write('of ' + str(millihertz))
-        LockIn.read(self)  # throws away junk
+        self.read()  # throws away junk
 
     def read_oscillator_frequency(self):
         self._ep0.write('of.')
-        return LockIn.read(self)
+        return self.read()
 
     def change_oscillator_amplitude(self, millivolts):
         value = millivolts
         self._ep0.write('oa ' + str(value * 100))
-        LockIn.read(self)
+        self.read()
 
     def read_oscillator_amplitude(self):
         self._ep0.write('oa.')
-        return LockIn.read(self)
+        return self.read()
 
     def read_xy1(self):
         self._ep0.write('xy1.')
-        return LockIn.read(self)
+        return self.read()
 
     def read_xy2(self):
         self._ep0.write('xy2.')
-        return LockIn.read(self)
+        return self.read()
 
     def read_xy(self):
         self._ep0.write('xy.')
-        return LockIn.read(self)
+        return self.read()
 
     def read_tc(self):  # this is used for bottom lock-in
         self._ep0.write('tc.')
-        return LockIn.read(self)
+        return self.read()
 
     def read_tc1(self):  # this is used for top lock-in
         self._ep0.write('tc1.')
-        return LockIn.read(self)
+        return self.read()
 
     def change_tc(self, seconds):
         tc_value = {10e-06: 0, 20e-06: 1, 50e-06: 2, 100e-06: 3, 200e-06: 4, 500e-06: 5, 1e-03: 6, 2e-03: 7, 5e-03: 8,
@@ -115,7 +115,7 @@ class LockIn:
         if seconds not in tc_value:
             seconds = min(tc_value.items(), key=lambda x: abs(seconds - x[0]))[0]
         self._ep0.write('tc ' + str(tc_value[seconds]))
-        LockIn.read(self)  # throws away junk
+        self.read()  # throws away junk
 
     def change_tc1(self, seconds):
         tc_value = {10e-06: 0, 20e-06: 1, 50e-06: 2, 100e-06: 3, 200e-06: 4, 500e-06: 5, 1e-03: 6, 2e-03: 7, 5e-03: 8,
@@ -125,11 +125,15 @@ class LockIn:
         if seconds not in tc_value:
             seconds = min(tc_value.items(), key=lambda x: abs(seconds - x[0]))[0]
         self._ep0.write('tc1 ' + str(tc_value[seconds]))
-        LockIn.read(self)  # throws away junk
+        self.read()  # throws away junk
 
     def read_r_theta(self):
         self._ep0.write('mp.')
-        return LockIn.read(self)
+        return self.read()
+
+    def read_adc(self, channel):
+        self._ep0.write('adc. '+str(channel))
+        return self.read()
 
 
 

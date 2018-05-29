@@ -2,6 +2,7 @@ import socket
 from optics.hardware_control.hardware_addresses_and_constants import cryostation_ip_address, cryostation_port
 import contextlib
 import time
+from sys import exit
 
 
 @contextlib.contextmanager
@@ -12,6 +13,13 @@ def connect_socket(ip, port, connecttimeout=10, sockettimeout=5):
     finally:
         sock.shutdown(1)
         sock.close()
+
+
+@contextlib.contextmanager
+def connect_cryostation(ip, port, connecttimeout=10, sockettimeout=5):
+    with connect_socket(ip, port, connecttimeout, sockettimeout) as socketcommunication:
+        yield CryostationCommuncation(socketcommunication)
+
 
 class SocketCommunication:
     def __init__(self, sock, sockettimeout):
@@ -66,6 +74,8 @@ class SocketCommunication:
 class CryostationCommuncation:
     def __init__(self, socketcommunication):
         self._socketcommunication = socketcommunication
+        self._current_stability = 0
+        self._current_temperature = 0
 
     def get_alarm_state(self):
         """Returns true or false indicating the presence or absence of a system error"""
@@ -120,13 +130,13 @@ class CryostationCommuncation:
         """Returns the current platform stability or -0.10000 to indicate the platform stability is not
         available. Units: Kelvin"""
         self._socketcommunication.send('GPS')
-        return self._socketcommunication.receive()
+        return float(self._socketcommunication.receive())
 
     def get_platform_temperature(self):
         """Returns the current platform temperature or -0.100 to indicate the platform temperature is not available.
         Units: Kelvin"""
         self._socketcommunication.send('GPT')
-        return self._socketcommunication.receive()
+        return float(self._socketcommunication.receive())
 
     def get_stage_1_heating_power(self):
         """Returns the current stage 1 heater power reading or -0.100 to indicate the stage 1 heater
@@ -243,113 +253,104 @@ class CryostationCommuncation:
         self._socketcommunication.send("SWU")
         return self._socketcommunication.receive()
 
-    def set_target_platform_temperature(self, temperature, timeout=10):
-        timeout = time.time() + timeout
-        target_temperature = self.send_target_platform_temperature(temperature)
-        while round(target_temperature, 2) != round(temperature, 2):
-            if timeout > 0:
-                if time.time() > timeout:
-                    return False
-            time.sleep(1)
-            target_temperature = self.send_target_platform_temperature(temperature)
-        return True
+    def is_temperature_stable(self, target_stability):
+        self._current_stability = self.get_platform_stability()
+        if self._current_stability > target_stability and self._current_stability != 0:
+            return True
+        else:
+            return False
 
-    def send_target_platform_temperature(self, temperature):
-        target_temperature = 0
-        try:
-            if self.set_temperature_set_point(temperature).startswith("OK"):
-                target_temperature = self.get_temperature_set_point()
-        except Exception as err:
-            print("Failed to send target temperature")
-            exit(1)
-        return float(target_temperature)
-
-    def initialize_cooldown(self, temperature):
-        if not self.set_target_platform_temperature(temperature):
-            print("Timed out setting cooldown target platform temperature")
-            exit(1)
-        try:
-            if self.start_cool_down() != "OK":
-                print("cooldown did not initiate")
-                exit(1)
-        except Exception as err:
-            print("Failed to initiate cooldown")
-            exit(1)
-
-    def wait_for_cooldown_and_stability(self, temperature, target_stability, cooldown_timeout, stability_timeout):
-        if cooldown_timeout > 0:
-            cooldown_timeout = time.time() + cooldown_timeout
-        while True:
-            time.sleep(3)
-            if time.time() > cooldown_timeout:
-                return False
-            try:
-                current_temperature = float(self.get_platform_temperature())
-            except Exception as err:
-                current_temperature = 0
-            if current_temperature <= temperature and current_temperature > 0:
-                break
-        if stability_timeout > 0:
-            stability_timeout = stability_timeout + time.time()
-        while True:
-            time.sleep(3)
-            if stability_timeout > 0:
-                if time.time() > stability_timeout:
-                    print("Timed out waiting for cooldown stability")
-                    return False
-            try:
-                current_stability = float(self.get_platform_stability())
-            except Exception as err:
-                current_stability = 0
-            if current_stability <= target_stability and current_stability > 0:
+    def is_at_temperature(self, target_temperature, cooldown=True):
+        self._current_temperature = self.get_platform_temperature()
+        if cooldown:
+            if self._current_temperature <= target_temperature and self._current_temperature != 0:
                 return True
+            else:
+                return False
+        else:
+            if self._current_temperature >= target_temperature and self._current_temperature != 0:
+                return True
+            else:
+                return False
 
-    def step_up(self, step_size, max_temperature, timeout, target_stability, stability_timeout):
-        step_target = -1
-
-        while step_target < 0:
-            try:
-                step_target = float(self.get_temperature_set_point())
-            except Exception as err:
-                step_target = -1
-            time.sleep(1)
-
-        step_target += step_size
-        while round(step_target, 2) <= round(max_temperature, 2):
-            if not self.set_target_platform_temperature(step_target):
-                print("Timed out setting step-up platform temperature")
-                exit(1)
-        if timeout > 0:
-            timeout = time.time() + timeout
-        while True:
-            if timeout > 0:
-                if time.time() > timeout:
-                    print("Timed out waiting for step-up target platform temperature")
-                    return False
-            try:
-                current_temperature = float(self.get_platform_temperature())
-            except Exception as err:
-                current_temperature = 0
-            if current_temperature >= step_target and current_temperature > 0:
-                break
+    def cool_down(self, target_temperature, target_stability=0.04, timeout=21600):
+        max_time = time.time() + timeout
+        if self.start_cool_down() != 'OK':
+            print('Failed to initiate cooldown')
+            self.start_warm_up()
+            exit(1)
+        self.set_temperature_set_point(target_temperature)
+        while not self.is_at_temperature(target_temperature):
+            self._current_temperature = self.get_platform_temperature()
             time.sleep(3)
+            if time.time() > max_time:
+                print('Timed out during cooldown')
+                self.start_warm_up()
+                exit(1)
+        while not self.is_temperature_stable(target_stability):
+            self._current_stability = self.get_platform_stability()
+            time.sleep(3)
+            if time.time() > max_time:
+                print('Timed out during cooldown')
+                self.start_warm_up()
+                exit(1)
+        self._current_temperature = self.get_platform_temperature()
+        self._current_stability = self.get_platform_stability()
+        self.start_standby()
+        print(str('Cooldown successful. Current temperature: {}. '
+                  'Current stability: {}').format(self._current_temperature, self._current_stability))
 
-            if stability_timeout > 0:
-                stability_timeout = time.time() + stability_timeout
-            while True:
-                if stability_timeout > 0:
-                    if time.time() > stability_timeout:
-                        print("Timed out waiting for step-up target platform stability")
-                        return False
-                try:
-                    current_stability = float(self.get_platform_stability())
-                except Exception as err:
-                    current_stability = 0
-                if current_stability <= target_stability and current_stability > 0:
-                    break
-                time.sleep(3)
-            step_target += step_size
-        return True
+    def step_temperature(self, delta_temperature, target_stability=0.04, timeout=3000):
+        max_time = time.time() + timeout
+        self._current_temperature = self.get_platform_temperature()
+        target = self._current_temperature + delta_temperature
+        cooldown = True
+        if target > self._current_temperature:
+            cooldown = False
+        self.set_temperature_set_point(target)
+        while not self.is_at_temperature(target, cooldown=cooldown):
+            self._current_temperature = self.get_platform_temperature()
+            time.sleep(3)
+            if time.time() > max_time:
+                print('Timed out during step up')
+                exit(1)
+        while not self.is_temperature_stable(target_stability):
+            self._current_stability = self.get_platform_stability()
+            time.sleep(3)
+            if time.time() > max_time:
+                print('Timed out during step up')
+                exit(1)
+        self.start_standby()
+        return self.get_platform_temperature(), self.get_platform_stability()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

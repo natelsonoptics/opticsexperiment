@@ -55,12 +55,16 @@ class ThermovoltageIntensity:
     def makefile(self):
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
-        self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+        self._filename = path.join(self._filepath, '{}_{}_{}_{}{}'.format(self._device, 'intensity scan',
+                                                                          self._polarization, index, '.csv'))
+        self._imagefile = path.join(self._filepath, '{}_{}_{}_{}{}'.format(self._device, 'intensity scan',
+                                                                           self._polarization, index, '.png'))
         while path.exists(self._filename):
             index += 1
-            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+            self._filename = path.join(self._filepath, '{}_{}_{}_{}{}'.format(self._device, 'intensity scan',
+                                                                              self._polarization, index, '.csv'))
+            self._imagefile = path.join(self._filepath, '{}_{}_{}_{}{}'.format(self._device, 'intensity scan',
+                                                                               self._polarization, index, '.png'))
 
     def setup_plots(self):
         self._ax1.title.set_text('X_1')

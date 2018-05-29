@@ -20,7 +20,7 @@ class PowerMeter:
         return self._power_meter.read
 
     def read_power(self):
-        return self._power_meter.read * 2.7  # reads power on sample
+        return self._power_meter.read * 4.8  # reads power on sample
 
 
 

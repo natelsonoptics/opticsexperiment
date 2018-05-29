@@ -15,6 +15,7 @@ from optics.heating_measurement.heating_intensity import HeatingIntensity
 from optics.heating_measurement.heating_polarization import HeatingPolarization
 from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
 from contextlib import ExitStack
+from optics.under_development.current_vs_voltage import CurrentVoltageSweep
 
 class BaseGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
@@ -52,7 +53,8 @@ class BaseGUI:
                        'ptetime': self._app.build_thermovoltage_time_gui,
                        'position': self._app.build_change_position_gui,
                        'intensity': self._app.build_change_intensity_gui,
-                       'polarization': self._app.build_change_polarization_gui}
+                       'polarization': self._app.build_change_polarization_gui,
+                       'ivsweep': self._app.build_sweep_iv_gui}
         measurement[measurementtype]()
 
     def make_measurement_button(self, master, text, measurement_type):
@@ -73,6 +75,8 @@ class BaseGUI:
         self.make_measurement_button(row, 'heating', 'heatmap')
         row = self.makerow('DC map scans')
         self.make_measurement_button(row, 'thermovoltage', 'ptemapdc')
+        row = self.makerow('I-V curves')
+        self.make_measurement_button(row, 'current', 'ivsweep')
         row = self.makerow('polarization scans')
         self.make_measurement_button(row, 'thermovoltage', 'ptepolarization')
         self.make_measurement_button(row, 'heating', 'heatpolarization')
@@ -111,6 +115,16 @@ class LockinMeasurementGUI:
         self._filepath = tk.StringVar()
         self._browse_button = tk.Button(self._master, text="Browse", command=self.onclick_browse)
         self._daq_input = daq_input
+        self._direction = tk.StringVar()
+        self._direction.set('Forward')
+        self._current_gain = tk.StringVar()
+        self._current_amplifier_gain_options = {'1 mA/V': 1000, '100 uA/V': 10000, '10 uA/V': 100000,
+                                                '1 uA/V': 1000000, '100 nA/V': 10000000, '10 nA/V': 100000000,
+                                                '1 nA/V': 1000000000, '100 pA/V': 10000000000, '10 pA/V': 100000000000,
+                                                '1 pA/V': 1000000000000}
+        self._current_gain.set('1 mA/V')
+        self._voltage_gain = tk.StringVar()
+        self._voltage_gain.set(1000)
 
     def beginform(self, caption, browse_button=True):
         self._master.title(caption)
@@ -152,6 +166,14 @@ class LockinMeasurementGUI:
         self._textbox.insert(tk.END, displaytext)
         self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
 
+    def make_option_menu(self, label, parameter, option_list):
+        row = tk.Frame(self._master)
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab = tk.Label(row, width=15, text=label, anchor='w')
+        lab.pack(side=tk.LEFT)
+        t = tk.OptionMenu(row, parameter, *option_list)
+        t.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+
     def maketextbox2(self, title, displaytext):  # TODO fix this
         row = tk.Frame(self._master)
         lab = tk.Label(row, width=15, text=title, anchor='w')
@@ -169,41 +191,54 @@ class LockinMeasurementGUI:
 
     def thermovoltage_scan(self, event=None):
         self.fetch(event)
+        if self._direction.get() == 'Reverse':
+            direction = False
+        else:
+            direction = True
         run = ThermovoltageScan(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                int(self._inputs['scan']), float(self._inputs['gain']),
+                                int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                                 int(self._inputs['x range']), int(self._inputs['y range']),
                                 int(self._inputs['x center']), int(self._inputs['y center']), self._npc3sg_x,
                                 self._npc3sg_y, self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
-                                self._powermeter, self._polarizer)
+                                self._powermeter, self._polarizer, direction)
         run.main()
 
     def thermovoltage_scan_dc(self, event=None):
         self.fetch(event)
+        if self._direction.get() == 'Reverse':
+            direction = False
+        else:
+            direction = True
         run = ThermovoltageScanDC(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                  int(self._inputs['scan']), float(self._inputs['gain']),
+                                  int(self._inputs['scan']), float(self._voltage_gain.get()),
                                   int(self._inputs['x pixel density']),
                                   int(self._inputs['y pixel density']), int(self._inputs['x range']),
                                   int(self._inputs['y range']), int(self._inputs['x center']),
                                   int(self._inputs['y center']), self._npc3sg_x, self._npc3sg_y, self._daq_input,
-                                  self._powermeter, self._polarizer)
+                                  self._powermeter, self._polarizer, direction)
         run.main()
 
     def heating_scan(self, event=None):
         self.fetch(event)
+        if self._direction.get() == 'Reverse':
+            direction = False
+        else:
+            direction = True
         run = HeatingScan(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                          int(self._inputs['scan']), float(self._inputs['gain']), float(self._inputs['bias (mV)']),
-                          float(self._inputs['oscillator amplitude (mV)']), int(self._inputs['x pixel density']),
-                          int(self._inputs['y pixel density']), int(self._inputs['x range']),
-                          int(self._inputs['y range']), int(self._inputs['x center']), int(self._inputs['y center']),
-                          self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
-                          self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer)
+                          int(self._inputs['scan']),
+                          float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                          float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
+                          int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
+                          int(self._inputs['x range']), int(self._inputs['y range']), int(self._inputs['x center']),
+                          int(self._inputs['y center']), self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
+                          self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer, direction)
         run.main()
 
     def thermovoltage_time(self, event=None):
         self.fetch(event)
         run = ThermovoltageTime(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                int(self._inputs['scan']), float(self._inputs['gain']),
+                                int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
                                 self._npc3sg_input, self._sr7270_bottom,
                                 self._powermeter, self._polarizer)
@@ -212,7 +247,8 @@ class LockinMeasurementGUI:
     def heating_time(self, event=None):
         self.fetch(event)
         run = HeatingTime(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                          int(self._inputs['scan']), float(self._inputs['gain']),
+                          int(self._inputs['scan']),
+                          float(self._current_amplifier_gain_options[self._current_gain.get()]),
                           float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
                           float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
                           self._npc3sg_input, self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer)
@@ -247,32 +283,46 @@ class LockinMeasurementGUI:
     def thermovoltage_intensity(self, event=None):
         self.fetch(event)
         run = ThermovoltageIntensity(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                     int(self._inputs['scan']), float(self._inputs['gain']),
-                                     float(self._inputs['max time (s)']),
-                                     int(self._inputs['steps']), self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
+                                     int(self._inputs['scan']), float(self._voltage_gain.get()),
+                                     float(self._inputs['max time (s)']), int(self._inputs['steps']),
+                                     self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
                                      self._powermeter, self._attenuatorwheel, self._polarizer)
         run.main()
 
     def heating_intensity(self, event=None):
         self.fetch(event)
         run = HeatingIntensity(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                               int(self._inputs['scan']), float(self._inputs['gain']), float(self._inputs['bias (mV)']),
-                               float(self._inputs['oscillator amplitude (mV)']), float(self._inputs['max time (s)']),
-                               int(self._inputs['steps']), self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
-                               self._powermeter, self._attenuatorwheel, self._polarizer)
+                               int(self._inputs['scan']),
+                               float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                               float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
+                               float(self._inputs['max time (s)']), int(self._inputs['steps']), self._npc3sg_input,
+                               self._sr7270_top, self._sr7270_bottom, self._powermeter, self._attenuatorwheel,
+                               self._polarizer)
+        run.main()
+
+    def iv_sweep(self, event=None):
+        self.fetch(event)
+        run = CurrentVoltageSweep(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+                                  int(self._inputs['scan']),
+                                  float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                                  float(self._inputs['oscillator amplitude (mV)']),
+                                  float(self._inputs['start voltage (mV)']),
+                                  float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
+                                  int(self._inputs['# to average']), self._sr7270_top, self._sr7270_bottom)
         run.main()
 
     def thermovoltage_polarization(self, event=None):
         self.fetch(event)
         run = ThermovoltagePolarization(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                        int(self._inputs['scan']), float(self._inputs['gain']), self._npc3sg_input,
+                                        int(self._inputs['scan']), float(self._voltage_gain.get()), self._npc3sg_input,
                                         self._sr7270_bottom, self._powermeter, self._polarizer)
         run.main()
 
     def heating_polarization(self, event=None):
         self.fetch(event)
         run = HeatingPolarization(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                  int(self._inputs['scan']), float(self._inputs['gain']),
+                                  int(self._inputs['scan']),
+                                  float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
                                   self._npc3sg_input, self._sr7270_top, self._sr7270_bottom, self._powermeter,
                                   self._polarizer)
@@ -291,32 +341,38 @@ class LockinMeasurementGUI:
 
     def build_thermovoltage_scan_gui(self):
         caption = "Thermovoltage map scan"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
-                        'x pixel density': 15, 'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80,
-                        'y center': 80}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'x pixel density': 20,
+                        'y pixel density': 20, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
         self.beginform(caption)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
+        self.make_option_menu('direction', self._direction, ['Forward', 'Reverse'])
         self.endform(self.thermovoltage_scan)
 
     def build_thermovoltage_scan_dc_gui(self):
         caption = "DC thermovoltage map scan"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'x pixel density': 15,
-                        'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'x pixel density': 20,
+                        'y pixel density': 20, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
         self.beginform(caption)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
+        self.make_option_menu('direction', self._direction, ['Forward', 'Reverse'])
         self.endform(self.thermovoltage_scan_dc)
 
     def build_heating_scan_gui(self):
         caption = "Heating map scan"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
-                        'x pixel density': 15, 'y pixel density': 15, 'x range': 160, 'y range': 160, 'x center': 80,
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'x pixel density': 20,
+                        'y pixel density': 20, 'x range': 160, 'y range': 160, 'x center': 80,
                         'y center': 80, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
         self.beginform(caption)
+        self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
+        self.make_option_menu('direction', self._direction, ['Forward', 'Reverse'])
         self.endform(self.heating_scan)
 
     def build_thermovoltage_time_gui(self):
         caption = "Thermovoltage vs. time"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
-                        'rate (per second)': 3, 'max time (s)': 600}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'rate (per second)': 3,
+                        'max time (s)': 300}
         self.beginform(caption)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_time)
 
     def build_change_intensity_gui(self):
@@ -342,22 +398,24 @@ class LockinMeasurementGUI:
 
     def build_thermovoltage_intensity_gui(self):
         caption = "Thermovoltage vs. laser intensity"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
-                        'steps': 2, 'max time (s)': 600}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'steps': 2, 'max time (s)': 300}
         self.beginform(caption)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_intensity)
 
     def build_thermovoltage_polarization_gui(self):
         caption = "Thermovoltage vs. polarization"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': ""}
         self.beginform(caption)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_polarization)
 
     def build_heating_polarization_gui(self):
        caption = "Heating vs. polarization"
-       self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'bias (mV)': 5,
+       self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'bias (mV)': 5,
                        'oscillator amplitude (mV)': 7}
        self.beginform(caption)
+       self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
        self.endform(self.heating_polarization)
 
     def build_change_position_gui(self):
@@ -370,17 +428,27 @@ class LockinMeasurementGUI:
 
     def build_heating_time_gui(self):
         caption = "Heating vs. time"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000,
-                        'rate (per second)': 3, 'max time (s)': 600, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'rate (per second)': 3,
+                        'max time (s)': 300, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
         self.beginform(caption)
+        self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.heating_time)
 
     def build_heating_intensity_gui(self):
         caption = "Heating vs. intensity"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'gain': 1000, 'steps': 2,
-                        'rate (per second)': 3, 'max time (s)': 600, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'steps': 2,
+                        'rate (per second)': 3, 'max time (s)': 300, 'bias (mV)': 5, 'oscillator amplitude (mV)': 7}
         self.beginform(caption)
+        self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.heating_intensity)
+
+    def build_sweep_iv_gui(self):
+        caption = "Current vs. Voltage curves"
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'start voltage (mV)': -100,
+                        'stop voltage (mV)': 100, 'steps': 101, '# to average': 10, 'oscillator amplitude (mV)': 7}
+        self.beginform(caption)
+        self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
+        self.endform(self.iv_sweep)
 
     def build_coming_soon(self):
         caption = "Coming soon"

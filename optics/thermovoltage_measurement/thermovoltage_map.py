@@ -11,10 +11,9 @@ import warnings
 import os
 from os import path
 
-
 class ThermovoltageScan:
     def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer):
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer, direction=True):
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -39,14 +38,19 @@ class ThermovoltageScan:
         self._norm = thermovoltage_plot.MidpointNormalize(midpoint=0)
         self._z1 = np.zeros((self._xd, self._yd))
         self._z2 = np.zeros((self._xd, self._yd))
-        self._im1 = self._ax1.imshow(self._z1.T, norm=self._norm, cmap=plt.cm.coolwarm, interpolation='nearest', origin='lower')
-        self._im2 = self._ax2.imshow(self._z2.T, norm=self._norm, cmap=plt.cm.coolwarm, interpolation='nearest', origin='lower')
+        self._im1 = self._ax1.imshow(self._z1.T, norm=self._norm, cmap=plt.cm.coolwarm, interpolation='nearest',
+                                     origin='lower')
+        self._im2 = self._ax2.imshow(self._z2.T, norm=self._norm, cmap=plt.cm.coolwarm, interpolation='nearest',
+                                     origin='lower')
         self._clb1 = self._fig.colorbar(self._im1, ax=self._ax1)
         self._clb2 = self._fig.colorbar(self._im2, ax=self._ax2)
         self._imagefile = None
         self._filename = None
         self._writer = None
         self._x_val, self._y_val = scanner.find_scan_values(self._xc, self._yc, self._xr, self._yr, self._xd, self._yd)
+        self._direction = direction
+        if not self._direction:
+            self._y_val = self._y_val[::-1]
 
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
@@ -96,26 +100,10 @@ class ThermovoltageScan:
 
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
+            if not self._direction:
+                y_ind = len(self._y_val) - y_ind - 1
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
-                self._npc3sg_x.move(j)
-                time.sleep(0.3)
-                raw = self._sr7270_bottom.read_xy()
-                voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
-                self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])
-                self._z1[x_ind][y_ind] = voltages[0] * 1000000
-                self._z2[x_ind][y_ind] = voltages[1] * 1000000
-                self.update_plot(self._im1, self._z1, -np.amax(np.abs(self._z1)), np.amax(np.abs(self._z1)))
-                self.update_plot(self._im2, self._z2, -np.amax(np.abs(self._z2)), np.amax(np.abs(self._z2)))
-                plt.tight_layout()
-                self._fig.canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
-        self._npc3sg_x.move(0)
-        self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
-
-    def run_scan_reverse(self):
-        for y_ind, i in enumerate(reversed(self._y_val)):
-            self._npc3sg_y.move(i)
-            for x_ind, j in enumerate(reversed(self._x_val)):
                 self._npc3sg_x.move(j)
                 time.sleep(0.3)
                 raw = self._sr7270_bottom.read_xy()

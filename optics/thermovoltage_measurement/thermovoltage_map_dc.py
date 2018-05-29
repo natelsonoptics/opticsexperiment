@@ -12,9 +12,10 @@ import os
 from os import path
 
 
+
 class ThermovoltageScanDC:
     def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc, npc3sg_x, npc3sg_y, q,
-                 powermeter, polarizer):
+                 powermeter, polarizer, direction=True):
         self._filepath = filepath
         self._gain = gain
         self._notes = notes
@@ -43,6 +44,9 @@ class ThermovoltageScanDC:
         self._filename = None
         self._writer = None
         self._x_val, self._y_val = scanner.find_scan_values(self._xc, self._yc, self._xr, self._yr, self._xd, self._yd)
+        self._direction = direction
+        if not self._direction:
+            self._y_val = self._y_val[::-1]
 
     def write_header(self):
         self._writer.writerow(['x scan density:', self._xd])
@@ -93,6 +97,8 @@ class ThermovoltageScanDC:
 
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
+            if not self._direction:
+                y_ind = len(self._y_val) - y_ind - 1
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
                 self._npc3sg_x.move(j)
