@@ -19,15 +19,15 @@ from optics.under_development.current_vs_voltage import CurrentVoltageSweep
 
 class BaseGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizer=None,
+                 sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None, polarizer=None,
                  daq_input=None):
         self._master = master
         self._master.title('Optics setup measurements')
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
+        self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
         self._polarizer = polarizer
@@ -38,10 +38,11 @@ class BaseGUI:
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
         self._app = LockinMeasurementGUI(self._newWindow, npc3sg_x=self._npc3sg_x, npc3sg_y=self._npc3sg_y,
-                                         npc3sg_input=self._npc3sg_input, sr7270_top=self._sr7270_top,
-                                         sr7270_bottom=self._sr7270_bottom, powermeter=self._powermeter,
-                                         attenuatorwheel=self._attenuatorwheel, polarizer=self._polarizer,
-                                         daq_input=self._daq_input)
+                                         npc3sg_input=self._npc3sg_input,
+                                         sr7270_dual_harmonic=self._sr7270_dual_harmonic,
+                                         sr7270_single_reference=self._sr7270_single_reference,
+                                         powermeter=self._powermeter, attenuatorwheel=self._attenuatorwheel,
+                                         polarizer=self._polarizer, daq_input=self._daq_input)
         measurement = {'heatmap': self._app.build_heating_scan_gui,
                        'ptemap': self._app.build_thermovoltage_scan_gui,
                        'ptemapdc': self._app.build_thermovoltage_scan_dc_gui,
@@ -96,7 +97,7 @@ class BaseGUI:
 
 class LockinMeasurementGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_top=None, sr7270_bottom=None, powermeter=None, attenuatorwheel=None, polarizer=None,
+                 sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None, polarizer=None,
                  daq_input=None):
         self._master = master
         self._fields = {}
@@ -105,8 +106,8 @@ class LockinMeasurementGUI:
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
+        self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
         self._polarizer = polarizer
@@ -200,8 +201,8 @@ class LockinMeasurementGUI:
                                 int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                                 int(self._inputs['x range']), int(self._inputs['y range']),
                                 int(self._inputs['x center']), int(self._inputs['y center']), self._npc3sg_x,
-                                self._npc3sg_y, self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
-                                self._powermeter, self._polarizer, direction)
+                                self._npc3sg_y, self._npc3sg_input, self._sr7270_dual_harmonic,
+                                self._sr7270_single_reference, self._powermeter, self._polarizer, direction)
         run.main()
 
     def thermovoltage_scan_dc(self, event=None):
@@ -232,7 +233,8 @@ class LockinMeasurementGUI:
                           int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                           int(self._inputs['x range']), int(self._inputs['y range']), int(self._inputs['x center']),
                           int(self._inputs['y center']), self._npc3sg_x, self._npc3sg_y, self._npc3sg_input,
-                          self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer, direction)
+                          self._sr7270_dual_harmonic, self._sr7270_single_reference, self._powermeter, self._polarizer,
+                          direction)
         run.main()
 
     def thermovoltage_time(self, event=None):
@@ -240,7 +242,7 @@ class LockinMeasurementGUI:
         run = ThermovoltageTime(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                 int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
-                                self._npc3sg_input, self._sr7270_bottom,
+                                self._npc3sg_input, self._sr7270_single_reference,
                                 self._powermeter, self._polarizer)
         run.main()
 
@@ -251,7 +253,8 @@ class LockinMeasurementGUI:
                           float(self._current_amplifier_gain_options[self._current_gain.get()]),
                           float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
                           float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
-                          self._npc3sg_input, self._sr7270_top, self._sr7270_bottom, self._powermeter, self._polarizer)
+                          self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
+                          self._powermeter, self._polarizer)
         run.main()
 
     def step(self, direction):
@@ -285,7 +288,7 @@ class LockinMeasurementGUI:
         run = ThermovoltageIntensity(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                      int(self._inputs['scan']), float(self._voltage_gain.get()),
                                      float(self._inputs['max time (s)']), int(self._inputs['steps']),
-                                     self._npc3sg_input, self._sr7270_top, self._sr7270_bottom,
+                                     self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
                                      self._powermeter, self._attenuatorwheel, self._polarizer)
         run.main()
 
@@ -296,8 +299,8 @@ class LockinMeasurementGUI:
                                float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
                                float(self._inputs['max time (s)']), int(self._inputs['steps']), self._npc3sg_input,
-                               self._sr7270_top, self._sr7270_bottom, self._powermeter, self._attenuatorwheel,
-                               self._polarizer)
+                               self._sr7270_dual_harmonic, self._sr7270_single_reference, self._powermeter,
+                               self._attenuatorwheel, self._polarizer)
         run.main()
 
     def iv_sweep(self, event=None):
@@ -308,14 +311,14 @@ class LockinMeasurementGUI:
                                   float(self._inputs['oscillator amplitude (mV)']),
                                   float(self._inputs['start voltage (mV)']),
                                   float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
-                                  int(self._inputs['# to average']), self._sr7270_top, self._sr7270_bottom)
+                                  int(self._inputs['# to average']), self._sr7270_dual_harmonic, self._sr7270_single_reference)
         run.main()
 
     def thermovoltage_polarization(self, event=None):
         self.fetch(event)
         run = ThermovoltagePolarization(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                         int(self._inputs['scan']), float(self._voltage_gain.get()), self._npc3sg_input,
-                                        self._sr7270_bottom, self._powermeter, self._polarizer)
+                                        self._sr7270_single_reference, self._powermeter, self._polarizer)
         run.main()
 
     def heating_polarization(self, event=None):
@@ -324,7 +327,8 @@ class LockinMeasurementGUI:
                                   int(self._inputs['scan']),
                                   float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
-                                  self._npc3sg_input, self._sr7270_top, self._sr7270_bottom, self._powermeter,
+                                  self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
+                                  self._powermeter,
                                   self._polarizer)
         run.main()
 
@@ -459,20 +463,33 @@ class LockinMeasurementGUI:
 
 
 def main():
+    sr7270_dual_harmonic = None
+    sr7270_single_reference = None
     try:
         with ExitStack() as cm:
             npc3sg_x = cm.enter_context(daq.create_ao_task(hw.ao_x))
             npc3sg_y = cm.enter_context(daq.create_ao_task(hw.ao_y))
             npc3sg_input = cm.enter_context(npc3sg.connect_input([hw.ai_x, hw.ai_y]))
-            (sr7270_top, sr7270_bottom) = cm.enter_context(sr7270.create_endpoints(hw.vendor, hw.product))
+            lock_ins = cm.enter_context(sr7270.create_endpoints(hw.vendor, hw.product))
+            for lock_in in lock_ins:
+                mode = lock_in.check_reference_mode()
+                if mode == 0.0:
+                    sr7270_single_reference = lock_in
+                if mode == 1.0:
+                    sr7270_dual_harmonic = lock_in
+            if not sr7270_dual_harmonic or not sr7270_single_reference:
+                print('Lock in amplifiers not configured correctly. Make sure that two are connected with one in'
+                      ' dual harmonic mode and the other in single reference mode')
+                raise ValueError
             powermeter = cm.enter_context(pm100d.connect(hw.pm100d_address))
             polarizer = cm.enter_context(polarizercontroller.connect_kdc101(hw.kdc101_serial_number))
             attenuatorwheel = cm.enter_context(attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs))
             daq_input = cm.enter_context(daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000))
             root = tk.Tk()
             app = BaseGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
-                          sr7270_top=sr7270_top, sr7270_bottom=sr7270_bottom, powermeter=powermeter,
-                          attenuatorwheel=attenuatorwheel, polarizer=polarizer, daq_input=daq_input)
+                          sr7270_dual_harmonic=sr7270_dual_harmonic, sr7270_single_reference=sr7270_single_reference,
+                          powermeter=powermeter, attenuatorwheel=attenuatorwheel, polarizer=polarizer,
+                          daq_input=daq_input)
             app.build()
             root.mainloop()
     except Exception as err:

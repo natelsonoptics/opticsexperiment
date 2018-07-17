@@ -1,44 +1,67 @@
 import contextlib
-
 import usb.core
 import usb.util
-
 from optics.misc_utility import parser_tool
+
+# This module uses PyUSB which can be accessed here: https://github.com/pyusb/pyusb with documentation at:
+# http://pyusb.github.io/pyusb/
 
 
 @contextlib.contextmanager
 def create_endpoints(vendor, product):
-    dev_bottom = None
-    dev_top = None
+    """This function creates endpoints for multiple SR7270 lock in amplifiers using the idVendor and idProduct which is
+    notated in the hardware_addresses_and_constants module under hardware_control. It yields instances of the LockIn
+    class"""
+    devs = []
+    endpoints = []
     try:
         devices = tuple(usb.core.find(find_all=True, idVendor=vendor, idProduct=product))
-        dev_bottom = devices[0]
-        dev_bottom.set_configuration()
-        cfg = dev_bottom.get_active_configuration()
-        intf = cfg[(0, 0)]
-        ep0_bottom = intf[0]
-        ep1_bottom = intf[1]
-        dev_top = devices[1]
-        dev_top.set_configuration()
-        cfg2 = dev_top.get_active_configuration()
-        intf2 = cfg2[(0, 0)]
-        ep0_top = intf2[0]
-        ep1_top = intf2[1]
-        yield LockIn(dev_top, ep0_top, ep1_top), LockIn(dev_bottom, ep0_bottom, ep1_bottom)
+        for i, dev in enumerate(devices):
+            devs.append(dev)
+            devs[i].set_configuration()
+            cfg = devs[i].get_active_configuration()
+            intf = cfg[(0, 0)]  # explicitly listing out everything for documentation purposes
+            ep0 = intf[0]
+            ep1 = intf[1]
+            endpoints.append((ep0, ep1))
+        yield (LockIn(dev, ep[0], ep[1]) for dev, ep in zip(devs, endpoints))
     finally:
-        if dev_top:
-            usb.util.dispose_resources(dev_bottom)
-            usb.util.dispose_resources(dev_top)
+        if devs:
+            [usb.util.dispose_resources(dev) for dev in devs]
         else:
             print('SR7270 lock in amplifier communication error')
             raise ValueError
 
+        #dev_bottom = devices[0]
+        #dev_bottom.set_configuration()
+        #cfg = dev_bottom.get_active_configuration()
+        #intf = cfg[(0, 0)]
+        #ep0_bottom = intf[0]
+        #ep1_bottom = intf[1]
+        #dev_top = devices[1]
+        #dev_top.set_configuration()
+        #cfg2 = dev_top.get_active_configuration()
+        #intf2 = cfg2[(0, 0)]
+        #ep0_top = intf2[0]
+        #ep1_top = intf2[1]
+        #yield LockIn(dev_top, ep0_top, ep1_top), LockIn(dev_bottom, ep0_bottom, ep1_bottom)
+    #finally:
+    #    if dev_top:
+    #        usb.util.dispose_resources(dev_bottom)
+    #        usb.util.dispose_resources(dev_top)
+    #    else:
+    #        print('SR7270 lock in amplifier communication error')
+    #        raise ValueError
+
 
 @contextlib.contextmanager
 def create_endpoints_single(vendor, product):
+    """This function creates endpoints for a single SR7270 lock in amplifier using the idVendor and idProduct which is
+    notated in the hardware_addresses_and_constants module under hardware_control. It yields an instance of the LockIn
+    class"""
     dev = None
     try:
-        dev = usb.core.find(idVendor = vendor, idProduct = product)
+        dev = usb.core.find(idVendor=vendor, idProduct=product)
         dev.set_configuration()
         cfg = dev.get_active_configuration()
         intf = cfg[(0,0)]
@@ -61,6 +84,12 @@ class LockIn:
 
     def read(self):
         return parser_tool.parse(''.join(chr(x) for x in self._dev.read(self._ep1, 100, 100)))
+
+    def check_reference_mode(self):
+        """Checks the reference mode of the lock in amplifier. Returns 0 if single reference, 1 if dual harmonic, and
+        2 if dual reference mode"""
+        self._ep0.write('REFMODE')
+        return self.read()[0]
 
     def change_applied_voltage(self, millivolts):
         self._ep0.write('dac 3 ' + str(millivolts / 10))

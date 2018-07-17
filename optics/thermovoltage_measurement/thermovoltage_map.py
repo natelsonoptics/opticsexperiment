@@ -81,6 +81,8 @@ class ThermovoltageScan:
     def onclick(self, event):
         try:
             points = [int(np.ceil(event.xdata-0.5)), int(np.ceil(event.ydata-0.5))]
+            if not self._direction:
+                points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(self._yd - event.ydata - 0.5 - 1))]
             self._npc3sg_x.move(self._x_val[points[0]])
             self._npc3sg_y.move(self._y_val[points[1]])
             print('pixel: ' + str(points))

@@ -8,6 +8,9 @@ import os
 from os import path
 
 
+
+
+
 class HeatingPolarization:
     def __init__(self, filepath, notes, device, scan, gain, bias, osc, npc3sg_input, sr7270_top, sr7270_bottom,
                  powermeter, polarizer):

@@ -9,8 +9,8 @@ from os import path
 import numpy as np
 
 class HeatingIntensity:
-    def __init__(self, filepath, notes, device, scan, gain, bias, osc, maxtime, steps, npc3sg_input, sr7270_top,
-                 sr7270_bottom, powermeter, attenuatorwheel, polarizer):
+    def __init__(self, filepath, notes, device, scan, gain, bias, osc, maxtime, steps, npc3sg_input,
+                 sr7270_dual_harmonic, sr7270_single_reference, powermeter, attenuatorwheel, polarizer):
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -23,8 +23,8 @@ class HeatingIntensity:
         self._measuredpolarization = self._polarizer.read_polarization()
         self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         self._npc3sg_input = npc3sg_input
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
+        self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
         self._maxtime = maxtime
@@ -49,11 +49,11 @@ class HeatingIntensity:
         self._writer.writerow(['y laser position:', position[1]])
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
-        self._writer.writerow(['applied voltage (V):', self._sr7270_top.read_applied_voltage()[0]])
-        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()[0]])
-        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()[0]])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()[0]])
-        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc1()[0]])
+        self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()[0]])
+        self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()[0]])
+        self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()[0]])
+        self._writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()[0]])
+        self._writer.writerow(['top time constant:', self._sr7270_dual_harmonic.read_tc1()[0]])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'power', 'x_raw', 'y_raw', 'iphoto_x', 'iphoto_y'])
@@ -116,7 +116,7 @@ class HeatingIntensity:
         time.sleep(0.1)
         time_now = time.time() - self._start_time
         self._power = self._powermeter.read_power()
-        raw = self._sr7270_bottom.read_xy()
+        raw = self._sr7270_single_reference.read_xy()
         self._iphoto = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
         self._writer.writerow([time_now, self._power, raw[0], raw[1], self._iphoto[0], self._iphoto[1]])
         self._ax1.scatter(time_now, self._iphoto[0] * 1000, c='b', s=2)
@@ -130,9 +130,9 @@ class HeatingIntensity:
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile:
             try:
-                self._sr7270_top.change_applied_voltage(self._bias)
+                self._sr7270_dual_harmonic.change_applied_voltage(self._bias)
                 time.sleep(0.3)
-                self._sr7270_top.change_oscillator_amplitude(self._osc)
+                self._sr7270_dual_harmonic.change_oscillator_amplitude(self._osc)
                 time.sleep(0.3)
                 self._start_time = time.time()
                 self._writer = csv.writer(inputfile)
