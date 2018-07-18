@@ -33,6 +33,8 @@ class ThermovoltageTime:
         self._start_time = None
         self._voltages = None
         self._sleep = 1 / self._rate
+        self._filename = None
+        self._imagefile = None
 
     def write_header(self):
         position = self._npc3sg_input.read()
@@ -49,12 +51,12 @@ class ThermovoltageTime:
     def makefile(self):
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
-        self.file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-        self.imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
-        while path.exists(self.file):
+        self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+        while path.exists(self._filename):
             index += 1
-            self.file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-            self.imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
 
     def setup_plots(self):
         self._ax1.title.set_text('X_1')
@@ -101,7 +103,7 @@ class ThermovoltageTime:
 
     def main(self):
         self.makefile()
-        with open(self.file, 'w', newline='') as inputfile:
+        with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._start_time = time.time()
                 self._writer = csv.writer(inputfile)
@@ -109,8 +111,8 @@ class ThermovoltageTime:
                 self.setup_plots()
                 while time.time() - self._start_time < self._maxtime:
                     self.measure()
-                plt.savefig(self.imagefile, format='png', bbox_inches='tight')
+                plt.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                plt.savefig(self.imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
 
 

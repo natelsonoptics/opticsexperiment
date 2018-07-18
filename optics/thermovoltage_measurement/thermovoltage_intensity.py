@@ -47,7 +47,7 @@ class ThermovoltageIntensity:
         self._writer.writerow(['y laser position:', position[1]])
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()[0]])
+        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'power', 'x_raw', 'y_raw', 'x_v', 'y_v'])

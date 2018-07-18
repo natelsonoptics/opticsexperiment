@@ -14,10 +14,10 @@ def linear(x, M, B):
 def write_header(w):
     w.writerow(['gain:', args.gain])
     w.writerow(['notes:', args.notes])
-    w.writerow(['osc amplitude:', sr7270_top.read_oscillator_amplitude()[0]])
-    w.writerow(['osc frequency:', sr7270_top.read_oscillator_frequency()[0]])
-    w.writerow(['time constant:', sr7270_bottom.read_tc()[0]])
-    w.writerow(['top time constant:', sr7270_top.read_tc1()[0]])
+    w.writerow(['osc amplitude:', sr7270_top.read_oscillator_amplitude()])
+    w.writerow(['osc frequency:', sr7270_top.read_oscillator_frequency()])
+    w.writerow(['time constant:', sr7270_bottom.read_tc()])
+    w.writerow(['top time constant:', sr7270_top.read_tc()])
     w.writerow(['end:', 'end of header'])
 
 if __name__ == "__main__":

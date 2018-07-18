@@ -11,7 +11,7 @@ from optics.misc_utility import parser_tool
 def create_endpoints(vendor, product):
     """This function creates endpoints for multiple SR7270 lock in amplifiers using the idVendor and idProduct which is
     notated in the hardware_addresses_and_constants module under hardware_control. It yields instances of the LockIn
-    class"""
+    class for each lock in amplifier of the same idVendor and idProduct"""
     devs = []
     endpoints = []
     try:
@@ -27,62 +27,28 @@ def create_endpoints(vendor, product):
         yield (LockIn(dev, ep[0], ep[1]) for dev, ep in zip(devs, endpoints))
     finally:
         if devs:
-            [usb.util.dispose_resources(dev) for dev in devs]
+            [usb.util.dispose_resources(dev) for dev in devs]  # disposes resources
         else:
             print('SR7270 lock in amplifier communication error')
             raise ValueError
 
-        #dev_bottom = devices[0]
-        #dev_bottom.set_configuration()
-        #cfg = dev_bottom.get_active_configuration()
-        #intf = cfg[(0, 0)]
-        #ep0_bottom = intf[0]
-        #ep1_bottom = intf[1]
-        #dev_top = devices[1]
-        #dev_top.set_configuration()
-        #cfg2 = dev_top.get_active_configuration()
-        #intf2 = cfg2[(0, 0)]
-        #ep0_top = intf2[0]
-        #ep1_top = intf2[1]
-        #yield LockIn(dev_top, ep0_top, ep1_top), LockIn(dev_bottom, ep0_bottom, ep1_bottom)
-    #finally:
-    #    if dev_top:
-    #        usb.util.dispose_resources(dev_bottom)
-    #        usb.util.dispose_resources(dev_top)
-    #    else:
-    #        print('SR7270 lock in amplifier communication error')
-    #        raise ValueError
-
-
-@contextlib.contextmanager
-def create_endpoints_single(vendor, product):
-    """This function creates endpoints for a single SR7270 lock in amplifier using the idVendor and idProduct which is
-    notated in the hardware_addresses_and_constants module under hardware_control. It yields an instance of the LockIn
-    class"""
-    dev = None
-    try:
-        dev = usb.core.find(idVendor=vendor, idProduct=product)
-        dev.set_configuration()
-        cfg = dev.get_active_configuration()
-        intf = cfg[(0,0)]
-        ep0 = intf[0]
-        ep1 = intf[1]
-        yield LockIn(dev, ep0, ep1)
-    finally:
-        if dev:
-            usb.util.dispose_resources(dev)
-        else:
-            print('SR7270 lock in apmplifier communication error')
-            raise ValueError
-
 
 class LockIn:
+    """This is a class that controls the SR7270 lock in amplifier using USB commands listed in the Ametek manual
+    Appendix E "Alphabetical Listing of Commands" which can be found in here:
+    https://www.ameteksi.com/-/media/ameteksi/download_links/documentations/7270/197852-a-mnl-c.pdf"""
     def __init__(self, dev, ep0, ep1):
         self._dev = dev
         self._ep0 = ep0
         self._ep1 = ep1
+        self._mode = self.check_reference_mode()
 
     def read(self):
+        """Returns the parsed lock in amplifier outputs"""
+        #  Parser tool clears out garbage collected by not bothering to use proper handshaking for sake of time
+        #  Every command uses this function after every input command regardless of whether or not an output is
+        #  necessary because the lock in sends a non-meaningful confirmation message which would otherwise be sent
+        #  in the next read command
         return parser_tool.parse(''.join(chr(x) for x in self._dev.read(self._ep1, 100, 100)))
 
     def check_reference_mode(self):
@@ -91,77 +57,83 @@ class LockIn:
         self._ep0.write('REFMODE')
         return self.read()[0]
 
-    def change_applied_voltage(self, millivolts):
-        self._ep0.write('dac 3 ' + str(millivolts / 10))
+    def change_applied_voltage(self, millivolts, channel=3):
+        """Changes the applied voltage of the DAC channel. Default is channel 3."""
+        self._ep0.write('dac {} {}'.format(channel, millivolts / 10))
+        #  it is unclear why the input needs to be divided by 10. The manual shows mV input but the command yields a
+        #  voltage 10x higher
         self.read()  # throws away junk
 
-    def read_applied_voltage(self):
-        self._ep0.write('dac. 3')
-        return self.read()
+    def read_applied_voltage(self, channel=3):
+        """Reads the applied voltage of the DAC channel. Default is channel 3"""
+        self._ep0.write('dac. {}'.format(channel))
+        return self.read()[0]
 
     def change_oscillator_frequency(self, millihertz):
-        self._ep0.write('of ' + str(millihertz))
+        """Changes the oscillator frequency for internal reference"""
+        self._ep0.write('of {}'.format(millihertz))
         self.read()  # throws away junk
 
     def read_oscillator_frequency(self):
+        """Reads the oscillator frequency for internal reference"""
         self._ep0.write('of.')
-        return self.read()
+        return self.read()[0]
 
     def change_oscillator_amplitude(self, millivolts):
-        value = millivolts
-        self._ep0.write('oa ' + str(value * 100))
+        """Changes the oscillator amplitude for the internal reference"""
+        self._ep0.write('oa {}'.format(millivolts * 100))
         self.read()
 
     def read_oscillator_amplitude(self):
+        """Read the oscillator amplitude for the internal reference in volts"""
         self._ep0.write('oa.')
-        return self.read()
+        return self.read()[0]
 
     def read_xy1(self):
+        """Reads XY1 of dual harmonic mode. Returns a list corresponding to [X1, Y1] in volts"""
         self._ep0.write('xy1.')
         return self.read()
 
     def read_xy2(self):
+        """Reads XY2 of dual harmonic mode. Returns a list corresponding to [X1, Y1] in volts"""
         self._ep0.write('xy2.')
         return self.read()
 
     def read_xy(self):
+        """Reads XY of single reference mode. Returns a list corresponding to [X, Y] in volts"""
         self._ep0.write('xy.')
         return self.read()
 
-    def read_tc(self):  # this is used for bottom lock-in
-        self._ep0.write('tc.')
-        return self.read()
-
-    def read_tc1(self):  # this is used for top lock-in
-        self._ep0.write('tc1.')
-        return self.read()
+    def read_tc(self):
+        """Reads the time constant for a lock in amplifier in either the single reference or dual harmonic mode"""
+        if self._mode == 0.0:
+            self._ep0.write('tc.')
+        if self._mode == 1.0:
+            self._ep0.write('tc1.')
+        return self.read()[0]
 
     def change_tc(self, seconds):
+        """Changes the time constant for a lock in amplifier in either the single reference or dual harmonic mode"""
         tc_value = {10e-06: 0, 20e-06: 1, 50e-06: 2, 100e-06: 3, 200e-06: 4, 500e-06: 5, 1e-03: 6, 2e-03: 7, 5e-03: 8,
                     10e-03: 9, 20e-03: 10, 50e-03: 11, 100e-03: 12, 200e-03: 13, 500e-03: 14, 1: 15, 2: 16, 5: 17,
                     10: 18, 20: 19, 50: 20, 100: 21, 200: 22, 500: 23, 1000: 24, 2000: 25, 5000: 26, 10000: 27,
                     20000: 28, 50000: 29, 100000: 30}
         if seconds not in tc_value:
             seconds = min(tc_value.items(), key=lambda x: abs(seconds - x[0]))[0]
-        self._ep0.write('tc ' + str(tc_value[seconds]))
-        self.read()  # throws away junk
-
-    def change_tc1(self, seconds):
-        tc_value = {10e-06: 0, 20e-06: 1, 50e-06: 2, 100e-06: 3, 200e-06: 4, 500e-06: 5, 1e-03: 6, 2e-03: 7, 5e-03: 8,
-                    10e-03: 9, 20e-03: 10, 50e-03: 11, 100e-03: 12, 200e-03: 13, 500e-03: 14, 1: 15, 2: 16, 5: 17,
-                    10: 18, 20: 19, 50: 20, 100: 21, 200: 22, 500: 23, 1000: 24, 2000: 25, 5000: 26, 10000: 27,
-                    20000: 28, 50000: 29, 100000: 30}
-        if seconds not in tc_value:
-            seconds = min(tc_value.items(), key=lambda x: abs(seconds - x[0]))[0]
-        self._ep0.write('tc1 ' + str(tc_value[seconds]))
+        if self._mode == 0.0:
+            self._ep0.write('tc {}'.format(tc_value[seconds]))
+        if self._mode == 1.0:
+            self._ep0.write('tc1 {}'.format(tc_value[seconds]))
         self.read()  # throws away junk
 
     def read_r_theta(self):
+        """Reads the magnitude and phase output. Returns a list corresponding to [R, Theta]"""
         self._ep0.write('mp.')
         return self.read()
 
     def read_adc(self, channel):
-        self._ep0.write('adc. '+str(channel))
+        """Reads auxillary analog-to-digital inputs with output in volts"""
+        self._ep0.write('adc. {}'.format(channel))
         return self.read()
 
 

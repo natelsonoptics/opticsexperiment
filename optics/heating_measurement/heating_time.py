@@ -36,6 +36,8 @@ class HeatingTime:
         self._sleep = 1 / self._rate
         self._bias = bias
         self._osc = osc
+        self._filename = None
+        self._imagefile = None
 
     def write_header(self):
         position = self._npc3sg_input.read()
@@ -45,11 +47,11 @@ class HeatingTime:
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
-        self._writer.writerow(['applied voltage (V):', self._sr7270_top.read_applied_voltage()[0]])
-        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()[0]])
-        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()[0]])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()[0]])
-        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc1()[0]])
+        self._writer.writerow(['applied voltage (V):', self._sr7270_top.read_applied_voltage()])
+        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
+        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()])
+        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
+        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'x_raw', 'y_raw', 'iphoto_x', 'iphoto_y'])
@@ -57,12 +59,12 @@ class HeatingTime:
     def makefile(self):
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
-        self.file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-        self.imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
-        while path.exists(self.file):
+        self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+        while path.exists(self._filename):
             index += 1
-            self.file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-            self.imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
 
     def setup_plots(self):
         self._ax1.title.set_text('X_1')
@@ -109,7 +111,7 @@ class HeatingTime:
 
     def main(self):
         self.makefile()
-        with open(self.file, 'w', newline='') as inputfile:
+        with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._sr7270_top.change_applied_voltage(self._bias)
                 time.sleep(0.3)
@@ -121,6 +123,6 @@ class HeatingTime:
                 self.setup_plots()
                 while time.time() - self._start_time < self._maxtime:
                     self.measure()
-                plt.savefig(self.imagefile, format='png', bbox_inches='tight')
+                plt.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                plt.savefig(self.imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data

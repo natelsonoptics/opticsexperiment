@@ -42,10 +42,10 @@ class CurrentVoltageSweep:
 
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
-        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()[0]])
-        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()[0]])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()[0]])
-        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc1()[0]])
+        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
+        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()])
+        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
+        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['applied voltage (V)', 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',

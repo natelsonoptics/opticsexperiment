@@ -64,7 +64,7 @@ if __name__ == "__main__":
             max_voltage_y = 0
             min_voltage_y = 0
             if not args.rate:
-                sleep = 3 * sr7270_bottom.read_tc()[0]
+                sleep = 3 * sr7270_bottom.read_tc()
             else:
                 sleep = 1/args.rate
             while time.time()-start_time < args.max:
