@@ -1,7 +1,7 @@
 
 def convert_x_to_iphoto(x, gain, square_wave=True):
     if square_wave:
-        return convert_square_wave(x)/gain
+        return convert_square_wave(x) / gain
     else:
         return x / gain
 

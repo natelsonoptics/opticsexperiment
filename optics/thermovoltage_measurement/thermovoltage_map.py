@@ -107,7 +107,7 @@ class ThermovoltageScan:
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
                 self._npc3sg_x.move(j)
-                time.sleep(0.3)
+                time.sleep(0.6)
                 raw = self._sr7270_bottom.read_xy()
                 voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                 self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])

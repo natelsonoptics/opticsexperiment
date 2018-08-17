@@ -88,11 +88,11 @@ class AnalogInput:
 
 
 @contextlib.contextmanager
-def create_ai_task(ai_channels, points=1):
-    multiple_ai = MultiChannelAnalogInput(ai_channels, points=1)
+def create_ai_task(ai_channels, points=1, sleep=0.1):
+    multiple_ai = MultiChannelAnalogInput(ai_channels, points=points)
     multiple_ai.configure()
     try:
-        yield AnalogInput(multiple_ai)
+        yield AnalogInput(multiple_ai, sleep)
     finally:
         pass
 
@@ -105,6 +105,10 @@ class AnalogOutput:
         voltage = np.clip((position / 160 * 10), 0, 10)  # converts to the voltage to analog control
         # voltage range is 0-10 V
         self._task.WriteAnalogScalarF64(1, 10.0, voltage, None)
+
+    def source_voltage(self, voltage):
+        self._task.WriteAnalogScalarF64(1, 10.0, voltage, None)
+
 
 
 @contextlib.contextmanager

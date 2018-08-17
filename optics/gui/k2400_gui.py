@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 import tkinter as tk
 import tkinter.filedialog
-from optics.hardware_control.keithley_k2400 import KeithleyBreak
+from optics.electromigrate.k2400_break import KeithleyBreak
 
 class KeithleyGUI:
     def __init__(self, master, keithley):
