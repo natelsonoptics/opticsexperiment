@@ -18,3 +18,4 @@ polarizer_offset = 1.183  # set to 1 if no offset - it's multiplicative
 cryostation_port = 7773
 cryostation_ip_address = '169.254.116.144'
 low_pass_filter_factor = 0.47
+power_factor = 16.8/2.7  # double check this

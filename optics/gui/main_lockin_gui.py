@@ -14,6 +14,7 @@ from optics.heating_measurement.heating_time import HeatingTime
 from optics.heating_measurement.heating_intensity import HeatingIntensity
 from optics.heating_measurement.heating_polarization import HeatingPolarization
 from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
+from optics.thermovoltage_measurement.thermovoltage_polarization_dc import ThermovoltagePolarizationDC
 from contextlib import ExitStack
 from optics.under_development.current_vs_voltage import CurrentVoltageSweep
 
@@ -46,6 +47,7 @@ class BaseGUI:
         measurement = {'heatmap': self._app.build_heating_scan_gui,
                        'ptemap': self._app.build_thermovoltage_scan_gui,
                        'ptemapdc': self._app.build_thermovoltage_scan_dc_gui,
+                       'ptepolarizationdc': self._app.build_thermovoltage_polarization_dc_gui,
                        'heatpolarization': self._app.build_heating_polarization_gui,
                        'ptepolarization': self._app.build_thermovoltage_polarization_gui,
                        'heatintensity': self._app.build_heating_intensity_gui,
@@ -75,7 +77,8 @@ class BaseGUI:
         self.make_measurement_button(row, 'thermovoltage', 'ptemap')
         self.make_measurement_button(row, 'heating', 'heatmap')
         row = self.makerow('DC map scans')
-        self.make_measurement_button(row, 'thermovoltage', 'ptemapdc')
+        self.make_measurement_button(row, 'thermovoltage map', 'ptemapdc')
+        self.make_measurement_button(row, 'pte polarization', 'ptepolarizationdc')
         row = self.makerow('I-V curves')
         self.make_measurement_button(row, 'current', 'ivsweep')
         row = self.makerow('polarization scans')
@@ -321,6 +324,14 @@ class LockinMeasurementGUI:
                                         self._sr7270_single_reference, self._powermeter, self._polarizer)
         run.main()
 
+    def thermovoltage_polarization_dc(self, event=None):
+        self.fetch(event)
+        run = ThermovoltagePolarizationDC(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+                                          int(self._inputs['scan']), float(self._voltage_gain.get()),
+                                          self._npc3sg_input, self._sr7270_single_reference, self._powermeter,
+                                          self._polarizer, self._daq_input)
+        run.main()
+
     def heating_polarization(self, event=None):
         self.fetch(event)
         run = HeatingPolarization(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
@@ -413,6 +424,13 @@ class LockinMeasurementGUI:
         self.beginform(caption)
         self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_polarization)
+
+    def build_thermovoltage_polarization_dc_gui(self):
+        caption = "Thermovoltage DC vs. polarization"
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': ""}
+        self.beginform(caption)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
+        self.endform(self.thermovoltage_polarization_dc)
 
     def build_heating_polarization_gui(self):
        caption = "Heating vs. polarization"

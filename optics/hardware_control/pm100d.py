@@ -1,6 +1,7 @@
 import visa
 from ThorlabsPM100 import ThorlabsPM100
 import contextlib
+from optics.hardware_control.hardware_addresses_and_constants import  power_factor
 
 @contextlib.contextmanager
 def connect(address):
@@ -20,7 +21,7 @@ class PowerMeter:
         return self._power_meter.read
 
     def read_power(self):
-        return self._power_meter.read * 4.8  # reads power on sample
+        return self._power_meter.read * power_factor  # reads power on sample
 
 
 

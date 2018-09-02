@@ -12,7 +12,6 @@ import os
 from os import path
 
 
-
 class ThermovoltageScanDC:
     def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc, npc3sg_x, npc3sg_y, q,
                  powermeter, polarizer, direction=True):
