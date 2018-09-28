@@ -2,21 +2,18 @@ import matplotlib
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
+import time
 import numpy as np
+import matplotlib.pyplot as plt
 from optics.thermovoltage_plot import thermovoltage_plot
 from tkinter import *
 import warnings
 import os
 from os import path
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-import tkinter as tk
 
 class ThermovoltageScan:
-    def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
+    def __init__(self, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
                  npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer, direction=True):
-        self._master = master
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -31,9 +28,7 @@ class ThermovoltageScan:
         self._polarizer = polarizer
         self._measuredpolarization = self._polarizer.read_polarization()
         self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
-        self._fig = Figure()
-        self._ax1 = self._fig.add_subplot(211)
-        self._ax2 = self._fig.add_subplot(212)
+        self._fig, (self._ax1, self._ax2) = plt.subplots(2)
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
@@ -56,17 +51,6 @@ class ThermovoltageScan:
         self._direction = direction
         if not self._direction:
             self._y_val = self._y_val[::-1]
-        self._fig.tight_layout()
-        self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)  # A tk.DrawingArea.
-        self._canvas.draw()
-        self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        self._abort = False
-
-    def do_nothing(self):
-        pass
-
-    def abort(self):
-        self._abort = True
 
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
@@ -118,14 +102,12 @@ class ThermovoltageScan:
 
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
-            if self._abort:
-                break
             if not self._direction:
                 y_ind = len(self._y_val) - y_ind - 1
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
                 self._npc3sg_x.move(j)
-                self._master.after(600, self.do_nothing())
+                time.sleep(0.6)
                 raw = self._sr7270_bottom.read_xy()
                 voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                 self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])
@@ -133,33 +115,30 @@ class ThermovoltageScan:
                 self._z2[x_ind][y_ind] = voltages[1] * 1000000
                 self.update_plot(self._im1, self._z1, -np.amax(np.abs(self._z1)), np.amax(np.abs(self._z1)))
                 self.update_plot(self._im2, self._z2, -np.amax(np.abs(self._z2)), np.amax(np.abs(self._z2)))
-                self._fig.tight_layout()
-                self._canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
-                self._master.update()
-                if self._abort:
-                    break
+                plt.tight_layout()
+                self._fig.canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
         self._npc3sg_x.move(0)
         self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
 
     def main(self):
-        button = tk.Button(master=self._master, text="Abort", command=self.abort)
-        button.pack(side=tk.BOTTOM)
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._writer = csv.writer(inputfile)
                 self.setup_plots()
+                self._fig.show()
                 self.write_header()
                 self.run_scan()
                 thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
                 thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
-                self._canvas.draw()
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
                 thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
+                self._fig.show()  # shows the completed scan
                 warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
                 # that was never written
                 cid = self._fig.canvas.mpl_connect('button_press_event', self.onclick)  # click on pixel to move laser position there
+                plt.pause(-1)  # keeps the figure open indefinitely until you close it
             except KeyboardInterrupt:
                 plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 self._npc3sg_x.move(0)

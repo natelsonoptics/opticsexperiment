@@ -39,7 +39,6 @@ class KeithleyBreak:
         self._canvas.draw()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._ln = None
-        print('here')
         # create the filename
         os.makedirs(filepath, exist_ok=True)
         self._j = count(0)

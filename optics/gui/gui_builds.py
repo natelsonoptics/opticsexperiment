@@ -5,9 +5,9 @@ import tkinter.filedialog
 
 import numpy as np
 
+from optics.defunct.thermovoltage_map import ThermovoltageScan
 from optics.heating_measurement.heating_map import HeatingScan
 from optics.thermovoltage_measurement.thermovoltage_intensity import ThermovoltageIntensity
-from optics.thermovoltage_measurement.thermovoltage_map import ThermovoltageScan
 from optics.thermovoltage_measurement.thermovoltage_polarization import ThermovoltagePolarization
 from optics.thermovoltage_measurement.thermovoltage_time import ThermovoltageTime
 

@@ -199,7 +199,7 @@ class LockinMeasurementGUI:
             direction = False
         else:
             direction = True
-        run = ThermovoltageScan(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = ThermovoltageScan(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                 int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                                 int(self._inputs['x range']), int(self._inputs['y range']),
