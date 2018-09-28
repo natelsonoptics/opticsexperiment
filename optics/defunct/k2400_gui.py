@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 import tkinter as tk
 import tkinter.filedialog
-from optics.electromigrate.k2400_break import KeithleyBreak
+from optics.defunct.k2400_break import KeithleyBreak
 
 class KeithleyGUI:
     def __init__(self, master, keithley):
@@ -28,7 +28,7 @@ class KeithleyGUI:
     def makeform(self):
         for key in self._fields:
             row = tk.Frame(self._master)
-            lab = tk.Label(row, width=30, text=key, anchor='w')
+            lab = tk.Label(row, width=20, text=key, anchor='w')
             if key == 'file path':
                 ent = tk.Entry(row, textvariable=self._filepath)
             else:
@@ -52,7 +52,7 @@ class KeithleyGUI:
     def make_option_menu(self, label, parameter, option_list):
         row = tk.Frame(self._master)
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab = tk.Label(row, width=30, text=label, anchor='w')
+        lab = tk.Label(row, width=15, text=label, anchor='w')
         lab.pack(side=tk.LEFT)
         t = tk.OptionMenu(row, parameter, *option_list)
         t.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
@@ -68,7 +68,7 @@ class KeithleyGUI:
         else:
             increase = True
 
-        run = KeithleyBreak(tk.Toplevel(self._master), self._keithley, self._inputs['file path'], self._inputs['device'],
+        run = KeithleyBreak(self._keithley, self._inputs['file path'], self._inputs['device'],
                             steps=int(self._inputs['steps']),
                             stop_voltage=float(self._inputs['stop voltage (resistance measurement)']),
                             desired_resistance=float(self._inputs['desired resistance']),
@@ -83,8 +83,8 @@ class KeithleyGUI:
     def build_k2400_gui(self):
         self._browse_button.pack()
         self.makeform()
-        self.make_option_menu('abort', self._abort, ['True', 'False'])
-        self.make_option_menu('increase break voltage', self._increase, ['True', 'False'])
+        self.make_option_menu('Abort', self._abort, ['True', 'False'])
+        self.make_option_menu('Increase break voltage', self._increase, ['True', 'False'])
         self._master.bind('<Return>', self.electromigrate)
         b1 = tk.Button(self._master, text='Run', command=self.electromigrate)
         b1.pack(side=tk.LEFT, padx=5, pady=5)
