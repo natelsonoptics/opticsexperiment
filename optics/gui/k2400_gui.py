@@ -64,9 +64,9 @@ class KeithleyGUI:
         else:
             abort = False
         if self._increase.get() == 'True':
-            increase = False
-        else:
             increase = True
+        else:
+            increase = False
 
         run = KeithleyBreak(tk.Toplevel(self._master), self._keithley, self._inputs['file path'], self._inputs['device'],
                             steps=int(self._inputs['steps']),

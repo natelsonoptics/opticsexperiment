@@ -1,15 +1,19 @@
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import time
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
 import csv
 from optics.misc_utility import conversions
 import os
 from os import path
+from optics.misc_utility.random import tk_sleep
+import tkinter as tk
 
 class ThermovoltagePolarizationDC:
-    def __init__(self, filepath, notes, device, scan, gain, npc3sg_input, sr7270_bottom, powermeter,
+    def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, sr7270_bottom, powermeter,
                  polarizer, q):
+        self._master = master
         self._writer = None
         self._npc3sg_input = npc3sg_input
         self._q = q
@@ -24,13 +28,21 @@ class ThermovoltagePolarizationDC:
         self._imagefile = None
         self._filename = None
         self._start_time = None
-        self._fig = plt.figure()
-        self._ax1 = self._fig.add_subplot(111, projection='polar')
+        self._fig = Figure()
+        self._ax1 = self._fig.add_subplot(111, polar=True)
         self._max_voltage = 0
         self._voltage = None
         self._waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
+        self._fig.tight_layout()
+        self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)  # A tk.DrawingArea.
+        self._canvas.draw()
+        self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self._abort = False
+
+    def abort(self):
+        self._abort = True
 
     def write_header(self):
         position = self._npc3sg_input.read()
@@ -54,14 +66,18 @@ class ThermovoltagePolarizationDC:
 
     def setup_plots(self):
         self._ax1.title.set_text('DC thermovoltage (uV)')
-        self._fig.show()
+        self._canvas.draw()
 
     def measure(self):
         for i in range(self._waveplate_angle, self._max_waveplate_angle):
+            if self._abort:
+                break
+            self._master.update()
             if i > 360:
                 i = i - 360
             self._polarizer.move(i)
-            time.sleep(1.5)
+            tk_sleep(self._master, 1500)
+            self._master.update()
             polarization = float(str(self._polarizer.read_polarization()))
             # converts waveplate angle to polarizaiton angle
             data = self._q.read()
@@ -74,11 +90,13 @@ class ThermovoltagePolarizationDC:
             self._ax1.scatter(conversions.degrees_to_radians(polarization), abs(self._voltage) * 1000000,
                               c='c', s=2)
             self._ax1.set_rmax(self._max_voltage * 1000000 * 1.1)
-            plt.tight_layout()
+            self._fig.tight_layout()
             self._fig.canvas.draw()
 
     def main(self):
         self.makefile()
+        button = tk.Button(master=self._master, text="Abort", command=self.abort)
+        button.pack(side=tk.BOTTOM)
         with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._start_time = time.time()
@@ -86,6 +104,6 @@ class ThermovoltagePolarizationDC:
                 self.write_header()
                 self.setup_plots()
                 self.measure()
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data

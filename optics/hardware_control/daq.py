@@ -112,11 +112,13 @@ class AnalogOutput:
 
 
 @contextlib.contextmanager
-def create_ao_task(ao_channel):
+def create_ao_task(ao_channel, reset_to_zero=True):
     task = Task()
     task.CreateAOVoltageChan(ao_channel, "", -10.0, 10.0, PyDAQmx.DAQmx_Val_Volts, None)
     task.StartTask()
     try:
         yield AnalogOutput(task)
     finally:
+        if reset_to_zero:
+            task.WriteAnalogScalarF64(1, 10.0, 0, None)
         task.StopTask()

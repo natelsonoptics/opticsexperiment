@@ -8,10 +8,11 @@ from tkinter import *
 import warnings
 import os
 from os import path
-from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import tkinter as tk
+from optics.misc_utility.random import tk_sleep
 
 class ThermovoltageScan:
     def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
@@ -61,9 +62,6 @@ class ThermovoltageScan:
         self._canvas.draw()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._abort = False
-
-    def do_nothing(self):
-        pass
 
     def abort(self):
         self._abort = True
@@ -119,13 +117,15 @@ class ThermovoltageScan:
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
             if self._abort:
+                self._npc3sg_x.move(0)
+                self._npc3sg_y.move(0)
                 break
             if not self._direction:
                 y_ind = len(self._y_val) - y_ind - 1
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
                 self._npc3sg_x.move(j)
-                self._master.after(600, self.do_nothing())
+                tk_sleep(self._master, 600)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
                 raw = self._sr7270_bottom.read_xy()
                 voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                 self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])
@@ -137,6 +137,8 @@ class ThermovoltageScan:
                 self._canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
                 self._master.update()
                 if self._abort:
+                    self._npc3sg_x.move(0)
+                    self._npc3sg_y.move(0)
                     break
         self._npc3sg_x.move(0)
         self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
@@ -157,11 +159,12 @@ class ThermovoltageScan:
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
                 thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
+                self._canvas.draw()
                 warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
                 # that was never written
                 cid = self._fig.canvas.mpl_connect('button_press_event', self.onclick)  # click on pixel to move laser position there
             except KeyboardInterrupt:
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 self._npc3sg_x.move(0)
                 self._npc3sg_y.move(0)
             except TclError:  # this is an annoying error that requires you to have tkinter events in mainloop

@@ -66,6 +66,7 @@ class KeithleyBreak:
         self._steps = steps
         self._pass = count(0)
         self._points = []
+        self._current_break_voltage = self._break_voltage
 
     def abort(self):
         self._abort = True
@@ -125,13 +126,13 @@ class KeithleyBreak:
             self._sourcemeter.set_voltage(0)
             raise NameError
 
-    def loop_one(self, current_break_voltage):
+    def loop_one(self):
         if not self._abort:
             self._master.update()
             currents = []
             voltages = []
             points = []
-            for n, v_applied in enumerate(np.arange(self._start_voltage, current_break_voltage, self._delta_voltage)):
+            for n, v_applied in enumerate(np.arange(self._start_voltage, self._current_break_voltage, self._delta_voltage)):
                 self._master.update()
                 self._ax3.barh(1, 1, 0.35, color='white')
                 self._sourcemeter.set_voltage(v_applied)
@@ -141,6 +142,7 @@ class KeithleyBreak:
                 percent_max = j / np.amax(currents)
                 points.append(self._ax2.scatter(v, j))
                 self._ax2.title.set_text('Breaking junction\nCurrent resistance: %s ohms' % np.ceil(v / j))
+                self._ax2.set_xlim(self._start_voltage*0.9, self._current_break_voltage*1.1)
                 self._ax3.barh(1, percent_max, 0.35)
                 self._ax3.title.set_text('Percent of maximum current: %s %%' % np.ceil(percent_max * 100))
                 self._ax3.set_xlim(0, 1)
@@ -156,7 +158,7 @@ class KeithleyBreak:
                 if self._abort:
                     break
             if len(currents) > 3:
-                linspace = np.linspace(self._start_voltage, current_break_voltage, 100)
+                linspace = np.linspace(self._start_voltage, self._current_break_voltage, 100)
                 m, b, _, _ = linear_fit(voltages, currents)
                 self._sweep_resistance = 1 / m
                 ln, = self._ax2.plot(linspace, linear(linspace, m, b))
@@ -167,16 +169,18 @@ class KeithleyBreak:
             self._sourcemeter.set_voltage(0)
             for x in points:
                 x.remove()
-            if next(self._pass) >= self._passes and self._increase_break_voltage:
-                current_break_voltage += self._delta_break_voltage
-            if not self._current_dropped or not self._abort: # this is pretty much a while loop, but you can't use a while loop in Tkinter
-                self.loop_one(current_break_voltage)
+            if self._increase_break_voltage:
+                self._current_break_voltage += self._delta_break_voltage
+                print(self._current_break_voltage)
+            if not self._current_dropped or not self._abort: # this is pretty much a while loop, but you can't use
+                # a while loop in Tkinter
+                self.loop_one()
 
     def loop_two(self):
         self._master.update()
-        current_break_voltage = self._break_voltage
+        self._current_break_voltage = self._break_voltage
         self._pass = count(0)
-        self.loop_one(current_break_voltage)
+        self.loop_one()
         stop = False
         if self._sweep_resistance >= self._desired_resistance:
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')

@@ -16,7 +16,7 @@ from optics.heating_measurement.heating_polarization import HeatingPolarization
 from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
 from optics.thermovoltage_measurement.thermovoltage_polarization_dc import ThermovoltagePolarizationDC
 from contextlib import ExitStack
-from optics.under_development.current_vs_voltage import CurrentVoltageSweep
+from optics.current_vs_voltage.current_vs_voltage import CurrentVoltageSweep
 
 class BaseGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
@@ -214,7 +214,7 @@ class LockinMeasurementGUI:
             direction = False
         else:
             direction = True
-        run = ThermovoltageScanDC(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = ThermovoltageScanDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                   int(self._inputs['scan']), float(self._voltage_gain.get()),
                                   int(self._inputs['x pixel density']),
                                   int(self._inputs['y pixel density']), int(self._inputs['x range']),
@@ -242,7 +242,7 @@ class LockinMeasurementGUI:
 
     def thermovoltage_time(self, event=None):
         self.fetch(event)
-        run = ThermovoltageTime(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = ThermovoltageTime(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                 int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
                                 self._npc3sg_input, self._sr7270_single_reference,
@@ -308,26 +308,29 @@ class LockinMeasurementGUI:
 
     def iv_sweep(self, event=None):
         self.fetch(event)
-        run = CurrentVoltageSweep(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                  int(self._inputs['scan']),
+        run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
+                                  self._inputs['device'],int(self._inputs['scan']),
                                   float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['oscillator amplitude (mV)']),
                                   float(self._inputs['start voltage (mV)']),
                                   float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
-                                  int(self._inputs['# to average']), self._sr7270_dual_harmonic, self._sr7270_single_reference)
+                                  int(self._inputs['# to average']), self._sr7270_dual_harmonic,
+                                  self._sr7270_single_reference)
         run.main()
 
     def thermovoltage_polarization(self, event=None):
         self.fetch(event)
-        run = ThermovoltagePolarization(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                        int(self._inputs['scan']), float(self._voltage_gain.get()), self._npc3sg_input,
+        run = ThermovoltagePolarization(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
+                                        self._inputs['device'], int(self._inputs['scan']),
+                                        float(self._voltage_gain.get()), self._npc3sg_input,
                                         self._sr7270_single_reference, self._powermeter, self._polarizer)
         run.main()
 
     def thermovoltage_polarization_dc(self, event=None):
         self.fetch(event)
-        run = ThermovoltagePolarizationDC(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
-                                          int(self._inputs['scan']), float(self._voltage_gain.get()),
+        run = ThermovoltagePolarizationDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
+                                          self._inputs['device'], int(self._inputs['scan']),
+                                          float(self._voltage_gain.get()),
                                           self._npc3sg_input, self._sr7270_single_reference, self._powermeter,
                                           self._polarizer, self._daq_input)
         run.main()

@@ -1,17 +1,20 @@
 import matplotlib
 matplotlib.use('TkAgg')
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
+from matplotlib.figure import Figure
 import numpy as np
-import time
-import matplotlib.pyplot as plt
 import csv
 import os
 from os import path
 from optics.hardware_control import hardware_addresses_and_constants as hw
+import tkinter as tk
+from optics.misc_utility.random import tk_sleep
 
 
 class CurrentVoltageSweep:
-    def __init__(self, filepath, notes, device, scan, gain, osc, start_voltage, stop_voltage, steps,
+    def __init__(self, master, filepath, notes, device, scan, gain, osc, start_voltage, stop_voltage, steps,
                  number_measurements, sr7270_top, sr7270_bottom):
+        self._master = master
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -21,10 +24,16 @@ class CurrentVoltageSweep:
         self._number_measurements = number_measurements
         self._sr7270_top = sr7270_top
         self._sr7270_bottom = sr7270_bottom
-        self._fig, (self._ax1, self._ax2, self._ax3, self._ax4) = plt.subplots(4)
+        # set up the plots
+        self._fig = Figure()
+        self._ax1 = self._fig.add_subplot(411)
+        self._ax2 = self._fig.add_subplot(412)
+        self._ax3 = self._fig.add_subplot(413)
+        self._ax4 = self._fig.add_subplot(414)
         self._ax2_twin = self._ax2.twinx()
         self._ax3_twin = self._ax3.twinx()
         self._ax4_twin = self._ax4.twinx()
+        self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)
         self._voltages = np.linspace(start_voltage, stop_voltage, steps)
         self._low_pass_filter_factor = hw.low_pass_filter_factor
         self._writer = None
@@ -39,6 +48,7 @@ class CurrentVoltageSweep:
         self._iphotoy = []
         self._idc = []
         self._dgdv_normalized = []
+        self._abort = False
 
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
@@ -78,7 +88,10 @@ class CurrentVoltageSweep:
         self._ax4_twin.tick_params(axis='y', labelcolor='red')
         for i in [self._ax1, self._ax2, self._ax2_twin, self._ax3, self._ax3_twin, self._ax4, self._ax4_twin]:
             i.set_xlabel('DC Voltage (V)')
-        self._fig.show()
+        self._fig.tight_layout()
+        self._canvas.draw()
+        self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
 
     def set_limits(self):
         self._ax1.set_ylim(np.amin(self._idc), np.amax(self._idc))
@@ -88,25 +101,30 @@ class CurrentVoltageSweep:
         self._ax3_twin.set_ylim(np.amin(self._d2idvy2), np.amax(self._d2idvy2))
         self._ax4.set_ylim(np.amin(self._dgdv_normalized), np.amax(self._dgdv_normalized))
         self._ax4_twin.set_ylim(np.amin(self._iphotox), np.amax(self._iphotox))
+        for ax in (self._ax1, self._ax2, self._ax3, self._ax4, self._ax2_twin, self._ax3_twin, self._ax4_twin):
+            ax.ticklabel_format(axix='y', style='sci', scilimits=(-3, 3))
 
     def measure(self):
         for i, j in enumerate(self._voltages):
+            if self._abort:
+                break
+            self._master.update()
             j = np.round(j, 0)
             vdc = j/1000
             self._sr7270_top.change_applied_voltage(j)
-            time.sleep(0.5)
+            tk_sleep(self._master, 500)
             xy1 = []
             xy2 = []
             xy = []
             adc = []
             for k in range(self._number_measurements):
-                time.sleep(0.01)
+                tk_sleep(self._master, 10)
                 xy.append(self._sr7270_bottom.read_xy())
-                time.sleep(0.01)
+                tk_sleep(self._master, 10)
                 xy1.append(self._sr7270_top.read_xy1())
-                time.sleep(0.01)
+                tk_sleep(self._master, 10)
                 xy2.append(self._sr7270_top.read_xy2())
-                time.sleep(0.01)
+                tk_sleep(self._master, 10)
                 adc.append(self._sr7270_top.read_adc(3))
             self._didvx.append(np.average([k[0] for k in xy1]) / (self._gain * (self._osc/1000)))
             self._didvy.append(np.average([k[1] for k in xy1]) / (self._gain * (self._osc/1000)))
@@ -123,28 +141,30 @@ class CurrentVoltageSweep:
             self._ax3_twin.scatter(vdc, self._d2idvy2[i], c='r', s=2)
             self._ax4.scatter(vdc, self._dgdv_normalized[i], c='b', s=2)
             self._ax4_twin.scatter(vdc, self._iphotox[i], c='r', s=2)
-            if i:
+            if i > 1:
                 self.set_limits()
             self._writer.writerow([vdc, self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
                                    self._d2idvy2[i], self._dgdv_normalized[i], self._iphotox[i], self._iphotoy[i],
                                    vdc/self._idc[i], 1/self._didvx[i]])
-            plt.tight_layout()
+            self._fig.tight_layout()
             self._fig.canvas.draw()
 
     def main(self):
+        button = tk.Button(master=self._master, text='Abort', command=self.abort)
+        button.pack(side=tk.BOTTOM)
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._sr7270_top.change_oscillator_amplitude(self._osc)
-                time.sleep(0.3)
+                tk_sleep(self._master, 300)
                 self._writer = csv.writer(inputfile)
                 self.write_header()
                 self.setup_plots()
                 self.measure()
                 self._sr7270_top.change_applied_voltage(0)
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
 
 
 
