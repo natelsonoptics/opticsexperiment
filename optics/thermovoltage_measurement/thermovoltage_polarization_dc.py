@@ -92,6 +92,7 @@ class ThermovoltagePolarizationDC:
             self._ax1.set_rmax(self._max_voltage * 1000000 * 1.1)
             self._fig.tight_layout()
             self._fig.canvas.draw()
+            self._master.update()
 
     def main(self):
         self.makefile()

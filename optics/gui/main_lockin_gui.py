@@ -288,7 +288,7 @@ class LockinMeasurementGUI:
 
     def thermovoltage_intensity(self, event=None):
         self.fetch(event)
-        run = ThermovoltageIntensity(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = ThermovoltageIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                      int(self._inputs['scan']), float(self._voltage_gain.get()),
                                      float(self._inputs['max time (s)']), int(self._inputs['steps']),
                                      self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,

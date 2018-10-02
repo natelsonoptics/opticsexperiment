@@ -109,6 +109,7 @@ class ThermovoltageScanDC:
 
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
+            self._master.update()
             if self._abort:
                 self._npc3sg_x.move(0)
                 self._npc3sg_y.move(0)

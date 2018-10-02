@@ -98,6 +98,7 @@ class ThermovoltagePolarization:
             self._ax2.set_rmax(self._max_voltage_y * 1000000 * 1.1)
             self._fig.tight_layout()
             self._fig.canvas.draw()
+            self._master.update()
 
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)

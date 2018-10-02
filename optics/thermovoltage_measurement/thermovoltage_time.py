@@ -115,6 +115,7 @@ class ThermovoltageTime:
         self.set_limits()
         self._fig.tight_layout()
         self._fig.canvas.draw()
+        self._master.update()
         if not self._abort and time.time() - self._start_time < self._maxtime:
             self.measure()
 
