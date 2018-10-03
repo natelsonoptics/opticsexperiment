@@ -110,8 +110,8 @@ class ThermovoltageTime:
         tk_sleep(self._master, self._sleep)
         time_now = time.time() - self._start_time
         self._writer.writerow([time_now, raw[0], raw[1], self._voltages[0], self._voltages[1]])
-        self._ax1.scatter(time_now, self._voltages[0] * 1000000, c='c', s=2)
-        self._ax2.scatter(time_now, self._voltages[1] * 1000000, c='c', s=2)
+        self._ax1.plot(time_now, self._voltages[0] * 1000000, linestyle='', color='blue', marker='o', markersize=2)
+        self._ax2.plot(time_now, self._voltages[1] * 1000000, linestyle='', color='blue', marker='o', markersize=2)
         self.set_limits()
         self._fig.tight_layout()
         self._fig.canvas.draw()

@@ -8,6 +8,7 @@ import csv
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 from matplotlib.figure import Figure
+from optics.misc_utility.random import tk_sleep
 
 
 class KeithleyBreak:
@@ -71,9 +72,6 @@ class KeithleyBreak:
     def abort(self):
         self._abort = True
 
-    def do_nothing(self):
-        pass
-
     def measure_resistance(self):
         values = np.zeros((self._steps+1, 2))
         self._points = []
@@ -82,8 +80,8 @@ class KeithleyBreak:
             self._sourcemeter.set_voltage(i)
             v, j, _, _, _ = self._sourcemeter.read_points()
             values[n] = v, j
-            self._master.after(self._wait_time, self.do_nothing())
-            self._points.append(self._ax1.scatter(i, j))
+            tk_sleep(self._master, self._wait_time)
+            self._points.append(self._ax1.plot(i, j, linestyle='', color='blue', marker='o', markersize=5))
             self._ax1.set_ylim(np.amin(values[:, 1]) * 0.9, np.amax(values[:, 1]) * 1.1)
             self._ax1.title.set_text('Measuring resistance\nCurrent resistance: %s ohms' % np.ceil(i / j))
             self._fig.canvas.draw()
@@ -98,8 +96,7 @@ class KeithleyBreak:
         self.check_status()
 
     def remove_points(self):
-        for x in self._points:
-            x.remove()
+        [x[0].remove() for x in self._points]
         self._ln.remove()
 
     def check_status(self):
@@ -126,7 +123,7 @@ class KeithleyBreak:
             self._sourcemeter.set_voltage(0)
             raise NameError
 
-    def loop_one(self):
+    def ramp_voltage(self):
         if not self._abort:
             self._master.update()
             currents = []
@@ -134,20 +131,19 @@ class KeithleyBreak:
             points = []
             for n, v_applied in enumerate(np.arange(self._start_voltage, self._current_break_voltage, self._delta_voltage)):
                 self._master.update()
-                self._ax3.barh(1, 1, 0.35, color='white')
                 self._sourcemeter.set_voltage(v_applied)
                 v, j, _, _, _ = self._sourcemeter.read_points()
                 voltages.append(v_applied)
                 currents.append(j)
                 percent_max = j / np.amax(currents)
-                points.append(self._ax2.scatter(v, j))
+                points.append(self._ax2.plot(v, j, linestyle='', color='blue', marker='o', markersize=5))
                 self._ax2.title.set_text('Breaking junction\nCurrent resistance: %s ohms' % np.ceil(v / j))
                 self._ax2.set_xlim(self._start_voltage*0.9, self._current_break_voltage*1.1)
-                self._ax3.barh(1, percent_max, 0.35)
+                bar = self._ax3.barh(1, percent_max, 0.35, color='cyan')
                 self._ax3.title.set_text('Percent of maximum current: %s %%' % np.ceil(percent_max * 100))
-                self._ax3.set_xlim(0, 1)
                 self._fig.canvas.draw()
                 self._master.update()
+                bar.remove()
                 if n > 1:
                     upper = (1 + self._r_percent / 100) * voltages[n - 1] / currents[n - 1]
                     lower = (1 - self._r_percent / 100) * voltages[n - 1] / currents[n - 1]
@@ -164,23 +160,21 @@ class KeithleyBreak:
                 ln, = self._ax2.plot(linspace, linear(linspace, m, b))
                 self._ax2.title.set_text('Breaking resistance: %s ohms\n ' % np.ceil(self._sweep_resistance))
                 self._fig.canvas.draw()
-                self._master.after(250, self.do_nothing())
+                tk_sleep(self._master, 250)
                 ln.remove()
             self._sourcemeter.set_voltage(0)
-            for x in points:
-                x.remove()
+            [x[0].remove() for x in points]
             if self._increase_break_voltage:
                 self._current_break_voltage += self._delta_break_voltage
-                print(self._current_break_voltage)
             if not self._current_dropped or not self._abort: # this is pretty much a while loop, but you can't use
                 # a while loop in Tkinter
-                self.loop_one()
+                self.ramp_voltage()
 
-    def loop_two(self):
+    def break_junction(self):
         self._master.update()
         self._current_break_voltage = self._break_voltage
         self._pass = count(0)
-        self.loop_one()
+        self.ramp_voltage()
         stop = False
         if self._sweep_resistance >= self._desired_resistance:
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
@@ -193,26 +187,23 @@ class KeithleyBreak:
         if self._current_dropped:
             self._ln.remove()
         if not self._abort and not self._current_dropped and not stop:
-            self.loop_two()
+            self.break_junction()
 
-    def break_junction(self):
-        self._current_dropped = False
-        self.loop_two()
-
-    def main_loop(self):
+    def measure(self):
         with open(self._filename + '%s.csv' % next(self._j), 'w', newline='') as inputfile:
             self._writer = csv.writer(inputfile)
             self._writer.writerow(['resistance'])
             self.measure_resistance()
+            self._current_dropped = False
             self.break_junction()
             self.remove_points()
-        self.main_loop()
+        self.measure()
 
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
         try:
-            self.main_loop()
+            self.measure()
         except NameError:
             print(self._message)
             print('Final resistance: %s ohms' % np.ceil(self._sweep_resistance))

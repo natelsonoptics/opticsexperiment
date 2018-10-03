@@ -72,11 +72,11 @@ class DAQBreakGUI:
         else:
             abort = False
         if self._increase.get() == 'True':
-            increase = False
-        else:
             increase = True
+        else:
+            increase = False
 
-        run = DAQBreak(self._ao, self._ai, self._inputs['file path'], self._inputs['device'],
+        run = DAQBreak(tk.Toplevel(self._master), self._ao, self._ai, self._inputs['file path'], self._inputs['device'],
                        steps=int(self._inputs['steps']),
                        stop_voltage=float(self._inputs['stop voltage (resistance measurement)']),
                        desired_resistance=float(self._inputs['desired resistance']),
@@ -110,12 +110,3 @@ if __name__ is '__main__':
         app = DAQBreakGUI(root, ai, ao)
         app.build_daqbreak_gui()
         root.mainloop()
-
-from optics.hardware_control import hardware_addresses_and_constants, daq
-
-root = tk.Tk()
-with daq.create_ai_task(hardware_addresses_and_constants.ai_switch, sleep=0) as ai, \
-        daq.create_ao_task(hardware_addresses_and_constants.ao_switch) as ao:
-    app = DAQBreakGUI(root, ai, ao)
-    app.build_daqbreak_gui()
-    root.mainloop()

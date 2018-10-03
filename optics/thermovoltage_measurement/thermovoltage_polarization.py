@@ -90,11 +90,11 @@ class ThermovoltagePolarization:
                 self._max_voltage_y = abs(self._voltages[1])
             time_now = time.time() - self._start_time
             self._writer.writerow([time_now, polarization, raw[0], raw[1], self._voltages[0], self._voltages[1]])
-            self._ax1.scatter(conversions.degrees_to_radians(polarization), abs(self._voltages[0]) * 1000000,
-                              c='c', s=2)
+            self._ax1.plot(conversions.degrees_to_radians(polarization), abs(self._voltages[0]) * 1000000,
+                           linestyle='', color='blue', marker='o', markersize=2)
             self._ax1.set_rmax(self._max_voltage_x * 1000000 * 1.1)
-            self._ax2.scatter(conversions.degrees_to_radians(polarization), abs(self._voltages[1]) * 1000000,
-                              c='c', s=2)
+            self._ax2.plot(conversions.degrees_to_radians(polarization), abs(self._voltages[1]) * 1000000,
+                           linestyle='', color='blue', marker='o', markersize=2)
             self._ax2.set_rmax(self._max_voltage_y * 1000000 * 1.1)
             self._fig.tight_layout()
             self._fig.canvas.draw()

@@ -101,13 +101,7 @@ if __name__ is '__main__':
         app.build_k2400_gui()
         root.mainloop()
 
-from optics.hardware_control import hardware_addresses_and_constants, keithley_k2400
 
-root = tk.Tk()
-with keithley_k2400.connect(hardware_addresses_and_constants.keithley_address) as keithley:
-    app = KeithleyGUI(root, keithley)
-    app.build_k2400_gui()
-    root.mainloop()
 
 
 

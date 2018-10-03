@@ -50,6 +50,9 @@ class CurrentVoltageSweep:
         self._dgdv_normalized = []
         self._abort = False
 
+    def abort(self):
+        self._abort = True
+
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
@@ -113,11 +116,15 @@ class CurrentVoltageSweep:
             vdc = j/1000
             self._sr7270_top.change_applied_voltage(j)
             tk_sleep(self._master, 500)
+            self._master.update()
+            if self._abort:
+                break
             xy1 = []
             xy2 = []
             xy = []
             adc = []
             for k in range(self._number_measurements):
+                self._master.update()
                 tk_sleep(self._master, 10)
                 xy.append(self._sr7270_bottom.read_xy())
                 tk_sleep(self._master, 10)
@@ -134,13 +141,13 @@ class CurrentVoltageSweep:
             self._iphotoy.append(np.average([k[1] for k in xy]) / self._gain)
             self._idc.append(np.average([k[0] for k in adc]) / (self._gain * self._low_pass_filter_factor))
             self._dgdv_normalized.append(np.abs(vdc * self._d2idvx2[i] / self._didvx[i]))
-            self._ax1.scatter(vdc, self._idc[i], c='b', s=2)
-            self._ax2.scatter(vdc, self._didvx[i], c='b', s=2)
-            self._ax2_twin.scatter(vdc, self._didvy[i], c='r', s=2)
-            self._ax3.scatter(vdc, self._d2idvx2[i], c='b', s=2)
-            self._ax3_twin.scatter(vdc, self._d2idvy2[i], c='r', s=2)
-            self._ax4.scatter(vdc, self._dgdv_normalized[i], c='b', s=2)
-            self._ax4_twin.scatter(vdc, self._iphotox[i], c='r', s=2)
+            self._ax1.plot(vdc, self._idc[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax2.plot(vdc, self._didvx[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax2_twin.plot(vdc, self._didvy[i], linestyle='', color='red', marker='o', markersize=2)
+            self._ax3.plot(vdc, self._d2idvx2[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax3_twin.plot(vdc, self._d2idvy2[i], linestyle='', color='red', marker='o', markersize=2)
+            self._ax4.plot(vdc, self._dgdv_normalized[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax4_twin.plot(vdc, self._iphotox[i], linestyle='', color='red', marker='o', markersize=2)
             if i > 1:
                 self.set_limits()
             self._writer.writerow([vdc, self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],

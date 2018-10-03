@@ -129,9 +129,9 @@ class ThermovoltageIntensity:
         raw = self._sr7270_bottom.read_xy()
         self._voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
         self._writer.writerow([time_now, self._power, raw[0], raw[1], self._voltages[0], self._voltages[1]])
-        self._ax1.scatter(time_now, self._voltages[0] * 1000000, c='b', s=2)
-        self._ax2.scatter(time_now, self._voltages[1] * 1000000, c='b', s=2)
-        self._ax3.scatter(time_now, self._power * 1000, c='b', s=2)
+        self._ax1.plot(time_now, self._voltages[0] * 1000000, linestyle='', color='blue', marker='o', markersize=2)
+        self._ax2.plot(time_now, self._voltages[1] * 1000000, linestyle='', color='blue', marker='o', markersize=2)
+        self._ax3.plot(time_now, self._power * 1000, linestyle='', color='blue', marker='o', markersize=2)
         self.set_limits()
         self._fig.tight_layout()
         self._fig.canvas.draw()

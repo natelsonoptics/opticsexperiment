@@ -87,8 +87,8 @@ class ThermovoltagePolarizationDC:
                 self._max_voltage = abs(self._voltage)
             time_now = time.time() - self._start_time
             self._writer.writerow([time_now, polarization, raw, self._voltage])
-            self._ax1.scatter(conversions.degrees_to_radians(polarization), abs(self._voltage) * 1000000,
-                              c='c', s=2)
+            self._ax1.plot(conversions.degrees_to_radians(polarization), abs(self._voltage) * 1000000,
+                           linestyle='', color='blue', marker='o', markersize=2)
             self._ax1.set_rmax(self._max_voltage * 1000000 * 1.1)
             self._fig.tight_layout()
             self._fig.canvas.draw()
