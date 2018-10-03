@@ -2,18 +2,23 @@ import matplotlib
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
-import time
-import matplotlib.pyplot as plt
+import numpy as np
+from optics.heating_plot import heating_plot
 from tkinter import *
 import warnings
 import os
 from os import path
-from optics.heating_plot import heating_plot
-import numpy as np
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+import tkinter as tk
+from optics.misc_utility.random import tk_sleep
+
 
 class HeatingScan:
-    def __init__(self, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc,
+    def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc,
                  npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer, direction=True):
+        self._master = master
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -30,7 +35,9 @@ class HeatingScan:
         self._polarizer = polarizer
         self._measuredpolarization = self._polarizer.read_polarization()
         self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
-        self._fig, (self._ax1, self._ax2) = plt.subplots(2)
+        self._fig = Figure()
+        self._ax1 = self._fig.add_subplot(211)
+        self._ax2 = self._fig.add_subplot(212)
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
@@ -50,6 +57,14 @@ class HeatingScan:
         self._direction = direction
         if not self._direction:
             self._y_val = self._y_val[::-1]
+        self._fig.tight_layout()
+        self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)  # A tk.DrawingArea.
+        self._canvas.draw()
+        self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self._abort = False
+
+    def abort(self):
+        self._abort = True
 
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
@@ -85,6 +100,8 @@ class HeatingScan:
     def onclick(self, event):
         try:
             points = [int(np.ceil(event.xdata-0.5)), int(np.ceil(event.ydata-0.5))]
+            if not self._direction:
+                points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(self._yd - event.ydata - 0.5 - 1))]
             self._npc3sg_x.move(self._x_val[points[0]])
             self._npc3sg_y.move(self._y_val[points[1]])
             print('pixel: ' + str(points))
@@ -104,12 +121,17 @@ class HeatingScan:
 
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
+            self._master.update()
+            if self._abort:
+                self._npc3sg_x.move(0)
+                self._npc3sg_y.move(0)
+                break
             if not self._direction:
                 y_ind = len(self._y_val) - y_ind - 1
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
                 self._npc3sg_x.move(j)
-                time.sleep(0.3)
+                tk_sleep(self._master, 600)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
                 raw = self._sr7270_bottom.read_xy()
                 currents = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                 self._writer.writerow([raw[0], raw[1], currents[0], currents[1], x_ind, y_ind])
@@ -117,35 +139,42 @@ class HeatingScan:
                 self._z2[x_ind][y_ind] = currents[1] * 1000
                 self.update_plot(self._im1, self._z1, np.amin(self._z1), np.amax(self._z1))
                 self.update_plot(self._im2, self._z2, np.amin(self._z2), np.amax(self._z2))
-                plt.tight_layout()
-                self._fig.canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
+                self._fig.tight_layout()
+                self._canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
+                self._master.update()
+                if self._abort:
+                    self._npc3sg_x.move(0)
+                    self._npc3sg_y.move(0)
+                    break
         self._npc3sg_x.move(0)
         self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
 
     def main(self):
+        button = tk.Button(master=self._master, text="Abort", command=self.abort)
+        button.pack(side=tk.BOTTOM)
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._writer = csv.writer(inputfile)
                 self.setup_plots()
-                self._fig.show()
+                self._canvas.draw()
                 self._sr7270_top.change_applied_voltage(self._bias)
-                time.sleep(0.3)
+                tk_sleep(self._master, 300)
                 self._sr7270_top.change_oscillator_amplitude(self._osc)
                 self.write_header()
                 self.run_scan()
                 heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
                 heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(self._z2), np.amin(self._z2))
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._canvas.draw()
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
                 heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(self._z2), np.amin(self._z2))
-                self._fig.show()  # shows the completed scan
+                self._canvas.draw()  # shows the completed scan
                 warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
                 # that was never written
                 cid = self._fig.canvas.mpl_connect('button_press_event', self.onclick)  # click on pixel to move laser position there
-                plt.pause(-1)  # keeps the figure open indefinitely until you close it
             except KeyboardInterrupt:
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 self._npc3sg_x.move(0)
                 self._npc3sg_y.move(0)
                 self._sr7270_top.change_applied_voltage(0)

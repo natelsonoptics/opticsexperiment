@@ -133,5 +133,3 @@ class ThermovoltageTime:
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
-
-

@@ -229,7 +229,7 @@ class LockinMeasurementGUI:
             direction = False
         else:
             direction = True
-        run = HeatingScan(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = HeatingScan(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                           int(self._inputs['scan']),
                           float(self._current_amplifier_gain_options[self._current_gain.get()]),
                           float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
@@ -251,7 +251,7 @@ class LockinMeasurementGUI:
 
     def heating_time(self, event=None):
         self.fetch(event)
-        run = HeatingTime(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = HeatingTime(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                           int(self._inputs['scan']),
                           float(self._current_amplifier_gain_options[self._current_gain.get()]),
                           float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
@@ -297,7 +297,7 @@ class LockinMeasurementGUI:
 
     def heating_intensity(self, event=None):
         self.fetch(event)
-        run = HeatingIntensity(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = HeatingIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                int(self._inputs['scan']),
                                float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
@@ -337,7 +337,7 @@ class LockinMeasurementGUI:
 
     def heating_polarization(self, event=None):
         self.fetch(event)
-        run = HeatingPolarization(self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
+        run = HeatingPolarization(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                   int(self._inputs['scan']),
                                   float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),

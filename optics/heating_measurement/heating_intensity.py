@@ -1,16 +1,20 @@
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import time
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
 import csv
 from optics.misc_utility import conversions
 import os
 from os import path
 import numpy as np
+from optics.misc_utility.random import tk_sleep
+import tkinter as tk
 
 class HeatingIntensity:
-    def __init__(self, filepath, notes, device, scan, gain, bias, osc, maxtime, steps, npc3sg_input,
+    def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, maxtime, steps, npc3sg_input,
                  sr7270_dual_harmonic, sr7270_single_reference, powermeter, attenuatorwheel, polarizer):
+        self._master = master
         self._filepath = filepath
         self._notes = notes
         self._device = device
@@ -29,7 +33,10 @@ class HeatingIntensity:
         self._attenuatorwheel = attenuatorwheel
         self._maxtime = maxtime
         self._writer = None
-        self._fig, (self._ax1, self._ax2, self._ax3) = plt.subplots(3)
+        self._fig = Figure()
+        self._ax1 = self._fig.add_subplot(311)
+        self._ax2 = self._fig.add_subplot(312)
+        self._ax3 = self._fig.add_subplot(313)
         self._max_iphoto_x = 0
         self._min_iphoto_x = 0
         self._max_iphoto_y = 0
@@ -41,6 +48,14 @@ class HeatingIntensity:
         self._power = None
         self._filename = None
         self._imagefile = None
+        self._fig.tight_layout()
+        self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)  # A tk.DrawingArea.
+        self._canvas.draw()
+        self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self._abort = False
+
+    def abort(self):
+        self._abort = True
 
     def write_header(self):
         position = self._npc3sg_input.read()
@@ -82,7 +97,7 @@ class HeatingIntensity:
         self._ax1.set_xlabel('time (s)')
         self._ax2.set_xlabel('time (s)')
         self._ax3.set_xlabel('time (s)')
-        self._fig.show()
+        self._canvas.draw()
 
     def set_limits(self):
         if self._iphoto[0] > self._max_iphoto_x:
@@ -112,35 +127,40 @@ class HeatingIntensity:
         self._ax3.set_ylim(self._min_power * 1 / 1.3 * 1000, self._max_power * 1.3 * 1000)
 
     def measure(self):
+        self._master.update()
         self._attenuatorwheel.step(self._steps, 0.005)
-        time.sleep(0.1)
+        tk_sleep(self._master, 100)
         time_now = time.time() - self._start_time
         self._power = self._powermeter.read_power()
         raw = self._sr7270_single_reference.read_xy()
         self._iphoto = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
         self._writer.writerow([time_now, self._power, raw[0], raw[1], self._iphoto[0], self._iphoto[1]])
-        self._ax1.scatter(time_now, self._iphoto[0] * 1000, c='b', s=2)
-        self._ax2.scatter(time_now, self._iphoto[1] * 1000, c='b', s=2)
-        self._ax3.scatter(time_now, self._power * 1000, c='b', s=2)
+        self._ax1.plot(time_now, self._iphoto[0] * 1000, linestyle='', color='blue', marker='o', markersize=2)
+        self._ax2.plot(time_now, self._iphoto[1] * 1000, linestyle='', color='blue', marker='o', markersize=2)
+        self._ax3.plot(time_now, self._power * 1000, linestyle='', color='blue', marker='o', markersize=2)
         self.set_limits()
-        plt.tight_layout()
-        self._fig.canvas.draw()
+        self._fig.tight_layout()
+        self._canvas.draw()
+        self._master.update()
+        if time.time() - self._start_time < self._maxtime and not self._abort:
+            self.measure()
 
     def main(self):
         self.makefile()
+        button = tk.Button(master=self._master, text="Abort", command=self.abort)
+        button.pack(side=tk.BOTTOM)
         with open(self._filename, 'w', newline='') as inputfile:
             try:
                 self._sr7270_dual_harmonic.change_applied_voltage(self._bias)
-                time.sleep(0.3)
+                tk_sleep(self._master, 300)
                 self._sr7270_dual_harmonic.change_oscillator_amplitude(self._osc)
-                time.sleep(0.3)
+                tk_sleep(self._master, 300)
                 self._start_time = time.time()
                 self._writer = csv.writer(inputfile)
                 self.write_header()
                 self.setup_plots()
-                while time.time() - self._start_time < self._maxtime:
-                    self.measure()
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')
+                self.measure()
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                plt.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
 
