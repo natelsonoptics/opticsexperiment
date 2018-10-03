@@ -121,6 +121,8 @@ class LockinMeasurementGUI:
         self._daq_input = daq_input
         self._direction = tk.StringVar()
         self._direction.set('Forward')
+        self._axis = tk.StringVar()
+        self._axis.set('y')
         self._current_gain = tk.StringVar()
         self._current_amplifier_gain_options = {'1 mA/V': 1000, '100 uA/V': 10000, '10 uA/V': 100000,
                                                 '1 uA/V': 1000000, '100 nA/V': 10000000, '10 nA/V': 100000000,
@@ -205,7 +207,8 @@ class LockinMeasurementGUI:
                                 int(self._inputs['x range']), int(self._inputs['y range']),
                                 int(self._inputs['x center']), int(self._inputs['y center']), self._npc3sg_x,
                                 self._npc3sg_y, self._npc3sg_input, self._sr7270_dual_harmonic,
-                                self._sr7270_single_reference, self._powermeter, self._polarizer, direction)
+                                self._sr7270_single_reference, self._powermeter, self._polarizer, direction,
+                                self._axis.get())
         run.main()
 
     def thermovoltage_scan_dc(self, event=None):
@@ -364,6 +367,7 @@ class LockinMeasurementGUI:
         self.beginform(caption)
         self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.make_option_menu('direction', self._direction, ['Forward', 'Reverse'])
+        self.make_option_menu('cutthrough axis', self._axis, ['x', 'y'])
         self.endform(self.thermovoltage_scan)
 
     def build_thermovoltage_scan_dc_gui(self):
