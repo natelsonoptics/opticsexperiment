@@ -38,8 +38,10 @@ class DAQBreak:
         self._ln = None
         # create the filename
         os.makedirs(filepath, exist_ok=True)
+        self._c = count(0)
         self._j = count(0)
-        self._filename = os.path.join(filepath, '{}_k2400break_'.format(device))
+        self._k = count(0)
+        self._filename = os.path.join(filepath, '{}_daq_break_'.format(device))
         while os.path.exists(self._filename + '0.csv'):
             self._filename = self._filename + '1'
         # create the status tools
@@ -51,6 +53,7 @@ class DAQBreak:
         self._desired_resistance = desired_resistance
         self._wait_time = 100
         self._writer = None
+        self._sweep_writer = None
         self._break_voltage = break_voltage
         self._passes = passes
         self._increase_break_voltage = increase_break_voltage
@@ -58,7 +61,6 @@ class DAQBreak:
         self._start_voltage = start_voltage
         self._delta_voltage = delta_voltage
         self._current_drop = current_drop
-        self._c = count(0)
         self._stop_voltage = stop_voltage
         self._steps = steps
         self._gain = gain
@@ -67,6 +69,18 @@ class DAQBreak:
 
     def abort(self):
         self._abort = True
+
+    def write_header(self):
+        self._writer.writerow(['gain:', self._gain])
+        self._writer.writerow(['start voltage:', self._start_voltage])
+        self._writer.writerow(['start break voltage:', self._break_voltage])
+        self._writer.writerow(['desired resistance:', self._desired_resistance])
+        self._writer.writerow(['end:', 'end of header'])
+        self._writer.writerow(['voltage', 'current', 'v/i'])
+        self._sweep_writer.writerow(['gain:', self._gain])
+        self._sweep_writer.writerow(['desired resistance:', self._desired_resistance])
+        self._sweep_writer.writerow(['end:', 'end of header'])
+        self._sweep_writer.writerow(['voltage', 'current'])
 
     def read_current(self):
         return convert_x_to_iphoto(self._ai.read()[0], self._gain, square_wave=False)
@@ -87,6 +101,7 @@ class DAQBreak:
             self._ax1.set_ylim(np.amin(values[:, 1]) * 0.9, np.amax(values[:, 1]) * 1.1)
             self._ax1.title.set_text('Measuring resistance\nCurrent resistance: %s ohms' % np.ceil(v / j))
             self._fig.canvas.draw()
+            self._sweep_writer.writerow([v, j])
         self._ao.source_voltage(0)
         m, b, _, _ = linear_fit(values[:, 0], values[:, 1])
         self._sweep_resistance = 1/m
@@ -101,19 +116,16 @@ class DAQBreak:
     def check_status(self):
         if self._sweep_resistance >= self._desired_resistance:
             self._message = 'resistance reached desired resistance'
-            self._writer.writerow([self._sweep_resistance])
             self._abort = True
             self._ao.source_voltage(0)
             raise NameError
         if self._sweep_resistance < 0:
             self._message = 'slope was negative'
-            self._writer.writerow([self._sweep_resistance])
             self._abort = True
             self._ao.source_voltage(0)
             raise NameError
         if self._current_dropped:
             self._message = 'current dropped'
-            self._writer.writerow([self._sweep_resistance])
             self._abort = True
             self._ao.source_voltage(0)
             raise NameError
@@ -121,6 +133,13 @@ class DAQBreak:
             self._message = 'Aborted'
             self._ao.source_voltage(0)
             raise NameError
+
+    def continue_breaking(self):
+        if not self._abort and not self._current_dropped and not self._sweep_resistance >= self._desired_resistance \
+                and not self._sweep_resistance < 0:
+            return True
+        else:
+            return False
 
     def ramp_voltage(self):
         currents = []
@@ -132,6 +151,7 @@ class DAQBreak:
                 break
             self._ao.source_voltage(v)
             i = self.read_current()
+            self._writer.writerow([v, i, v/i])
             voltages.append(v)
             currents.append(i)
             percent_max = i / np.amax(currents)
@@ -164,32 +184,24 @@ class DAQBreak:
         if self._increase_break_voltage:
             self._current_break_voltage += self._delta_break_voltage
         self._master.update()
-        if not self._abort and not self._current_dropped and not self._sweep_resistance >= self._desired_resistance \
-                and not self._sweep_resistance < 0:
+        if self.continue_breaking():
             self.ramp_voltage()
 
     def break_junction(self):
         self._current_break_voltage = self._break_voltage
         self.ramp_voltage()
-        if self._sweep_resistance >= self._desired_resistance:
+        if not self.continue_breaking():
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
-            if self._ln:
-                self._ln.remove()
-        if self._sweep_resistance < 0:
-            self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
-            if self._ln:
-                self._ln.remove()
-        if self._current_dropped:
-            if self._ln:
-                self._ln.remove()
         self._master.update()
-        if not self._abort and not self._current_dropped:
+        if self.continue_breaking():
             self.break_junction()
 
     def measure(self):
-        with open(self._filename + '%s.csv' % next(self._j), 'w', newline='') as inputfile:
+        with open(self._filename + '%s.csv' % next(self._j), 'w', newline='') as inputfile, \
+                open(self._filename + ' sweep resistance %s.csv' % next(self._k), 'w', newline='') as fin:
             self._writer = csv.writer(inputfile)
-            self._writer.writerow(['resistance'])
+            self._sweep_writer = csv.writer(fin)
+            self.write_header()
             self.measure_resistance()
             self._current_dropped = False
             self.break_junction()
