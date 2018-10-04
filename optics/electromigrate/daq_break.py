@@ -1,8 +1,8 @@
 import numpy as np
 from optics.misc_utility.curve_fit_equations import linear_fit, linear
+from optics.misc_utility.curve_fit_equations import proprortional_fit, proprotional
 import matplotlib
 matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
 import os
 from itertools import count
 import csv
@@ -150,9 +150,11 @@ class DAQBreak:
                     break
         if len(currents) > 3:
             linspace = np.linspace(self._start_voltage, self._current_break_voltage, 100)
-            m, b, _, _ = linear_fit(voltages, currents)
+            #m, b, _, _ = linear_fit(voltages, currents)
+            m, _ = proprortional_fit(voltages, currents)
             self._sweep_resistance = 1 / m
-            ln, = self._ax2.plot(linspace, linear(linspace, m, b))
+            #ln, = self._ax2.plot(linspace, linear(linspace, m, b))
+            ln, = self._ax2.plot(linspace, proprotional(linspace, m))
             self._ax2.title.set_text('Breaking resistance: %s ohms\n ' % np.ceil(self._sweep_resistance))
             self._fig.canvas.draw()
             self._ao.source_voltage(0)
@@ -162,7 +164,8 @@ class DAQBreak:
         if self._increase_break_voltage:
             self._current_break_voltage += self._delta_break_voltage
         self._master.update()
-        if not self._abort and not self._current_dropped:
+        if not self._abort and not self._current_dropped and not self._sweep_resistance >= self._desired_resistance \
+                and not self._sweep_resistance < 0:
             self.ramp_voltage()
 
     def break_junction(self):
@@ -170,12 +173,15 @@ class DAQBreak:
         self.ramp_voltage()
         if self._sweep_resistance >= self._desired_resistance:
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
-            self._ln.remove()
+            if self._ln:
+                self._ln.remove()
         if self._sweep_resistance < 0:
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
-            self._ln.remove()
+            if self._ln:
+                self._ln.remove()
         if self._current_dropped:
-            self._ln.remove()
+            if self._ln:
+                self._ln.remove()
         self._master.update()
         if not self._abort and not self._current_dropped:
             self.break_junction()
