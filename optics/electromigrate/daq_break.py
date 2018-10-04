@@ -105,7 +105,6 @@ class DAQBreak:
         self._ao.source_voltage(0)
         m, b, _, _ = linear_fit(values[:, 0], values[:, 1])
         self._sweep_resistance = 1/m
-        self._writer.writerow([self._sweep_resistance])
         linspace = np.linspace(np.amin(values[:, 0]), np.amax(values[:, 0]), 100)
         self._ln, = self._ax1.plot(linspace, linear(linspace, m, b))
         self._ax1.title.set_text('Measured resistance: %s ohms\n ' % np.ceil(self._sweep_resistance))
