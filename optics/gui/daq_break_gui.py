@@ -12,8 +12,8 @@ class DAQBreakGUI:
         self._master = master
         self._master.title('DAQ electromigration')
         self._fields = {'file path': '', 'device': '', 'desired resistance': 100,
-                        'stop voltage (resistance measurement)': 0.05, 'steps': 10, 'start voltage': 0.1,
-                        'break voltage': 1.5, 'delta break voltage': 0.005, 'delta voltage': 0.002,
+                        'stop voltage (resistance measurement)': 0.05, 'steps': 10, 'start voltage': 0.3,
+                        'break voltage': 1, 'delta break voltage': 0.005, 'delta voltage': 0.002,
                         'current drop': 50e-6, 'passes': 1}
         self._entries = []
         self._inputs = {}
