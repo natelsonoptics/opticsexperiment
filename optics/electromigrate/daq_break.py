@@ -7,7 +7,7 @@ import os
 from itertools import count
 import csv
 from optics.misc_utility.conversions import convert_x_to_iphoto
-from optics.misc_utility.random import tk_sleep
+from optics.misc_utility.test import tk_sleep
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure

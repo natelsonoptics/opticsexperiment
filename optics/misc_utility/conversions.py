@@ -1,3 +1,7 @@
+import numpy as np
+import math
+from optics.hardware_control.hardware_addresses_and_constants import low_pass_filter_factor
+
 
 def convert_x_to_iphoto(x, gain, square_wave=True):
     if square_wave:
@@ -17,7 +21,30 @@ def convert_square_wave(x):
     #  To read the total magnitude of the signal you must multiply by that factor: 2/0.9 = 2.22
     return x * 2.22
 
+
 def degrees_to_radians(degree):
-    import math
     return degree / 180 * math.pi
 
+
+def convert_x1_to_didv(x1, gain, osc):
+    return x1 / (gain * osc)
+
+
+def convert_x2_to_d2idv2(x2, gain, osc):
+    return x2 / (gain * 1/4 * osc ** 2)
+
+
+def normalize_dgdv_from_didv(vdc, didv, d2idv2):
+        return np.abs(vdc * d2idv2 / didv)
+
+
+def normalize_dgdv_from_x1(vdc, x1, x2, gain, osc):
+    return normalize_dgdv_from_didv(vdc, convert_x1_to_didv(x1, gain, osc), convert_x2_to_d2idv2(x2, gain, osc))
+
+
+def convert_adc_to_idc(adc, gain, lpf_factor=low_pass_filter_factor):
+    return adc / (gain * lpf_factor)
+
+
+def differentiate_d2idv2(didv1, didv2, osc):
+    return np.diff([didv1, didv2])[0] / (1/4 * osc ** 2)

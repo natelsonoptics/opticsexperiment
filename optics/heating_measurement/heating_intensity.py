@@ -8,7 +8,7 @@ from optics.misc_utility import conversions
 import os
 from os import path
 import numpy as np
-from optics.misc_utility.random import tk_sleep
+from optics.misc_utility.test import tk_sleep
 import tkinter as tk
 
 class HeatingIntensity:

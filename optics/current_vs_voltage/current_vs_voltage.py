@@ -6,9 +6,10 @@ import numpy as np
 import csv
 import os
 from os import path
-from optics.hardware_control import hardware_addresses_and_constants as hw
 import tkinter as tk
-from optics.misc_utility.random import tk_sleep
+from optics.misc_utility.test import tk_sleep
+from optics.misc_utility.conversions import convert_x_to_iphoto, convert_x1_to_didv, convert_x2_to_d2idv2, \
+    convert_adc_to_idc, normalize_dgdv_from_x1, normalize_dgdv_from_didv, differentiate_d2idv2
 
 
 class CurrentVoltageSweep:
@@ -20,7 +21,7 @@ class CurrentVoltageSweep:
         self._device = device
         self._scan = scan
         self._gain = gain
-        self._osc = osc
+        self._osc = osc / 1000
         self._number_measurements = number_measurements
         self._sr7270_top = sr7270_top
         self._sr7270_bottom = sr7270_bottom
@@ -35,8 +36,7 @@ class CurrentVoltageSweep:
         self._ax3_twin = self._ax3.twinx()
         self._ax4_twin = self._ax4.twinx()
         self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)
-        self._voltages = np.linspace(start_voltage, stop_voltage, steps)
-        self._low_pass_filter_factor = hw.low_pass_filter_factor
+        self._voltages = np.linspace(start_voltage / 1000, stop_voltage / 1000, steps)
         self._writer = None
         self._sweep_writer = None
         self._filename = None
@@ -51,6 +51,8 @@ class CurrentVoltageSweep:
         self._iphotoy = []
         self._idc = []
         self._dgdv_normalized = []
+        self._diff_d2idvx2 = []
+        self._diff_d2idvy2 = []
         self._abort = False
 
     def abort(self):
@@ -64,7 +66,8 @@ class CurrentVoltageSweep:
         self._writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
-        self._writer.writerow(['applied voltage (V)', 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
+        self._writer.writerow(['applied voltage (V)', 'raw adc', 'raw X', 'raw Y', 'raw X1', 'raw Y1', 'raw X2',
+                               'raw Y2', 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
                                'dG/dV*V/G', 'PhotoX', 'PhotoY', 'resistance (V/I)', 'r (dV/dI)'])
         self._sweep_writer.writerow(['gain:', self._gain])
         self._sweep_writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
@@ -73,8 +76,10 @@ class CurrentVoltageSweep:
         self._sweep_writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
         self._sweep_writer.writerow(['notes:', self._notes])
         self._sweep_writer.writerow(['end:', 'end of header'])
-        self._sweep_writer.writerow(['applied voltage (V)', 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
-                                     'dG/dV*V/G', 'PhotoX', 'PhotoY', 'resistance (V/I)', 'r (dV/dI)'])
+        self._sweep_writer.writerow(['applied voltage (V)', 'raw adc', 'raw X', 'raw Y', 'raw X1', 'raw Y1', 'raw X2',
+                                     'raw Y2' 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
+                                     'dG/dV*V/G', 'PhotoX', 'PhotoY', 'resistance (V/I)', 'r (dV/dI)', 'diff d2I/dVx2',
+                                     'diff d2I/dVy2'])
 
     def makefile(self):
         os.makedirs(self._filepath, exist_ok=True)
@@ -91,24 +96,17 @@ class CurrentVoltageSweep:
             self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'IV sweep', index, '.png'))
 
     def setup_plots(self):
-        self._ax1.set_ylabel('Idc', color='blue')
-        self._ax1.tick_params(axis='y', labelcolor='blue')
-        self._ax2.set_ylabel('dI/dVx', color='blue')
-        self._ax2.tick_params(axis='y', labelcolor='blue')
-        self._ax2_twin.set_ylabel('dI/dVy', color='red')
-        self._ax2_twin.tick_params(axis='y', labelcolor='red')
-        self._ax3.set_ylabel('d2I/dVx2', color='blue')
-        self._ax3.tick_params(axis='y', labelcolor='blue')
-        self._ax3_twin.set_ylabel('d2I/dVy2', color='red')
-        self._ax3_twin.tick_params(axis='y', labelcolor='red')
-        self._ax4.set_ylabel('dG/dV*V/G', color='blue')
-        self._ax4.tick_params(axis='y', labelcolor='blue')
-        self._ax4_twin.set_ylabel('PhotoX', color='red')
-        self._ax4_twin.tick_params(axis='y', labelcolor='red')
-        self._ax5.set_ylabel('numerical d2I/dVx2', color='blue')
-        self._ax5.tick_params(axis='y', labelcolor='blue')
-        for i in [self._ax1, self._ax2, self._ax2_twin, self._ax3, self._ax3_twin, self._ax4, self._ax4_twin, self._ax5]:
-            i.set_xlabel('DC Voltage (V)')
+        for i in [(self._ax1, 'Idc', 'blue'), (self._ax2, 'dI/dVx', 'blue'), (self._ax3, 'd2I/dVx2', 'blue'),
+                  (self._ax4, 'dG/dV*V/G', 'blue'), (self._ax5, 'numerical d2I/dVx2', 'blue'),
+                  (self._ax2_twin, 'dIdVy', 'red'), (self._ax3_twin, 'd2I/dVy2', 'red'),
+                  (self._ax4_twin, 'PhotoX', 'red')]:
+            i[0].set_xlabel('DC Voltage (V)')
+            i[0].set_xlim(self._voltages[0], self._voltages[-1])
+            i[0].set_ylabel(i[1], color=i[2])
+            i[0].tick_params(axis='y', labelcolor=i[2])
+            i[0].plot([i for i in self._voltages], [0 for i in self._voltages], c=i[2], linestyle='--', linewidth=0.5)
+            i[0].axvline(x=0, color='k', linestyle='--', linewidth=0.5)
+            i[0].ticklabel_format(axis='1', style='sci', scilimits=(-3, 3))
         self._fig.tight_layout()
         self._canvas.draw()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -121,16 +119,14 @@ class CurrentVoltageSweep:
         self._ax3_twin.set_ylim(np.amin(self._d2idvy2), np.amax(self._d2idvy2))
         self._ax4.set_ylim(np.amin(self._dgdv_normalized), np.amax(self._dgdv_normalized))
         self._ax4_twin.set_ylim(np.amin(self._iphotox), np.amax(self._iphotox))
-        for ax in (self._ax1, self._ax2, self._ax3, self._ax4, self._ax2_twin, self._ax3_twin, self._ax4_twin):
-            ax.ticklabel_format(axix='y', style='sci', scilimits=(-3, 3))
 
     def measure(self):
         for i, j in enumerate(self._voltages):
             if self._abort:
                 break
             self._master.update()
-            j = np.round(j, 0)
-            vdc = j/1000
+            j = np.round(j * 1000, 0)
+            vdc = j / 1000
             self._sr7270_top.change_applied_voltage(j)
             tk_sleep(self._master, 500)
             self._master.update()
@@ -150,24 +146,28 @@ class CurrentVoltageSweep:
                 xy2.append(self._sr7270_top.read_xy2())
                 tk_sleep(self._master, 10)
                 adc.append(self._sr7270_top.read_adc(3))
-                self._writer.writerow([vdc, adc[k][0] / (self._gain * self._low_pass_filter_factor),
-                                       xy1[k][0] / (self._gain * self._osc/1000),
-                                       xy1[k][1] / (self._gain * self._osc/1000),
-                                       xy2[k][0] / (self._gain * 1/4 * (self._osc/1000) ** 2),
-                                       xy2[k][1] / (self._gain * 1 / 4 * (self._osc / 1000) ** 2),
-                                       np.abs(vdc * (xy2[k][0] / (self._gain * 1/4 * (self._osc/1000) ** 2)) /
-                                              (xy1[k][0] / (self._gain * self._osc/1000))),
-                                       xy[k][0] / self._gain, xy[k][1] / self._gain,
-                                       vdc / (adc[k][0] / (self._gain * self._low_pass_filter_factor)),
-                                       1 / (xy1[k][0] / (self._gain * self._osc/1000))])
-            self._didvx.append(np.average([k[0] for k in xy1]) / (self._gain * (self._osc/1000)))
-            self._didvy.append(np.average([k[1] for k in xy1]) / (self._gain * (self._osc/1000)))
-            self._d2idvx2.append(np.average([k[0] for k in xy2]) / (self._gain * 1 / 4 * (self._osc/1000) ** 2))
-            self._d2idvy2.append(np.average([k[1] for k in xy2]) / (self._gain * 1 / 4 * (self._osc/1000) ** 2))
-            self._iphotox.append(np.average([k[0] for k in xy]) / self._gain)
-            self._iphotoy.append(np.average([k[1] for k in xy]) / self._gain)
-            self._idc.append(np.average([k[0] for k in adc]) / (self._gain * self._low_pass_filter_factor))
-            self._dgdv_normalized.append(np.abs(vdc * self._d2idvx2[i] / self._didvx[i]))
+                self._writer.writerow([vdc, adc[k][0], xy[k][0], xy[k][1], xy1[k][0], xy1[k][1], xy2[k][0], xy2[k][1],
+                                       convert_adc_to_idc(adc[k][0], self._gain),
+                                       convert_x1_to_didv(xy1[k][0], self._gain, self._osc),
+                                       convert_x1_to_didv(xy1[k][1], self._gain, self._osc),
+                                       convert_x2_to_d2idv2(xy2[k][0], self._gain, self._osc),
+                                       convert_x2_to_d2idv2(xy2[k][1], self._gain, self._osc),
+                                       normalize_dgdv_from_x1(vdc, xy1[k][0], xy2[k][1], self._gain, self._osc),
+                                       convert_x_to_iphoto(xy[k][0], self._gain),
+                                       convert_x_to_iphoto(xy[k][1], self._gain),
+                                       vdc / convert_adc_to_idc(adc[k][0], self._gain),
+                                       1 / convert_x1_to_didv(xy1[k][0], self._gain, self._osc)])
+            self._didvx.append(convert_x1_to_didv(np.average([k[0] for k in xy1]), self._gain, self._osc))
+            self._didvy.append(convert_x1_to_didv(np.average([k[0] for k in xy1]), self._gain, self._osc))
+            self._d2idvx2.append(convert_x2_to_d2idv2(np.average([k[0] for k in xy2]), self._gain, self._osc))
+            self._d2idvy2.append(convert_x2_to_d2idv2(np.average([k[1] for k in xy2]), self._gain, self._osc))
+            self._iphotox.append(convert_x_to_iphoto(np.average([k[0] for k in xy]), self._gain))
+            self._iphotoy.append(convert_x_to_iphoto(np.average([k[1] for k in xy]), self._gain))
+            self._idc.append(convert_adc_to_idc(np.average([k[0] for k in adc]), self._gain))
+            self._dgdv_normalized.append(normalize_dgdv_from_didv(vdc, self._didvx[i], self._d2idvx2[i]))
+            if i >= 1:
+                self._diff_d2idvx2.append(differentiate_d2idv2(self._didvx[i], self._didvx[i-1], self._osc))
+                self._diff_d2idvy2.append(differentiate_d2idv2(self._didvy[i], self._didvy[i-1], self._osc))
             self._ax1.plot(vdc, self._idc[i], linestyle='', color='blue', marker='o', markersize=2)
             self._ax2.plot(vdc, self._didvx[i], linestyle='', color='blue', marker='o', markersize=2)
             self._ax2_twin.plot(vdc, self._didvy[i], linestyle='', color='red', marker='o', markersize=2)
@@ -175,13 +175,20 @@ class CurrentVoltageSweep:
             self._ax3_twin.plot(vdc, self._d2idvy2[i], linestyle='', color='red', marker='o', markersize=2)
             self._ax4.plot(vdc, self._dgdv_normalized[i], linestyle='', color='blue', marker='o', markersize=2)
             self._ax4_twin.plot(vdc, self._iphotox[i], linestyle='', color='red', marker='o', markersize=2)
-            self._ax5.plot(vdc, np.diff([self._didvx[i], self._didvx[i-1]]), linestyle='', color='blue', marker='o',
-                           markersize=2)
             if i > 1:
-                self.set_limits()
-            self._sweep_writer.writerow([vdc, self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
-                                   self._d2idvy2[i], self._dgdv_normalized[i], self._iphotox[i], self._iphotoy[i],
-                                   vdc/self._idc[i], 1/self._didvx[i]])
+                self._ax5.plot(vdc, np.diff([self._didvx[i], self._didvx[i-1]]) *
+                               (1/4 * self._gain * (self._osc/1000)**2), linestyle='', color='blue', marker='o',
+                               markersize=2)
+                self._sweep_writer.writerow([vdc, adc[i][0], xy[i][0], xy[i][1], xy1[i][0], xy1[i][1], xy2[i][0],
+                                             xy2[i][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
+                                             self._d2idvy2[i], self._dgdv_normalized[i], self._iphotox[i],
+                                             self._iphotoy[i], vdc/self._idc[i], 1/self._didvx[i],
+                                             self._diff_d2idvx2[i-1], self._diff_d2idvy2[i-1]])
+            else:
+                self._sweep_writer.writerow([vdc, adc[i][0], xy[i][0], xy[i][1], xy1[i][0], xy1[i][1], xy2[i][0],
+                                             xy2[i][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
+                                             self._d2idvy2[i], self._dgdv_normalized[i], self._iphotox[i],
+                                             self._iphotoy[i], vdc / self._idc[i], 1 / self._didvx[i]])
             self._fig.tight_layout()
             self._fig.canvas.draw()
 
@@ -191,7 +198,7 @@ class CurrentVoltageSweep:
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile, open(self._sweep_filename, 'w', newline='') as fin:
             try:
-                self._sr7270_top.change_oscillator_amplitude(self._osc)
+                self._sr7270_top.change_oscillator_amplitude(self._osc * 1000)
                 tk_sleep(self._master, 300)
                 self._writer = csv.writer(inputfile)
                 self._sweep_writer = csv.writer(fin)

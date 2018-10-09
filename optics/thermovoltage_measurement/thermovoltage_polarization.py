@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('TkAgg')
 import tkinter as tk
-from optics.misc_utility.random import tk_sleep
+from optics.misc_utility.test import tk_sleep
 import csv
 from optics.misc_utility import conversions
 import os

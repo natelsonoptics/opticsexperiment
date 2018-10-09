@@ -8,7 +8,7 @@ import csv
 import tkinter as tk
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg)
 from matplotlib.figure import Figure
-from optics.misc_utility.random import tk_sleep
+from optics.misc_utility.test import tk_sleep
 
 
 class KeithleyBreak:
