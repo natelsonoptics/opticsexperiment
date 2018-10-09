@@ -77,7 +77,7 @@ class CurrentVoltageSweep:
         self._sweep_writer.writerow(['notes:', self._notes])
         self._sweep_writer.writerow(['end:', 'end of header'])
         self._sweep_writer.writerow(['applied voltage (V)', 'raw adc', 'raw X', 'raw Y', 'raw X1', 'raw Y1', 'raw X2',
-                                     'raw Y2' 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
+                                     'raw Y2', 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
                                      'dG/dV*V/G', 'PhotoX', 'PhotoY', 'resistance (V/I)', 'r (dV/dI)', 'diff d2I/dVx2',
                                      'diff d2I/dVy2'])
 
