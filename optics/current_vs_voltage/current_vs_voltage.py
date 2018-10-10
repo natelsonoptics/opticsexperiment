@@ -27,6 +27,7 @@ class CurrentVoltageSweep:
         self._sr7270_bottom = sr7270_bottom
         # set up the plots
         self._fig = Figure()
+        self._fig.set_size_inches(14, 9)
         self._ax1 = self._fig.add_subplot(511)
         self._ax2 = self._fig.add_subplot(512)
         self._ax3 = self._fig.add_subplot(513)
@@ -137,15 +138,11 @@ class CurrentVoltageSweep:
             xy = []
             adc = []
             for k in range(self._number_measurements):
-                self._master.update()
-                tk_sleep(self._master, 10)
-                xy.append(self._sr7270_bottom.read_xy())
-                tk_sleep(self._master, 10)
-                xy1.append(self._sr7270_top.read_xy1())
-                tk_sleep(self._master, 10)
-                xy2.append(self._sr7270_top.read_xy2())
-                tk_sleep(self._master, 10)
-                adc.append(self._sr7270_top.read_adc(3))
+                for q in [xy.append(self._sr7270_bottom.read_xy()), xy1.append(self._sr7270_top.read_xy1()),
+                          xy2.append(self._sr7270_top.read_xy2()), adc.append(self._sr7270_top.read_adc(3))]:
+                    self._master.update()
+                    tk_sleep(self._master, 10)
+                    q
                 self._writer.writerow([vdc, adc[k][0], xy[k][0], xy[k][1], xy1[k][0], xy1[k][1], xy2[k][0], xy2[k][1],
                                        convert_adc_to_idc(adc[k][0], self._gain),
                                        convert_x1_to_didv(xy1[k][0], self._gain, self._osc),
@@ -179,14 +176,14 @@ class CurrentVoltageSweep:
                 self._ax5.plot(vdc, np.diff([self._didvx[i], self._didvx[i-1]]) *
                                (1/4 * self._gain * (self._osc/1000)**2), linestyle='', color='blue', marker='o',
                                markersize=2)
-                self._sweep_writer.writerow([vdc, adc[i][0], xy[i][0], xy[i][1], xy1[i][0], xy1[i][1], xy2[i][0],
-                                             xy2[i][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
+                self._sweep_writer.writerow([vdc, adc[-1][0], xy[-1][0], xy[-1][1], xy1[-1][0], xy1[-1][1], xy2[-1][0],
+                                             xy2[-1][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
                                              self._d2idvy2[i], self._dgdv_normalized[i], self._iphotox[i],
                                              self._iphotoy[i], vdc/self._idc[i], 1/self._didvx[i],
                                              self._diff_d2idvx2[i-1], self._diff_d2idvy2[i-1]])
             else:
-                self._sweep_writer.writerow([vdc, adc[i][0], xy[i][0], xy[i][1], xy1[i][0], xy1[i][1], xy2[i][0],
-                                             xy2[i][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
+                self._sweep_writer.writerow([vdc, adc[-1][0], xy[-1][0], xy[-1][1], xy1[-1][0], xy1[-1][1], xy2[-1][0],
+                                             xy2[-1][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
                                              self._d2idvy2[i], self._dgdv_normalized[i], self._iphotox[i],
                                              self._iphotoy[i], vdc / self._idc[i], 1 / self._didvx[i]])
             self._fig.tight_layout()
