@@ -7,7 +7,7 @@ import csv
 from optics.misc_utility import conversions
 import os
 from os import path
-from optics.misc_utility.test import tk_sleep
+from optics.misc_utility.tkinter_utilities import tk_sleep
 import tkinter as tk
 
 class ThermovoltagePolarizationDC:

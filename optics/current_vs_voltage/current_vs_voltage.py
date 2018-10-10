@@ -7,7 +7,7 @@ import csv
 import os
 from os import path
 import tkinter as tk
-from optics.misc_utility.test import tk_sleep
+from optics.misc_utility.tkinter_utilities import tk_sleep
 from optics.misc_utility.conversions import convert_x_to_iphoto, convert_x1_to_didv, convert_x2_to_d2idv2, \
     convert_adc_to_idc, normalize_dgdv_from_x1, normalize_dgdv_from_didv, differentiate_d2idv2
 

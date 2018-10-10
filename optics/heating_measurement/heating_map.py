@@ -12,7 +12,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import tkinter as tk
-from optics.misc_utility.test import tk_sleep
+from optics.misc_utility.tkinter_utilities import tk_sleep
 
 
 class HeatingScan:

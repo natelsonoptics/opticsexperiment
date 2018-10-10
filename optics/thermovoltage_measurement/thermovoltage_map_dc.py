@@ -12,7 +12,7 @@ from os import path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import tkinter as tk
-from optics.misc_utility.test import tk_sleep
+from optics.misc_utility.tkinter_utilities import tk_sleep
 
 
 class ThermovoltageScanDC:

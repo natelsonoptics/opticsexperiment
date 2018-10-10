@@ -2,7 +2,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-from optics.misc_utility.test import tk_sleep
+from optics.misc_utility.tkinter_utilities import tk_sleep
 import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
 import csv
 from optics.misc_utility import conversions
