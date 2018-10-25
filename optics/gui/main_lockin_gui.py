@@ -57,7 +57,9 @@ class BaseGUI:
                        'position': self._app.build_change_position_gui,
                        'intensity': self._app.build_change_intensity_gui,
                        'polarization': self._app.build_change_polarization_gui,
-                       'ivsweep': self._app.build_sweep_iv_gui}
+                       'ivsweep': self._app.build_sweep_iv_gui,
+                       'singlereference': self._app.build_single_reference_gui,
+                       'dualhamonic': self._app.build_dual_harmonic_gui}
         measurement[measurementtype]()
 
     def make_measurement_button(self, master, text, measurement_type):
@@ -94,9 +96,22 @@ class BaseGUI:
         self.make_measurement_button(row, 'position', 'position')
         self.make_measurement_button(row, 'intensity', 'intensity')
         self.make_measurement_button(row, 'polarization', 'polarization')
+        row = self.makerow('change lock in parameters')
+        row = self.makerow('single reference')
+        b1 = tk.Button(row, text='auto phase',
+                       command=lambda lockin=self._sr7270_single_reference: self.autophase(lockin))
+        b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        self.make_measurement_button(row, 'change parameters', 'singlereference')
+        row = self.makerow('dual harmonic')
+        b1 = tk.Button(row, text='auto phase',
+                       command=lambda lockin=self._sr7270_dual_harmonic: self.autophase(lockin))
+        b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        self.make_measurement_button(row, 'change parameters', 'dualharmonic')
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
 
+    def autophase(self, lockin, event=None):
+        lockin.auto_phase()
 
 class LockinMeasurementGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
@@ -131,6 +146,12 @@ class LockinMeasurementGUI:
         self._current_gain.set('1 mA/V')
         self._voltage_gain = tk.StringVar()
         self._voltage_gain.set(1000)
+        self._tc = tk.StringVar()
+        self._sen = tk.StringVar()
+        self._tc1 = tk.StringVar()
+        self._tc2 = tk.StringVar()
+        self._sen1 = tk.StringVar()
+        self._sen2 = tk.StringVar()
 
     def beginform(self, caption, browse_button=True):
         self._master.title(caption)
@@ -357,6 +378,28 @@ class LockinMeasurementGUI:
         self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
         self._textbox.pack()
 
+    def change_single_reference_lockin_parameters(self, event=None):
+        self.fetch(event)
+        self._sr7270_single_reference.change_applied_voltage(float(self._inputs['bias (mV)']))
+        if float(self._tc.get()):
+            self._sr7270_single_reference.change_tc(float(self._tc.get()))
+        if float(self._sen.get()):
+            self._sr7270_single_reference.change_sensitivity(float(self._sen.get()))
+        if float(self._inputs['oscillator amplitude (mV)']):
+            self._sr7270_single_reference.change_oscillator_amplitude(float(self._inputs['oscillator amplitude (mV)']))
+        if float(self._inputs['oscillator frequency (Hz)']):
+            self._sr7270_single_reference.change_oscillator_frequency(float(self._inputs['oscillator frequency (Hz)']))
+
+    def change_dual_harmonic_lockin_parameters(self, event=None):
+        if float(self._tc1.get()):
+            self._sr7270_dual_harmonic.change_tc(float(self._tc1.get()))
+        if float(self._tc2.get()):
+            self._sr7270_dual_harmonic.change_tc(float(self._tc2.get()), channel=2)
+        if float(self._sen1.get()):
+            self._sr7270_dual_harmonic.change_sensitivity(float(self._sen1.get()))
+        if float(self._sen2.get()):
+            self._sr7270_dual_harmonic.change_sensitivity(float(self._sen2.get()), channel=2)
+
     def onclick_browse(self):
         self._filepath.set(tkinter.filedialog.askdirectory())
 
@@ -478,6 +521,30 @@ class LockinMeasurementGUI:
         self.beginform(caption)
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.iv_sweep)
+
+    def build_single_reference_gui(self):
+        caption = "Change single reference lock in parameters"
+        self._fields = {'bias (mV)': '', 'oscillator amplitude (mV)': '',
+                        'oscillator frequency (Hz)': ''}
+        self.beginform(caption, False)
+        self.make_option_menu('time constant (s)', self._tc,
+                              [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
+        self.make_option_menu('sensitivity (mV)', self._sen, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
+                                                                       0.5, 1, 2, 5, 10, 20, 50])
+        self.endform(self.change_single_reference_lockin_parameters)
+
+    def build_dual_harmonic_gui(self):
+        caption = "Change dual harmonic lock in parameters"
+        self.beginform(caption, False)
+        self.make_option_menu('time constant 1 (s)', self._tc1,
+                              [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
+        self.make_option_menu('time constant 2 (s)', self._tc2,
+                              [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
+        self.make_option_menu('sensitivity 1 (mV)', self._sen1, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
+                                                                       0.5, 1, 2, 5, 10, 20, 50])
+        self.make_option_menu('sensitivity 2 (mV)', self._sen2, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
+                                                                       0.5, 1, 2, 5, 10, 20, 50])
+        self.endform(self.change_dual_harmonic_lockin_parameters)
 
     def build_coming_soon(self):
         caption = "Coming soon"
