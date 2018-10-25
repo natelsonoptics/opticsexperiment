@@ -96,13 +96,12 @@ class BaseGUI:
         self.make_measurement_button(row, 'position', 'position')
         self.make_measurement_button(row, 'intensity', 'intensity')
         self.make_measurement_button(row, 'polarization', 'polarization')
-        row = self.makerow('change lock in parameters')
-        row = self.makerow('single reference')
+        row = self.makerow('single reference lock in')
         b1 = tk.Button(row, text='auto phase',
                        command=lambda lockin=self._sr7270_single_reference: self.autophase(lockin))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
         self.make_measurement_button(row, 'change parameters', 'singlereference')
-        row = self.makerow('dual harmonic')
+        row = self.makerow('dual harmonic lock in')
         b1 = tk.Button(row, text='auto phase',
                        command=lambda lockin=self._sr7270_dual_harmonic: self.autophase(lockin))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
