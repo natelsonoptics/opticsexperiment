@@ -104,9 +104,11 @@ class HeatingPolarization:
                 self._max_iphoto_y = abs(self._iphoto[1])
             time_now = time.time() - self._start_time
             self._writer.writerow([time_now, polarization, raw[0], raw[1], self._iphoto[0], self._iphoto[1]])
-            self._ax1.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[0]) * 1000, linestyle='', color='blue', marker='o', markersize=2)
+            self._ax1.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[0]) * 1000, linestyle='',
+                           color='blue', marker='o', markersize=2)
             self._ax1.set_rmax(self._max_iphoto_x * 1.1 * 1000)
-            self._ax2.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[1]) * 1000, linestyle='', color='blue', marker='o', markersize=2)
+            self._ax2.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[1]) * 1000, linestyle='',
+                           color='blue', marker='o', markersize=2)
             self._ax2.set_rmax(self._max_iphoto_y * 1.1 * 1000)
             self._fig.tight_layout()
             self._canvas.draw()
