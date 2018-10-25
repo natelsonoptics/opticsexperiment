@@ -171,23 +171,27 @@ class KeithleyBreak:
                 # a while loop in Tkinter
                 self.ramp_voltage()
 
+    def continue_breaking(self):
+        if not self._abort and not self._current_dropped and not self._sweep_resistance >= self._desired_resistance \
+                and not self._sweep_resistance < 0:
+            return True
+        else:
+            return False
+
     def break_junction(self):
         self._master.update()
         self._current_break_voltage = self._break_voltage
         self._pass = count(0)
         self.ramp_voltage()
-        stop = False
         if self._sweep_resistance >= self._desired_resistance:
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
             self._ln.remove()
-            stop = True
         if self._sweep_resistance < 0:
             self._fig.savefig(self._filename + '%s.png' % next(self._c), format='png', bbox_inches='tight')
             self._ln.remove()
-            stop = True
         if self._current_dropped:
             self._ln.remove()
-        if not self._abort and not self._current_dropped and not stop:
+        if self.continue_breaking():
             self.break_junction()
 
     def measure(self):
@@ -195,7 +199,6 @@ class KeithleyBreak:
             self._writer = csv.writer(inputfile)
             self._writer.writerow(['resistance'])
             self.measure_resistance()
-            self._current_dropped = False
             self.break_junction()
             self.remove_points()
         self.measure()
