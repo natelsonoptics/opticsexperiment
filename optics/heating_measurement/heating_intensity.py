@@ -129,7 +129,7 @@ class HeatingIntensity:
     def measure(self):
         self._master.update()
         self._attenuatorwheel.step(self._steps, 0.005)
-        tk_sleep(self._master, 100)
+        tk_sleep(self._master, self._sr7270_single_reference.read_tc())
         time_now = time.time() - self._start_time
         self._power = self._powermeter.read_power()
         raw = self._sr7270_single_reference.read_xy()
