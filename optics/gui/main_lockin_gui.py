@@ -59,7 +59,7 @@ class BaseGUI:
                        'polarization': self._app.build_change_polarization_gui,
                        'ivsweep': self._app.build_sweep_iv_gui,
                        'singlereference': self._app.build_single_reference_gui,
-                       'dualhamonic': self._app.build_dual_harmonic_gui}
+                       'dualharmonic': self._app.build_dual_harmonic_gui}
         measurement[measurementtype]()
 
     def make_measurement_button(self, master, text, measurement_type):
@@ -380,25 +380,40 @@ class LockinMeasurementGUI:
 
     def change_single_reference_lockin_parameters(self, event=None):
         self.fetch(event)
-        self._sr7270_single_reference.change_applied_voltage(float(self._inputs['bias (mV)']))
-        if float(self._tc.get()):
+        if self._tc.get() != '':
             self._sr7270_single_reference.change_tc(float(self._tc.get()))
-        if float(self._sen.get()):
+        if self._sen.get() != '':
             self._sr7270_single_reference.change_sensitivity(float(self._sen.get()))
-        if float(self._inputs['oscillator amplitude (mV)']):
-            self._sr7270_single_reference.change_oscillator_amplitude(float(self._inputs['oscillator amplitude (mV)']))
-        if float(self._inputs['oscillator frequency (Hz)']):
-            self._sr7270_single_reference.change_oscillator_frequency(float(self._inputs['oscillator frequency (Hz)']))
+        print('lock in parameters: \ntime constant: {} ms\nsensitivity: {} '
+              'mV'.format(self._sr7270_single_reference.read_tc() * 1000,
+                          self._sr7270_single_reference.read_sensitivity() * 1000))
+
 
     def change_dual_harmonic_lockin_parameters(self, event=None):
-        if float(self._tc1.get()):
+        self.fetch(event)
+        if self._inputs['bias (mV)'] != '':
+            self._sr7270_dual_harmonic.change_applied_voltage(float(self._inputs['bias (mV)']))
+        if self._inputs['oscillator amplitude (mV)'] != '':
+            self._sr7270_dual_harmonic.change_oscillator_amplitude(float(self._inputs['oscillator amplitude (mV)']))
+        if self._inputs['oscillator frequency (Hz)'] != '':
+            self._sr7270_dual_harmonic.change_oscillator_frequency(float(self._inputs['oscillator frequency (Hz)']))
+        if self._tc1.get() != '':
             self._sr7270_dual_harmonic.change_tc(float(self._tc1.get()))
-        if float(self._tc2.get()):
+        if self._tc2.get() != '':
             self._sr7270_dual_harmonic.change_tc(float(self._tc2.get()), channel=2)
-        if float(self._sen1.get()):
+        if self._sen1.get() != '':
             self._sr7270_dual_harmonic.change_sensitivity(float(self._sen1.get()))
-        if float(self._sen2.get()):
+        if self._sen2.get() != '':
             self._sr7270_dual_harmonic.change_sensitivity(float(self._sen2.get()), channel=2)
+        print('lock in parameters: \ntime constant 1: {} ms\ntime constant 2: {} ms\nsensitivity 1: {} mV\nsensitivity '
+              '2: {} mV\napplied bias (dac3): {} mV\nreference frequency: {} Hz\noscillator amplitude: '
+              '{} mV'.format(self._sr7270_dual_harmonic.read_tc() * 1000,
+                             self._sr7270_dual_harmonic.read_tc(channel=2) * 1000,
+                             self._sr7270_dual_harmonic.read_sensitivity() * 1000,
+                             self._sr7270_dual_harmonic.read_sensitivity(channel=2) * 1000,
+                             self._sr7270_dual_harmonic.read_applied_voltage() * 1000,
+                             self._sr7270_dual_harmonic.read_oscillator_frequency(),
+                             self._sr7270_dual_harmonic.read_oscillator_amplitude() * 1000))
 
     def onclick_browse(self):
         self._filepath.set(tkinter.filedialog.askdirectory())
@@ -524,26 +539,26 @@ class LockinMeasurementGUI:
 
     def build_single_reference_gui(self):
         caption = "Change single reference lock in parameters"
-        self._fields = {'bias (mV)': '', 'oscillator amplitude (mV)': '',
-                        'oscillator frequency (Hz)': ''}
         self.beginform(caption, False)
         self.make_option_menu('time constant (s)', self._tc,
                               [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
         self.make_option_menu('sensitivity (mV)', self._sen, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
-                                                                       0.5, 1, 2, 5, 10, 20, 50])
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_single_reference_lockin_parameters)
 
     def build_dual_harmonic_gui(self):
         caption = "Change dual harmonic lock in parameters"
+        self._fields = {'bias (mV)': '', 'oscillator amplitude (mV)': '',
+                        'oscillator frequency (Hz)': ''}
         self.beginform(caption, False)
         self.make_option_menu('time constant 1 (s)', self._tc1,
                               [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
         self.make_option_menu('time constant 2 (s)', self._tc2,
                               [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
         self.make_option_menu('sensitivity 1 (mV)', self._sen1, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
-                                                                       0.5, 1, 2, 5, 10, 20, 50])
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.make_option_menu('sensitivity 2 (mV)', self._sen2, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
-                                                                       0.5, 1, 2, 5, 10, 20, 50])
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_dual_harmonic_lockin_parameters)
 
     def build_coming_soon(self):

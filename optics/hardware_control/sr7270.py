@@ -71,7 +71,7 @@ class LockIn:
 
     def change_oscillator_frequency(self, millihertz):
         """Changes the oscillator frequency for internal reference"""
-        self._ep0.write('of {}'.format(millihertz))
+        self._ep0.write('of {}'.format(millihertz * 100))
         self.read()  # throws away junk
 
     def read_oscillator_frequency(self):
@@ -159,7 +159,17 @@ class LockIn:
                 self._ep0.write('sen1 ' + str(VALID_SENSITIVITY[millivolts]))
             else:
                 self._ep0.write('sen2 ' + str(VALID_SENSITIVITY[millivolts]))
-        LockIn.read(self)
+        self.read()
+
+    def read_sensitivity(self, channel=1):
+        if self._mode == 0.0:
+            self._ep0.write('sen.')
+        if self._mode == 1.0:
+            if channel == 1:
+                self._ep0.write('sen1.')
+            else:
+                self._ep0.write('sen2.')
+        return self.read()[0]
 
 
 
