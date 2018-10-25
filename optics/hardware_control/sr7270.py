@@ -115,7 +115,7 @@ class LockIn:
                 self._ep0.write('tc2.')
         return self.read()[0]
 
-    def change_tc(self, seconds):
+    def change_tc(self, seconds, channel=1):
         """Changes the time constant for a lock in amplifier in either the single reference or dual harmonic mode"""
         tc_value = {10e-06: 0, 20e-06: 1, 50e-06: 2, 100e-06: 3, 200e-06: 4, 500e-06: 5, 1e-03: 6, 2e-03: 7, 5e-03: 8,
                     10e-03: 9, 20e-03: 10, 50e-03: 11, 100e-03: 12, 200e-03: 13, 500e-03: 14, 1: 15, 2: 16, 5: 17,
@@ -126,7 +126,10 @@ class LockIn:
         if self._mode == 0.0:
             self._ep0.write('tc {}'.format(tc_value[seconds]))
         if self._mode == 1.0:
-            self._ep0.write('tc1 {}'.format(tc_value[seconds]))
+            if channel == 1:
+                self._ep0.write('tc1 {}'.format(tc_value[seconds]))
+            else:
+                self._ep0.write('tc2 {}'.format(tc_value[seconds]))
         self.read()  # throws away junk
 
     def read_r_theta(self):
@@ -138,6 +141,25 @@ class LockIn:
         """Reads auxillary analog-to-digital inputs with output in volts"""
         self._ep0.write('adc. {}'.format(channel))
         return self.read()
+
+    def auto_phase(self):
+        self._ep0.write('AQN')
+        self.read()
+
+    def change_sensitivity(self, millivolts, channel=1):
+        VALID_SENSITIVITY = {2e-6: 1, 5e-6: 2, 1e-5: 3, 2e-5: 4, 5e-5: 5, 1e-4: 6, 2e-4: 7, 5e-4: 8, 1e-3: 9,
+                             2e-3: 10, 5e-3: 11, 1e-2: 12, 2e-2: 13, 5e-2: 14, 0.1: 15, 0.2: 16, 0.5: 17, 1: 18,
+                             2: 19, 5: 20, 10: 21, 20: 22, 50: 23, 100: 24, 200: 25, 500: 26, 1000: 27}
+        if millivolts not in VALID_SENSITIVITY:
+            millivolts = min(VALID_SENSITIVITY.items(), key=lambda x: abs(millivolts - x[0]))[0]
+        if self._mode == 0.0:
+            self._ep0.write('sen ' + str(VALID_SENSITIVITY[millivolts]))
+        if self._mode == 1.0:
+            if channel == 1:
+                self._ep0.write('sen1 ' + str(VALID_SENSITIVITY[millivolts]))
+            else:
+                self._ep0.write('sen2 ' + str(VALID_SENSITIVITY[millivolts]))
+        LockIn.read(self)
 
 
 
