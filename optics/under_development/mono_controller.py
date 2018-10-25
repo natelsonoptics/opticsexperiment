@@ -59,6 +59,7 @@ class MonoController:
 
     def set_wavelength(self, wavelength):
         self._mono.MovetoWavelength(wavelength)
+        self._wavelength = wavelength
 
     def read_wavelength(self):
         self._wavelength = self._mono.GetCurrentWavelength()
@@ -75,14 +76,20 @@ class MonoController:
         self._current_grating = self._grating[self._current_turret]
         self._current_blazes = self._blazes[self._current_turret]
         self._current_description = self._description[self._current_turret]
-
         self._mono.MovetoTurret(turret_index)
 
-    def is_busy(self): #TODO get rid of this
+    def is_busy(self):
         return self._mono.IsBusy()
 
     #TODO GetMinMaxRange
 
+
+
+
+
 mono = MonoController()
 mono.initialize()
+mono.set_wavelength(785)
+while mono.is_busy():
+    time.sleep(0.5)
 print(mono.read_wavelength())

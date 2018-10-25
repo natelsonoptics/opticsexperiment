@@ -104,12 +104,15 @@ class LockIn:
         self._ep0.write('xy.')
         return self.read()
 
-    def read_tc(self):
+    def read_tc(self, channel=1):
         """Reads the time constant for a lock in amplifier in either the single reference or dual harmonic mode"""
         if self._mode == 0.0:
             self._ep0.write('tc.')
         if self._mode == 1.0:
-            self._ep0.write('tc1.')
+            if channel == 1:
+                self._ep0.write('tc1.')
+            else:
+                self._ep0.write('tc2.')
         return self.read()[0]
 
     def change_tc(self, seconds):

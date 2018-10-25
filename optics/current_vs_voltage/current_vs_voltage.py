@@ -55,6 +55,8 @@ class CurrentVoltageSweep:
         self._diff_d2idvx2 = []
         self._diff_d2idvy2 = []
         self._abort = False
+        self._time_constant = np.amax([self._sr7270_top.read_tc(), self._sr7270_top.read_tc(channel=2),
+                                      self._sr7270_bottom.read_tc()])
 
     def abort(self):
         self._abort = True
@@ -106,8 +108,9 @@ class CurrentVoltageSweep:
             i[0].set_ylabel(i[1], color=i[2])
             i[0].tick_params(axis='y', labelcolor=i[2])
             i[0].plot([i for i in self._voltages], [0 for i in self._voltages], c=i[2], linestyle='--', linewidth=0.5)
-            i[0].axvline(x=0, color='k', linestyle='--', linewidth=0.5)
             i[0].ticklabel_format(axis='1', style='sci', scilimits=(-3, 3))
+            [i[0].axvline(x=q/1000, color='k', linestyle='--', linewidth=0.5) for q in
+             range(int(self._voltages[0] * 1000), int(self._voltages[-1] * 1000)) if q % 100 == 0]
         self._fig.tight_layout()
         self._canvas.draw()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -129,7 +132,7 @@ class CurrentVoltageSweep:
             j = np.round(j * 1000, 0)
             vdc = j / 1000
             self._sr7270_top.change_applied_voltage(j)
-            tk_sleep(self._master, 500)
+            tk_sleep(self._master, self._time_constant * 3 * 1000)  # three times the largest time constant
             self._master.update()
             if self._abort:
                 break
@@ -155,7 +158,7 @@ class CurrentVoltageSweep:
                                        vdc / convert_adc_to_idc(adc[k][0], self._gain),
                                        1 / convert_x1_to_didv(xy1[k][0], self._gain, self._osc)])
             self._didvx.append(convert_x1_to_didv(np.average([k[0] for k in xy1]), self._gain, self._osc))
-            self._didvy.append(convert_x1_to_didv(np.average([k[0] for k in xy1]), self._gain, self._osc))
+            self._didvy.append(convert_x1_to_didv(np.average([k[1] for k in xy1]), self._gain, self._osc))
             self._d2idvx2.append(convert_x2_to_d2idv2(np.average([k[0] for k in xy2]), self._gain, self._osc))
             self._d2idvy2.append(convert_x2_to_d2idv2(np.average([k[1] for k in xy2]), self._gain, self._osc))
             self._iphotox.append(convert_x_to_iphoto(np.average([k[0] for k in xy]), self._gain))
