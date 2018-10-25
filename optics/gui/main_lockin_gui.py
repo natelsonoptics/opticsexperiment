@@ -138,10 +138,16 @@ class LockinMeasurementGUI:
         self._axis = tk.StringVar()
         self._axis.set('y')
         self._current_gain = tk.StringVar()
-        self._current_amplifier_gain_options = {'1 mA/V': 1000, '100 uA/V': 10000, '10 uA/V': 100000,
-                                                '1 uA/V': 1000000, '100 nA/V': 10000000, '10 nA/V': 100000000,
-                                                '1 nA/V': 1000000000, '100 pA/V': 10000000000, '10 pA/V': 100000000000,
-                                                '1 pA/V': 1000000000000}
+        self._current_amplifier_gain_options = {'1 mA/V': 1e3, '500 uA/V': 2e3,'200 uA/V': 5e3,
+                                                '100 uA/V': 1e4, '50 uA/V': 2e4,'20 uA/V': 5e4,
+                                                '10 uA/V': 1e5, '5 uA/V': 2e5,'2 uA/V': 5e5,
+                                                '1 uA/V': 1e6, '500 nA/V': 2e6,'200 nA/V': 5e6,
+                                                '100 nA/V': 1e7, '50 nA/V': 2e7,'20 nA/V': 5e7,
+                                                '10 nA/V': 1e8, '5 nA/V': 2e8,'2 nA/V': 5e8,
+                                                '1 nA/V': 1e9, '500 pA/V': 2e9,'200 pA/V': 5e9,
+                                                '100 pA/V': 1e10, '50 pA/V': 2e10,'20 pA/V': 5e10,
+                                                '10 pA/V': 1e11, '5 pA/V': 2e11,'2 pA/V': 5e11,
+                                                '1 pA/V': 1e12}
         self._current_gain.set('1 mA/V')
         self._voltage_gain = tk.StringVar()
         self._voltage_gain.set(1000)
