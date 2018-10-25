@@ -13,7 +13,7 @@ import tkinter as tk
 
 class ThermovoltageIntensity:
     def __init__(self, master, filepath, notes, device, scan, gain, maxtime, steps,
-                 npc3sg_input, sr7270_dual_harmonic, sr7270_single_reference, powermeter, attenuatorwheel, polarizer):
+                 npc3sg_input, sr7270_single_reference, powermeter, attenuatorwheel, polarizer):
         self._master = master
         self._filepath = filepath
         self._notes = notes
@@ -25,7 +25,6 @@ class ThermovoltageIntensity:
         self._measuredpolarization = self._polarizer.read_polarization()
         self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         self._npc3sg_input = npc3sg_input
-        self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
@@ -62,7 +61,8 @@ class ThermovoltageIntensity:
         self._writer.writerow(['y laser position:', position[1]])
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
-        self._writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'power', 'x_raw', 'y_raw', 'x_v', 'y_v'])

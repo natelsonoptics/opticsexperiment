@@ -13,7 +13,7 @@ import tkinter as tk
 
 class ThermovoltageTime:
     def __init__(self, master, filepath, notes, device, scan, gain, rate, maxtime,
-                 npc3sg_input, sr7270_bottom, powermeter, polarizer):
+                 npc3sg_input, sr7270_single_reference, powermeter, polarizer):
         self._master = master
         self._filepath = filepath
         self._notes = notes
@@ -24,7 +24,7 @@ class ThermovoltageTime:
         self._measuredpolarization = self._polarizer.read_polarization()
         self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         self._npc3sg_input = npc3sg_input
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._rate = rate
         self._maxtime = maxtime
@@ -58,6 +58,8 @@ class ThermovoltageTime:
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'x_raw', 'y_raw', 'x_v', 'y_v'])
@@ -105,7 +107,7 @@ class ThermovoltageTime:
 
     def measure(self):
         self._master.update()
-        raw = self._sr7270_bottom.read_xy()
+        raw = self._sr7270_single_reference.read_xy()
         self._voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
         tk_sleep(self._master, self._sleep)
         time_now = time.time() - self._start_time

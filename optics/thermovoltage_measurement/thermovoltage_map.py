@@ -16,7 +16,7 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 
 class ThermovoltageScan:
     def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_dual_harmonic, sr7270_single_reference, powermeter, polarizer,
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_single_reference, powermeter, polarizer,
                  direction=True,
                  axis='y'):
         self._master = master
@@ -43,7 +43,6 @@ class ThermovoltageScan:
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
-        self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._norm = thermovoltage_plot.MidpointNormalize(midpoint=0)
@@ -85,6 +84,8 @@ class ThermovoltageScan:
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['x_raw', 'y_raw', 'x_v', 'y_v', 'x_pixel', 'y_pixel'])

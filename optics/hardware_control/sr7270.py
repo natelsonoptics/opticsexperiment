@@ -171,6 +171,16 @@ class LockIn:
                 self._ep0.write('sen2.')
         return self.read()[0]
 
+    def read_reference_phase(self, channel=1):
+        if self._mode == 0.0:
+            self._ep0.write('refp.')
+        if self._mode == 1.0:
+            if channel == 1:
+                self._ep0.write('refp1.')
+            else:
+                self._ep0.write('refp2.')
+        return self.read()[0]
+
 
 
 

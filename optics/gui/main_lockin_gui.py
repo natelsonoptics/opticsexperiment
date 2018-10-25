@@ -226,9 +226,8 @@ class LockinMeasurementGUI:
                                 int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                                 int(self._inputs['x range']), int(self._inputs['y range']),
                                 int(self._inputs['x center']), int(self._inputs['y center']), self._npc3sg_x,
-                                self._npc3sg_y, self._npc3sg_input, self._sr7270_dual_harmonic,
-                                self._sr7270_single_reference, self._powermeter, self._polarizer, direction,
-                                self._axis.get())
+                                self._npc3sg_y, self._npc3sg_input, self._sr7270_single_reference, self._powermeter,
+                                self._polarizer, direction, self._axis.get())
         run.main()
 
     def thermovoltage_scan_dc(self, event=None):
@@ -314,7 +313,7 @@ class LockinMeasurementGUI:
         run = ThermovoltageIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                      int(self._inputs['scan']), float(self._voltage_gain.get()),
                                      float(self._inputs['max time (s)']), int(self._inputs['steps']),
-                                     self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
+                                     self._npc3sg_input, self._sr7270_single_reference,
                                      self._powermeter, self._attenuatorwheel, self._polarizer)
         run.main()
 
@@ -354,8 +353,7 @@ class LockinMeasurementGUI:
         run = ThermovoltagePolarizationDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
                                           self._inputs['device'], int(self._inputs['scan']),
                                           float(self._voltage_gain.get()),
-                                          self._npc3sg_input, self._sr7270_single_reference, self._powermeter,
-                                          self._polarizer, self._daq_input)
+                                          self._npc3sg_input, self._powermeter, self._polarizer, self._daq_input)
         run.main()
 
     def heating_polarization(self, event=None):

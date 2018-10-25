@@ -11,7 +11,7 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 import tkinter as tk
 
 class ThermovoltagePolarizationDC:
-    def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, sr7270_bottom, powermeter,
+    def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, powermeter,
                  polarizer, q):
         self._master = master
         self._writer = None
@@ -24,7 +24,6 @@ class ThermovoltagePolarizationDC:
         self._scan = scan
         self._device = device
         self._polarizer = polarizer
-        self._sr7270_bottom = sr7270_bottom
         self._imagefile = None
         self._filename = None
         self._start_time = None

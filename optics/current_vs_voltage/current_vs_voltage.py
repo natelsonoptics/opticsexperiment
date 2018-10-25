@@ -65,8 +65,14 @@ class CurrentVoltageSweep:
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
         self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
-        self._writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()])
-        self._writer.writerow(['top time constant:', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['single reference time constant:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 1:', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 2:', self._sr7270_dual_harmonic.read_tc(channel=2)])
+        self._writer.writerow(['single reference reference phase:',
+                               self._sr7270_single_reference.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 1:', self._sr7270_dual_harmonic.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 2:',
+                               self._sr7270_dual_harmonic.read_reference_phase(channel=2)])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['applied voltage (V)', 'raw adc', 'raw X', 'raw Y', 'raw X1', 'raw Y1', 'raw X2',
