@@ -405,7 +405,7 @@ class LockinMeasurementGUI:
         if self._tc2.get() != '':
             self._sr7270_dual_harmonic.change_tc(float(self._tc2.get()), channel=2)
         if self._sen1.get() != '':
-            self._sr7270_dual_harmonic.change_sensitivity(float(self._sen1.get()))
+            self._sr7270_dual_harmonic.change_sensitivity(float(self._sen1.get()), channel=1)
         if self._sen2.get() != '':
             self._sr7270_dual_harmonic.change_sensitivity(float(self._sen2.get()), channel=2)
         print('lock in parameters: \ntime constant 1: {} ms\ntime constant 2: {} ms\nsensitivity 1: {} mV\nsensitivity '

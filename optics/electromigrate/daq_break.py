@@ -169,9 +169,11 @@ class DAQBreak:
                     break
         if len(currents) > 3:
             linspace = np.linspace(self._start_voltage, self._current_break_voltage, 100)
-            m, _ = proportional_fit(voltages, currents)
+            #m, _ = proportional_fit(voltages, currents)
+            m, b, _, _ = linear_fit(voltages, currents)
             self._sweep_resistance = 1 / m
-            ln, = self._ax2.plot(linspace, proportional(linspace, m))
+            #ln, = self._ax2.plot(linspace, proportional(linspace, m))
+            ln, = self._ax2.plot(linspace, linear(linspace, m, b))
             self._ax2.title.set_text('Breaking resistance: %s ohms\n ' % np.ceil(self._sweep_resistance))
             self._fig.canvas.draw()
             self._ao.source_voltage(0)

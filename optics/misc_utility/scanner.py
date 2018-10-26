@@ -18,13 +18,14 @@ def find_scan_values(x_center, y_center, x_range, y_range, x_scan_density, y_sca
     return x_val, y_val
 
 
-def scan(x_val, y_val, w, z1, z2, fig, ax1, ax2, im1, im2, npc3sg_x, npc3sg_y, sr7270_single_reference, gain):
+def scan(x_val, y_val, w, z1, z2, fig, ax1, ax2, im1, im2, npc3sg_x, npc3sg_y, sr7270_bottom, gain):
     for y_ind, i in enumerate(y_val):
         npc3sg_y.move(i)
         for x_ind, j in enumerate(x_val):
             npc3sg_x.move(j)
             time.sleep(0.3)
-            voltages = [conversions.convert_x_to_iphoto(x, gain) for x in sr7270_single_reference.read_xy()]
+            voltages = [conversions.convert_x_to_iphoto(x, gain) for x in
+                        parser_tool.parse(sr7270_bottom.read_xy())]
             w.writerow([voltages[0], voltages[1], x_ind, y_ind])
             z1[x_ind][y_ind] = voltages[0] * 1000000
             z2[x_ind][y_ind] = voltages[1] * 1000000
