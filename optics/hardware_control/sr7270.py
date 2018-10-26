@@ -1,7 +1,8 @@
 import contextlib
 import usb.core
 import usb.util
-from optics.misc_utility import parser_tool
+from collections import OrderedDict
+import time
 
 # This module uses PyUSB which can be accessed here: https://github.com/pyusb/pyusb with documentation at:
 # http://pyusb.github.io/pyusb/
@@ -42,14 +43,61 @@ class LockIn:
         self._ep0 = ep0
         self._ep1 = ep1
         self._mode = self.check_reference_mode()
+        self._overload = False
+
+    def check_status(self, i):
+        """Checks lock in amplifier status and overload bytes"""
+        self._overload = False
+        status_codes = OrderedDict({'command complete': 0, 'invalid command': 'Invalid lock in command',
+                                    'invalid command parameter': 'Invalid lock in command parameter',
+                                    'reference unlock': 'Lock in reference unlocked',
+                                    'output overload': 0,
+                                    'new ADC after trigger': 0,
+                                    'input overload': 'Lock in input overload',
+                                    'data available': 0})
+        overload_codes = ['X1', 'Y1', 'X2', 'Y2', 'CH1', 'CH2', 'CH3', 'CH4']
+        status_bytes = [x for x in i[-2::]]
+        i = i[0:-3].replace('\n', '')
+        if status_bytes[0] == '!':
+            return [float(j) for j in i.split(',')] if i else None
+        for j, k in enumerate(reversed(bin(ord(status_bytes[0])))):
+            if k == '1':
+                if status_codes[list(status_codes.keys())[j]]:
+                    raise ValueError(status_codes[list(status_codes.keys())[j]])
+                if list(status_codes.keys())[j] == 'output overload':
+                    for l, m in enumerate(reversed(bin(ord(status_bytes[1])))):
+                        if m == '1':
+                            print('{} output overload'.format(overload_codes[l]))
+                            self._overload = True
+        return [float(j) for j in i.split(',')] if i else None
+
+    def auto_sensitivity(self, channel=0):
+        """Sets the sensitivity of output channels to lowest sensitivity to not cause overloading"""
+        sens = [2e-6, 5e-6, 1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 0.1, 0.2, 0.5,
+                1, 2, 5, 10, 20, 50, 100, 200, 500, 1000]
+        channels = {0: '', 1: '1', '2': 2}
+        self._ep0.write('st')
+        self.read()
+        if self._overload:
+            self._ep0.write('sen{}.'.format(channels[channel]))
+            s = self.read_dev()[0:-3].replace('\n', '')
+            s = [float(j) for j in s.split(',')][0] * 1000
+            s = [sens[i + 1] for i in range(len(sens)) if sens[i] == s][0]
+            print('Auto adjusting sensitivity to {} ms'.format(s))
+            self.change_sensitivity(s)
+            self._ep0.write('st')
+            self.read()
+            time.sleep(self.read_tc(channel=channel) * 3)
+            self.auto_sensitivity()
 
     def read(self):
         """Returns the parsed lock in amplifier outputs"""
-        #  Parser tool clears out garbage collected by not bothering to use proper handshaking for sake of time
-        #  Every command uses this function after every input command regardless of whether or not an output is
-        #  necessary because the lock in sends a non-meaningful confirmation message which would otherwise be sent
-        #  in the next read command
-        return parser_tool.parse(''.join(chr(x) for x in self._dev.read(self._ep1, 100, 100)))
+        return self.check_status(self.read_dev())
+
+    def read_dev(self):
+        """Reads the raw output from the lock in. The last four characters are: new line, null character, a status
+        byte representing any errors, and an overload byte indicating which channel is overloading"""
+        return ''.join(chr(x) for x in self._dev.read(self._ep1, 100, 100))
 
     def check_reference_mode(self):
         """Checks the reference mode of the lock in amplifier. Returns 0 if single reference, 1 if dual harmonic, and
@@ -62,7 +110,7 @@ class LockIn:
         self._ep0.write('dac {} {}'.format(channel, millivolts / 10))
         #  it is unclear why the input needs to be divided by 10. The manual shows mV input but the command yields a
         #  voltage 10x higher
-        self.read()  # throws away junk
+        self.read_dev()  # throws away junk
 
     def read_applied_voltage(self, channel=3):
         """Reads the applied voltage of the DAC channel. Default is channel 3"""
@@ -72,7 +120,7 @@ class LockIn:
     def change_oscillator_frequency(self, millihertz):
         """Changes the oscillator frequency for internal reference"""
         self._ep0.write('of {}'.format(millihertz))
-        self.read()  # throws away junk
+        self.read_dev()  # throws away junk
 
     def read_oscillator_frequency(self):
         """Reads the oscillator frequency for internal reference"""
@@ -82,7 +130,7 @@ class LockIn:
     def change_oscillator_amplitude(self, millivolts):
         """Changes the oscillator amplitude for the internal reference"""
         self._ep0.write('oa {}'.format(millivolts * 100))
-        self.read()
+        self.read_dev()
 
     def read_oscillator_amplitude(self):
         """Read the oscillator amplitude for the internal reference in volts"""
@@ -92,17 +140,32 @@ class LockIn:
     def read_xy1(self):
         """Reads XY1 of dual harmonic mode. Returns a list corresponding to [X1, Y1] in volts"""
         self._ep0.write('xy1.')
-        return self.read()
+        values = self.read()
+        if self._overload:
+            self.auto_sensitivity(channel=1)
+            self._ep0.write('xy1.')
+            values = self.read()
+        return values
 
     def read_xy2(self):
         """Reads XY2 of dual harmonic mode. Returns a list corresponding to [X1, Y1] in volts"""
         self._ep0.write('xy2.')
-        return self.read()
+        values = self.read()
+        if self._overload:
+            self.auto_sensitivity(channel=2)
+            self._ep0.write('xy2.')
+            values = self.read()
+        return values
 
     def read_xy(self):
         """Reads XY of single reference mode. Returns a list corresponding to [X, Y] in volts"""
         self._ep0.write('xy.')
-        return self.read()
+        values = self.read()
+        if self._overload:
+            self.auto_sensitivity(channel=0)
+            self._ep0.write('xy.')
+            values = self.read()
+        return values
 
     def read_tc(self, channel=1):
         """Reads the time constant for a lock in amplifier in either the single reference or dual harmonic mode"""
@@ -130,12 +193,12 @@ class LockIn:
                 self._ep0.write('tc1 {}'.format(tc_value[seconds]))
             else:
                 self._ep0.write('tc2 {}'.format(tc_value[seconds]))
-        self.read()  # throws away junk
+        self.read_dev()  # throws away junk
 
     def read_r_theta(self):
         """Reads the magnitude and phase output. Returns a list corresponding to [R, Theta]"""
         self._ep0.write('mp.')
-        return self.read()
+        return self.read_dev()
 
     def read_adc(self, channel):
         """Reads auxillary analog-to-digital inputs with output in volts"""
@@ -144,7 +207,7 @@ class LockIn:
 
     def auto_phase(self):
         self._ep0.write('AQN')
-        self.read()
+        self.read_dev()
 
     def change_sensitivity(self, millivolts, channel=1):
         VALID_SENSITIVITY = {2e-6: 1, 5e-6: 2, 1e-5: 3, 2e-5: 4, 5e-5: 5, 1e-4: 6, 2e-4: 7, 5e-4: 8, 1e-3: 9,
@@ -159,7 +222,9 @@ class LockIn:
                 self._ep0.write('sen1 ' + str(VALID_SENSITIVITY[millivolts]))
             else:
                 self._ep0.write('sen2 ' + str(VALID_SENSITIVITY[millivolts]))
-        LockIn.read(self)
+        self.read_dev()
+
+
 
 
 
