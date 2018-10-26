@@ -11,8 +11,8 @@ from matplotlib.figure import Figure
 import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
 
 class HeatingPolarization:
-    def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, npc3sg_input, sr7270_top, sr7270_bottom,
-                 powermeter, polarizer):
+    def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, npc3sg_input, sr7270_dual_harmonic,
+                 sr7270_single_reference, powermeter, polarizer):
         self._master = master
         self._writer = None
         self._npc3sg_input = npc3sg_input
@@ -25,8 +25,8 @@ class HeatingPolarization:
         self._polarizer = polarizer
         self._bias = bias
         self._osc = osc
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
+        self._sr7270_single_reference = sr7270_single_reference
         self._imagefile = None
         self._filename = None
         self._start_time = None
@@ -56,11 +56,16 @@ class HeatingPolarization:
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
-        self._writer.writerow(['applied voltage (V):', self._sr7270_top.read_applied_voltage()])
-        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
-        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
-        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
+        self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
+        self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
+        self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
+        self._writer.writerow(['single reference time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 1: ', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 2: ', self._sr7270_dual_harmonic.read_tc(channel=2)])
+        self._writer.writerow(['single reference phase: ', self._sr7270_single_reference.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 1: ', self._sr7270_dual_harmonic.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 2: ',
+                               self._sr7270_dual_harmonic.read_reference_phase(channel=2)])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'polarization', 'x_raw', 'y_raw', 'iphoto_x', 'iphoto_y'])
@@ -96,7 +101,7 @@ class HeatingPolarization:
             self._master.update()
             polarization = float(str(self._polarizer.read_polarization()))
             # converts waveplate angle to polarizaiton angle
-            raw = self._sr7270_bottom.read_xy()
+            raw = self._sr7270_single_reference.read_xy()
             self._iphoto = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
             if abs(self._iphoto[0]) > self._max_iphoto_x:
                 self._max_iphoto_x = abs(self._iphoto[0])
@@ -104,9 +109,11 @@ class HeatingPolarization:
                 self._max_iphoto_y = abs(self._iphoto[1])
             time_now = time.time() - self._start_time
             self._writer.writerow([time_now, polarization, raw[0], raw[1], self._iphoto[0], self._iphoto[1]])
-            self._ax1.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[0]) * 1000, linestyle='', color='blue', marker='o', markersize=2)
+            self._ax1.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[0]) * 1000, linestyle='',
+                           color='blue', marker='o', markersize=2)
             self._ax1.set_rmax(self._max_iphoto_x * 1.1 * 1000)
-            self._ax2.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[1]) * 1000, linestyle='', color='blue', marker='o', markersize=2)
+            self._ax2.plot(conversions.degrees_to_radians(polarization), abs(self._iphoto[1]) * 1000, linestyle='',
+                           color='blue', marker='o', markersize=2)
             self._ax2.set_rmax(self._max_iphoto_y * 1.1 * 1000)
             self._fig.tight_layout()
             self._canvas.draw()
@@ -118,9 +125,9 @@ class HeatingPolarization:
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile:
             try:
-                self._sr7270_top.change_applied_voltage(self._bias)
+                self._sr7270_dual_harmonic.change_applied_voltage(self._bias)
                 tk_sleep(self._master, 300)
-                self._sr7270_top.change_oscillator_amplitude(self._osc)
+                self._sr7270_dual_harmonic.change_oscillator_amplitude(self._osc)
                 tk_sleep(self._master, 300)
                 self._start_time = time.time()
                 self._writer = csv.writer(inputfile)

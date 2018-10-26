@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from optics.gui.gui_builds import SetupGUI
+from optics.defunct.gui_builds import SetupGUI
 from optics.hardware_control import polarizercontroller, hardware_addresses_and_constants
 
 if __name__ == '__main__':

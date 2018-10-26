@@ -17,7 +17,8 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 
 class HeatingScan:
     def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer, direction=True):
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_dual_harmonic, sr7270_single_reference, powermeter, polarizer,
+                 direction=True):
         self._master = master
         self._filepath = filepath
         self._notes = notes
@@ -41,8 +42,8 @@ class HeatingScan:
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
+        self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._z1 = np.zeros((self._xd, self._yd))
         self._z2 = np.zeros((self._xd, self._yd))
@@ -62,6 +63,7 @@ class HeatingScan:
         self._canvas.draw()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._abort = False
+        self._time_constant = self._sr7270_single_reference.read_tc()
 
     def abort(self):
         self._abort = True
@@ -77,11 +79,16 @@ class HeatingScan:
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
-        self._writer.writerow(['applied voltage (V):', self._sr7270_top.read_applied_voltage()])
-        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
-        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
-        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
+        self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
+        self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
+        self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
+        self._writer.writerow(['single reference time constant:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 1:', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 2:', self._sr7270_dual_harmonic.read_tc(channel=2)])
+        self._writer.writerow(['single reference phase:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['dual harmonic reference phase 1:', self._sr7270_dual_harmonic.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 2:',
+                               self._sr7270_dual_harmonic.read_reference_phase(channel=2)])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['x_raw', 'y_raw', 'x_iphoto', 'y_iphoto', 'x_pixel', 'y_pixel'])
@@ -131,8 +138,8 @@ class HeatingScan:
             self._npc3sg_y.move(i)
             for x_ind, j in enumerate(self._x_val):
                 self._npc3sg_x.move(j)
-                tk_sleep(self._master, 600)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
-                raw = self._sr7270_bottom.read_xy()
+                tk_sleep(self._master, 3 * 1000 * self._time_constant)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
+                raw = self._sr7270_single_reference.read_xy()
                 currents = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                 self._writer.writerow([raw[0], raw[1], currents[0], currents[1], x_ind, y_ind])
                 self._z1[x_ind][y_ind] = currents[0] * 1000
@@ -158,9 +165,9 @@ class HeatingScan:
                 self._writer = csv.writer(inputfile)
                 self.setup_plots()
                 self._canvas.draw()
-                self._sr7270_top.change_applied_voltage(self._bias)
+                self._sr7270_dual_harmonic.change_applied_voltage(self._bias)
                 tk_sleep(self._master, 300)
-                self._sr7270_top.change_oscillator_amplitude(self._osc)
+                self._sr7270_dual_harmonic.change_oscillator_amplitude(self._osc)
                 self.write_header()
                 self.run_scan()
                 heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
@@ -177,6 +184,6 @@ class HeatingScan:
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
                 self._npc3sg_x.move(0)
                 self._npc3sg_y.move(0)
-                self._sr7270_top.change_applied_voltage(0)
+                self._sr7270_dual_harmonic.change_applied_voltage(0)
             except TclError:  # this is an annoying error that requires you to have tkinter events in mainloop
                 pass

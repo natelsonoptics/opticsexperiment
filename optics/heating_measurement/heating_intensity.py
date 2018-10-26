@@ -67,8 +67,13 @@ class HeatingIntensity:
         self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
         self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
-        self._writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()])
-        self._writer.writerow(['top time constant:', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['single reference time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 1: ', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 2: ', self._sr7270_dual_harmonic.read_tc(channel=2)])
+        self._writer.writerow(['single reference phase: ', self._sr7270_single_reference.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 1: ', self._sr7270_dual_harmonic.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 2: ',
+                               self._sr7270_dual_harmonic.read_reference_phase(channel=2)])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'power', 'x_raw', 'y_raw', 'iphoto_x', 'iphoto_y'])
@@ -129,7 +134,7 @@ class HeatingIntensity:
     def measure(self):
         self._master.update()
         self._attenuatorwheel.step(self._steps, 0.005)
-        tk_sleep(self._master, 100)
+        tk_sleep(self._master, self._sr7270_single_reference.read_tc())
         time_now = time.time() - self._start_time
         self._power = self._powermeter.read_power()
         raw = self._sr7270_single_reference.read_xy()

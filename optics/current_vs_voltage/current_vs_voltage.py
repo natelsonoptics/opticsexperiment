@@ -14,7 +14,7 @@ from optics.misc_utility.conversions import convert_x_to_iphoto, convert_x1_to_d
 
 class CurrentVoltageSweep:
     def __init__(self, master, filepath, notes, device, scan, gain, osc, start_voltage, stop_voltage, steps,
-                 number_measurements, sr7270_top, sr7270_bottom):
+                 number_measurements, sr7270_dual_harmonic, sr7270_single_reference):
         self._master = master
         self._filepath = filepath
         self._notes = notes
@@ -23,8 +23,8 @@ class CurrentVoltageSweep:
         self._gain = gain
         self._osc = osc / 1000
         self._number_measurements = number_measurements
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
+        self._sr7270_single_reference = sr7270_single_reference
         # set up the plots
         self._fig = Figure()
         self._fig.set_size_inches(14, 9)
@@ -55,28 +55,34 @@ class CurrentVoltageSweep:
         self._diff_d2idvx2 = []
         self._diff_d2idvy2 = []
         self._abort = False
-        self._time_constant = np.amax([self._sr7270_top.read_tc(), self._sr7270_top.read_tc(channel=2),
-                                      self._sr7270_bottom.read_tc()])
+        self._time_constant = np.amax([self._sr7270_dual_harmonic.read_tc(), self._sr7270_dual_harmonic.read_tc(channel=2),
+                                       self._sr7270_single_reference.read_tc()])
 
     def abort(self):
         self._abort = True
 
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
-        self._writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
-        self._writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()])
-        self._writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
-        self._writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
+        self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
+        self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
+        self._writer.writerow(['single reference time constant:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 1:', self._sr7270_dual_harmonic.read_tc()])
+        self._writer.writerow(['dual harmonic time constant 2:', self._sr7270_dual_harmonic.read_tc(channel=2)])
+        self._writer.writerow(['single reference reference phase:',
+                               self._sr7270_single_reference.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 1:', self._sr7270_dual_harmonic.read_reference_phase()])
+        self._writer.writerow(['dual harmonic reference phase 2:',
+                               self._sr7270_dual_harmonic.read_reference_phase(channel=2)])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['applied voltage (V)', 'raw adc', 'raw X', 'raw Y', 'raw X1', 'raw Y1', 'raw X2',
                                'raw Y2', 'Idc', 'dI/dVx', 'dI/dVy', 'd2I/dVx2', 'd2I/dVy2',
                                'dG/dV*V/G', 'PhotoX', 'PhotoY', 'resistance (V/I)', 'r (dV/dI)'])
         self._sweep_writer.writerow(['gain:', self._gain])
-        self._sweep_writer.writerow(['osc amplitude (V):', self._sr7270_top.read_oscillator_amplitude()])
-        self._sweep_writer.writerow(['osc frequency:', self._sr7270_top.read_oscillator_frequency()])
-        self._sweep_writer.writerow(['time constant:', self._sr7270_bottom.read_tc()])
-        self._sweep_writer.writerow(['top time constant:', self._sr7270_top.read_tc()])
+        self._sweep_writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
+        self._sweep_writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
+        self._sweep_writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()])
+        self._sweep_writer.writerow(['top time constant:', self._sr7270_dual_harmonic.read_tc()])
         self._sweep_writer.writerow(['notes:', self._notes])
         self._sweep_writer.writerow(['end:', 'end of header'])
         self._sweep_writer.writerow(['applied voltage (V)', 'raw adc', 'raw X', 'raw Y', 'raw X1', 'raw Y1', 'raw X2',
@@ -131,7 +137,7 @@ class CurrentVoltageSweep:
             self._master.update()
             j = np.round(j * 1000, 0)
             vdc = j / 1000
-            self._sr7270_top.change_applied_voltage(j)
+            self._sr7270_dual_harmonic.change_applied_voltage(j)
             tk_sleep(self._master, self._time_constant * 3 * 1000)  # three times the largest time constant
             self._master.update()
             if self._abort:
@@ -141,8 +147,8 @@ class CurrentVoltageSweep:
             xy = []
             adc = []
             for k in range(self._number_measurements):
-                for q in [xy.append(self._sr7270_bottom.read_xy()), xy1.append(self._sr7270_top.read_xy1()),
-                          xy2.append(self._sr7270_top.read_xy2()), adc.append(self._sr7270_top.read_adc(3))]:
+                for q in [xy.append(self._sr7270_single_reference.read_xy()), xy1.append(self._sr7270_dual_harmonic.read_xy1()),
+                          xy2.append(self._sr7270_dual_harmonic.read_xy2()), adc.append(self._sr7270_dual_harmonic.read_adc(3))]:
                     self._master.update()
                     tk_sleep(self._master, 10)
                     q
@@ -198,14 +204,14 @@ class CurrentVoltageSweep:
         self.makefile()
         with open(self._filename, 'w', newline='') as inputfile, open(self._sweep_filename, 'w', newline='') as fin:
             try:
-                self._sr7270_top.change_oscillator_amplitude(self._osc * 1000)
+                self._sr7270_dual_harmonic.change_oscillator_amplitude(self._osc * 1000)
                 tk_sleep(self._master, 300)
                 self._writer = csv.writer(inputfile)
                 self._sweep_writer = csv.writer(fin)
                 self.write_header()
                 self.setup_plots()
                 self.measure()
-                self._sr7270_top.change_applied_voltage(0)
+                self._sr7270_dual_harmonic.change_applied_voltage(0)
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data

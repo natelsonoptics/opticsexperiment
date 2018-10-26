@@ -11,7 +11,7 @@ from matplotlib.figure import Figure
 import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
 
 class ThermovoltagePolarization:
-    def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, sr7270_bottom, powermeter,
+    def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, sr7270_single_reference, powermeter,
                  polarizer):
         self._master = master
         self._writer = None
@@ -23,7 +23,7 @@ class ThermovoltagePolarization:
         self._scan = scan
         self._device = device
         self._polarizer = polarizer
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_single_reference = sr7270_single_reference
         self._imagefile = None
         self._filename = None
         self._start_time = None
@@ -51,6 +51,8 @@ class ThermovoltagePolarization:
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'polarization', 'x_raw', 'y_raw', 'x_v', 'y_v'])
@@ -82,7 +84,7 @@ class ThermovoltagePolarization:
             self._master.update()
             polarization = float(str(self._polarizer.read_polarization()))
             # converts waveplate angle to polarizaiton angle
-            raw = self._sr7270_bottom.read_xy()
+            raw = self._sr7270_single_reference.read_xy()
             self._voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
             if abs(self._voltages[0]) > self._max_voltage_x:
                 self._max_voltage_x = abs(self._voltages[0])

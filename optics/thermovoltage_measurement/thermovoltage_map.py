@@ -16,7 +16,8 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 
 class ThermovoltageScan:
     def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_top, sr7270_bottom, powermeter, polarizer, direction=True,
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_single_reference, powermeter, polarizer,
+                 direction=True,
                  axis='y'):
         self._master = master
         self._filepath = filepath
@@ -42,8 +43,7 @@ class ThermovoltageScan:
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
-        self._sr7270_top = sr7270_top
-        self._sr7270_bottom = sr7270_bottom
+        self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
         self._norm = thermovoltage_plot.MidpointNormalize(midpoint=0)
         self._z1 = np.zeros((self._xd, self._yd))
@@ -68,6 +68,7 @@ class ThermovoltageScan:
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._abort = False
         self._cut_writer = None
+        self._time_constant = self._sr7270_single_reference.read_tc()
 
     def abort(self):
         self._abort = True
@@ -83,6 +84,8 @@ class ThermovoltageScan:
         self._writer.writerow(['polarization:', self._polarization])
         self._writer.writerow(['actual polarization:', self._measuredpolarization])
         self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['x_raw', 'y_raw', 'x_v', 'y_v', 'x_pixel', 'y_pixel'])
@@ -152,8 +155,8 @@ class ThermovoltageScan:
                 v = []
                 for x_ind, j in enumerate(self._x_val):
                     self._npc3sg_x.move(j)
-                    tk_sleep(self._master, 600)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
-                    raw = self._sr7270_bottom.read_xy()
+                    tk_sleep(self._master, self._time_constant * 1000 * 3)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
+                    raw = self._sr7270_single_reference.read_xy()
                     voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                     v.append(voltages)
                     self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])
@@ -192,8 +195,8 @@ class ThermovoltageScan:
                 v = []
                 for y_ind, j in enumerate(self._y_val):
                     self._npc3sg_y.move(j)
-                    tk_sleep(self._master, 600)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
-                    raw = self._sr7270_bottom.read_xy()
+                    tk_sleep(self._master, self._time_constant * 1000 * 3)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
+                    raw = self._sr7270_single_reference.read_xy()
                     voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
                     v.append(voltages)
                     self._writer.writerow([raw[0], raw[1], voltages[0], voltages[1], x_ind, y_ind])

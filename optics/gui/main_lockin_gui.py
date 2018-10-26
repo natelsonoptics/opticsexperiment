@@ -59,7 +59,7 @@ class BaseGUI:
                        'polarization': self._app.build_change_polarization_gui,
                        'ivsweep': self._app.build_sweep_iv_gui,
                        'singlereference': self._app.build_single_reference_gui,
-                       'dualhamonic': self._app.build_dual_harmonic_gui}
+                       'dualharmonic': self._app.build_dual_harmonic_gui}
         measurement[measurementtype]()
 
     def make_measurement_button(self, master, text, measurement_type):
@@ -96,13 +96,12 @@ class BaseGUI:
         self.make_measurement_button(row, 'position', 'position')
         self.make_measurement_button(row, 'intensity', 'intensity')
         self.make_measurement_button(row, 'polarization', 'polarization')
-        row = self.makerow('change lock in parameters')
-        row = self.makerow('single reference')
+        row = self.makerow('single reference lock in')
         b1 = tk.Button(row, text='auto phase',
                        command=lambda lockin=self._sr7270_single_reference: self.autophase(lockin))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
         self.make_measurement_button(row, 'change parameters', 'singlereference')
-        row = self.makerow('dual harmonic')
+        row = self.makerow('dual harmonic lock in')
         b1 = tk.Button(row, text='auto phase',
                        command=lambda lockin=self._sr7270_dual_harmonic: self.autophase(lockin))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
@@ -139,10 +138,16 @@ class LockinMeasurementGUI:
         self._axis = tk.StringVar()
         self._axis.set('y')
         self._current_gain = tk.StringVar()
-        self._current_amplifier_gain_options = {'1 mA/V': 1000, '100 uA/V': 10000, '10 uA/V': 100000,
-                                                '1 uA/V': 1000000, '100 nA/V': 10000000, '10 nA/V': 100000000,
-                                                '1 nA/V': 1000000000, '100 pA/V': 10000000000, '10 pA/V': 100000000000,
-                                                '1 pA/V': 1000000000000}
+        self._current_amplifier_gain_options = {'1 mA/V': 1e3, '500 uA/V': 2e3,'200 uA/V': 5e3,
+                                                '100 uA/V': 1e4, '50 uA/V': 2e4,'20 uA/V': 5e4,
+                                                '10 uA/V': 1e5, '5 uA/V': 2e5,'2 uA/V': 5e5,
+                                                '1 uA/V': 1e6, '500 nA/V': 2e6,'200 nA/V': 5e6,
+                                                '100 nA/V': 1e7, '50 nA/V': 2e7,'20 nA/V': 5e7,
+                                                '10 nA/V': 1e8, '5 nA/V': 2e8,'2 nA/V': 5e8,
+                                                '1 nA/V': 1e9, '500 pA/V': 2e9,'200 pA/V': 5e9,
+                                                '100 pA/V': 1e10, '50 pA/V': 2e10,'20 pA/V': 5e10,
+                                                '10 pA/V': 1e11, '5 pA/V': 2e11,'2 pA/V': 5e11,
+                                                '1 pA/V': 1e12}
         self._current_gain.set('1 mA/V')
         self._voltage_gain = tk.StringVar()
         self._voltage_gain.set(1000)
@@ -227,9 +232,8 @@ class LockinMeasurementGUI:
                                 int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                                 int(self._inputs['x range']), int(self._inputs['y range']),
                                 int(self._inputs['x center']), int(self._inputs['y center']), self._npc3sg_x,
-                                self._npc3sg_y, self._npc3sg_input, self._sr7270_dual_harmonic,
-                                self._sr7270_single_reference, self._powermeter, self._polarizer, direction,
-                                self._axis.get())
+                                self._npc3sg_y, self._npc3sg_input, self._sr7270_single_reference, self._powermeter,
+                                self._polarizer, direction, self._axis.get())
         run.main()
 
     def thermovoltage_scan_dc(self, event=None):
@@ -315,7 +319,7 @@ class LockinMeasurementGUI:
         run = ThermovoltageIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                      int(self._inputs['scan']), float(self._voltage_gain.get()),
                                      float(self._inputs['max time (s)']), int(self._inputs['steps']),
-                                     self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
+                                     self._npc3sg_input, self._sr7270_single_reference,
                                      self._powermeter, self._attenuatorwheel, self._polarizer)
         run.main()
 
@@ -355,8 +359,7 @@ class LockinMeasurementGUI:
         run = ThermovoltagePolarizationDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
                                           self._inputs['device'], int(self._inputs['scan']),
                                           float(self._voltage_gain.get()),
-                                          self._npc3sg_input, self._sr7270_single_reference, self._powermeter,
-                                          self._polarizer, self._daq_input)
+                                          self._npc3sg_input, self._powermeter, self._polarizer, self._daq_input)
         run.main()
 
     def heating_polarization(self, event=None):
@@ -380,25 +383,40 @@ class LockinMeasurementGUI:
 
     def change_single_reference_lockin_parameters(self, event=None):
         self.fetch(event)
-        self._sr7270_single_reference.change_applied_voltage(float(self._inputs['bias (mV)']))
-        if float(self._tc.get()):
+        if self._tc.get() != '':
             self._sr7270_single_reference.change_tc(float(self._tc.get()))
-        if float(self._sen.get()):
+        if self._sen.get() != '':
             self._sr7270_single_reference.change_sensitivity(float(self._sen.get()))
-        if float(self._inputs['oscillator amplitude (mV)']):
-            self._sr7270_single_reference.change_oscillator_amplitude(float(self._inputs['oscillator amplitude (mV)']))
-        if float(self._inputs['oscillator frequency (Hz)']):
-            self._sr7270_single_reference.change_oscillator_frequency(float(self._inputs['oscillator frequency (Hz)']))
+        print('lock in parameters: \ntime constant: {} ms\nsensitivity: {} '
+              'mV'.format(self._sr7270_single_reference.read_tc() * 1000,
+                          self._sr7270_single_reference.read_sensitivity() * 1000))
+
 
     def change_dual_harmonic_lockin_parameters(self, event=None):
-        if float(self._tc1.get()):
+        self.fetch(event)
+        if self._inputs['bias (mV)'] != '':
+            self._sr7270_dual_harmonic.change_applied_voltage(float(self._inputs['bias (mV)']))
+        if self._inputs['oscillator amplitude (mV)'] != '':
+            self._sr7270_dual_harmonic.change_oscillator_amplitude(float(self._inputs['oscillator amplitude (mV)']))
+        if self._inputs['oscillator frequency (Hz)'] != '':
+            self._sr7270_dual_harmonic.change_oscillator_frequency(float(self._inputs['oscillator frequency (Hz)']))
+        if self._tc1.get() != '':
             self._sr7270_dual_harmonic.change_tc(float(self._tc1.get()))
-        if float(self._tc2.get()):
+        if self._tc2.get() != '':
             self._sr7270_dual_harmonic.change_tc(float(self._tc2.get()), channel=2)
-        if float(self._sen1.get()):
+        if self._sen1.get() != '':
             self._sr7270_dual_harmonic.change_sensitivity(float(self._sen1.get()))
-        if float(self._sen2.get()):
+        if self._sen2.get() != '':
             self._sr7270_dual_harmonic.change_sensitivity(float(self._sen2.get()), channel=2)
+        print('lock in parameters: \ntime constant 1: {} ms\ntime constant 2: {} ms\nsensitivity 1: {} mV\nsensitivity '
+              '2: {} mV\napplied bias (dac3): {} mV\nreference frequency: {} Hz\noscillator amplitude: '
+              '{} mV'.format(self._sr7270_dual_harmonic.read_tc() * 1000,
+                             self._sr7270_dual_harmonic.read_tc(channel=2) * 1000,
+                             self._sr7270_dual_harmonic.read_sensitivity() * 1000,
+                             self._sr7270_dual_harmonic.read_sensitivity(channel=2) * 1000,
+                             self._sr7270_dual_harmonic.read_applied_voltage() * 1000,
+                             self._sr7270_dual_harmonic.read_oscillator_frequency(),
+                             self._sr7270_dual_harmonic.read_oscillator_amplitude() * 1000))
 
     def onclick_browse(self):
         self._filepath.set(tkinter.filedialog.askdirectory())
@@ -524,26 +542,26 @@ class LockinMeasurementGUI:
 
     def build_single_reference_gui(self):
         caption = "Change single reference lock in parameters"
-        self._fields = {'bias (mV)': '', 'oscillator amplitude (mV)': '',
-                        'oscillator frequency (Hz)': ''}
         self.beginform(caption, False)
         self.make_option_menu('time constant (s)', self._tc,
                               [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
         self.make_option_menu('sensitivity (mV)', self._sen, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
-                                                                       0.5, 1, 2, 5, 10, 20, 50])
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_single_reference_lockin_parameters)
 
     def build_dual_harmonic_gui(self):
         caption = "Change dual harmonic lock in parameters"
+        self._fields = {'bias (mV)': '', 'oscillator amplitude (mV)': '',
+                        'oscillator frequency (Hz)': ''}
         self.beginform(caption, False)
         self.make_option_menu('time constant 1 (s)', self._tc1,
                               [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
         self.make_option_menu('time constant 2 (s)', self._tc2,
                               [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
         self.make_option_menu('sensitivity 1 (mV)', self._sen1, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
-                                                                       0.5, 1, 2, 5, 10, 20, 50])
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.make_option_menu('sensitivity 2 (mV)', self._sen2, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
-                                                                       0.5, 1, 2, 5, 10, 20, 50])
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_dual_harmonic_lockin_parameters)
 
     def build_coming_soon(self):
