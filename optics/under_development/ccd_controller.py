@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 import time
 import contextlib
+import matplotlib.pyplot as plt
 
 sys.path.append("C:\\Users\\NatLabUser\\Desktop\\python") #  adds DLL path to PATH
 
@@ -30,28 +31,27 @@ class CCDController2:
         time.sleep(1)
         self._xpixels, _ = self._ccd.read_chip_size()
 
-    def take_scan(self, integration_time_seconds=1, gain=1, scans=1):
+    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True):
         self._ccd.set_integration_time(integration_time_seconds)
         self._ccd.set_adc()
         self._ccd.set_gain(gain)
         self._ccd.set_acquisition_format()
         self._ccd.set_area(self._xpixels)
         data_size = self._ccd.read_data_size()
-        data = np.zeros([scans, data_size])
+        raw_data = np.zeros([scans, data_size])
         self._ccd.set_acquisition_mode(True)
         self._ccd.set_operating_mode()
         self._ccd.set_acquisition_count(scans)
         for j in range(scans):
             while not self._ccd.is_ready():
                 time.sleep(0.01)
-            self._ccd.start_acquisition(True)
+            self._ccd.start_acquisition(shutter_open)
             while self._ccd.is_busy():
                 time.sleep(0.01)
-            data[j] = self._ccd.read_result()
+            raw_data[j] = self._ccd.read_result()
         self._ccd.stop_acquisition()
-        return data
-
-
+        averaged_data = np.mean(np.array([i for i in raw_data]), axis=0)
+        return raw_data, averaged_data
 
 class CCDController:
     def __init__(self, unique_id='CCD1'):
@@ -119,12 +119,6 @@ class CCDController:
     def read_temperature(self):
         return self._ccd.CurrentTemperature
 
-    def disable_output_triggers(self):
-        self._ccd.DisableAllOutputTriggers()
-
-    def disable_input_triggers(self):
-        self._ccd.DisableAllInputTriggers()
-
     def open_shutter(self):
         self._ccd.OpenShutter()
 
@@ -146,28 +140,32 @@ class CCDController:
         d = JYSYSTEMLIBLib.IJYDataObject.GetRawData(o)
         return np.array([i for i in d])
 
-    def convert_pixels_to_wavelength(self, center_wavelength, groove_density, pixel_count):
-        focus = 318.569 # mm
-        lb = focus # mm
-        gamma = 3.185 # degrees
-        pixel_width = 0.026 # mm
-        dv = 10.63 * 2 # degrees
-        wavelength = center_wavelength
-        k = 1
-        gn = groove_density
-        x = np.zeros(pixel_count)
+    def enable_output_triggers(self):
+        """Turns on TTL trigger outputs on CCD. This is a bunch of JY COM code access"""
+        trig_address, trig_address_string = self._ccd.GetFirstSupportedOutputTriggerAddress()
+        event_ptr, trig_event_string = self._ccd.GetFirstSupportedOutputTriggerEvent(trig_address)
+        trig_signal_type, trig_signal_type_string = self._ccd.GetFirstSupportedOutputTriggerSignalType(trig_address, event_ptr)
+        event_ptr = JYSYSTEMLIBLib.jyTriggerEvent.jyTrigEventOnStart
+        trig_signal_type = JYSYSTEMLIBLib.jyTriggerSignalType.jyTRigSigTypeTTLHigh
+        self._ccd.EnableOutputTrigger(trig_address, event_ptr, trig_signal_type)
 
-        alpha = np.arcsin((1e-6 * k * gn * wavelength) / (2 * np.cos(np.radians(dv / 2)))) - np.radians(dv / 2)  # radians
-        blc = np.radians(dv) + alpha # radians
+    def disable_output_triggers(self):
+        """Turns off TTL trigger outputs on CCD"""
+        self._ccd.DisableAllOutputTriggers()
 
-        for n in range(pixel_count):
-            lh = focus * np.cos(np.radians(gamma))
-            bh = blc + np.radians(gamma)
-            hblc = focus * np.sin(np.radians(gamma))
-            hbln = pixel_width * (n - (xpixels / 2)) + hblc
-            bln = bh - np.arctan(hbln / lh)
-            q = (1e-6 * (np.sin(alpha) + np.sin(bln))) / (k * gn)
-            x[-n - 1] = q
+    def enable_input_triggers(self):
+        trig_address, trig_address_string = self._ccd.GetFirstSupportedInputTriggerAddress()
+        event_ptr, trig_event_string = self._ccd.GetFirstSupportedInputTriggerEvent(trig_address)
+        trig_signal_type, trig_signal_type_string = self._ccd.GetFirstSupportedInputTriggerSignalType(trig_address, event_ptr)
+        event_ptr = JYSYSTEMLIBLib.jyTriggerEvent.jyTrigEventOnStart
+        trig_signal_type = JYSYSTEMLIBLib.jyTriggerSignalType.jyTRigSigTypeTTLHigh
+        self._ccd.EnableInputTrigger(trig_address, event_ptr, trig_signal_type)
+
+    def disable_input_triggers(self):
+        self._ccd.DisableAllInputTriggers()
 
 
-
+# TODO getminmaxwavelengthrange
+# TODO convert pixels to wavelength
+# TODO intensity
+# TODO Spectrum

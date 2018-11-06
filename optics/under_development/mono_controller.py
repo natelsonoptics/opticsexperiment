@@ -21,20 +21,7 @@ import JYCONFIGBROWSERCOMPONENTLib
 class MonoController:
     def __init__(self):
         self._cb = JYCONFIGBROWSERCOMPONENTLib.JYConfigBrowerInterfaceClass()
-        self._unique_id = None
         self._out_parameter_string = str(1)
-        self._mono = None
-        self._grating = None
-        self._blazes = None
-        self._description = None
-        self._current_grating = None
-        self._current_blazes = None
-        self._current_description = None
-        self._wavelength = None
-        self._slit_width = None
-        self._current_turret = None
-
-    def initialize(self):
         self._cb.Load()
         self._unique_id = self._cb.GetFirstMono(self._out_parameter_string)
         self._mono = JYMONOLib.MonochromatorClass()
@@ -42,18 +29,14 @@ class MonoController:
         self._mono.Load()
         self._mono.OpenCommunications()
         self._mono.Initialize(False, False)
-
         time.sleep(1)
-
         self._current_turret = self._mono.GetCurrentTurret()
         _, grating_density, self._grating, self._blazes, self._description = self._mono.GetCurrentGratingWithDetails(1, 1, 1, 1)
         self._current_grating = self._grating[self._current_turret]
         self._current_blazes = self._blazes[self._current_turret]
         self._current_description = self._description[self._current_turret]
-
         self._mono.SetDefaultUnits(JYSYSTEMLIBLib.jyUnitsType.jyutWavelength, JYSYSTEMLIBLib.jyUnits.jyuNanometers)
         self._wavelength = self._mono.GetCurrentWavelength()
-
         self._mono.SetDefaultUnits(JYSYSTEMLIBLib.jyUnitsType.jyutSlitWidth, JYSYSTEMLIBLib.jyUnits.jyuMillimeters)
         self._slit_width = self._mono.GetCurrentSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance)
 
@@ -77,19 +60,9 @@ class MonoController:
         self._current_blazes = self._blazes[self._current_turret]
         self._current_description = self._description[self._current_turret]
         self._mono.MovetoTurret(turret_index)
+        return self._current_turret, self._current_grating, self._current_blazes, self._current_description
 
     def is_busy(self):
         return self._mono.IsBusy()
 
     #TODO GetMinMaxRange
-
-
-
-
-
-mono = MonoController()
-mono.initialize()
-mono.set_wavelength(785)
-while mono.is_busy():
-    time.sleep(0.5)
-print(mono.read_wavelength())
