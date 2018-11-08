@@ -18,6 +18,10 @@ from optics.thermovoltage_measurement.thermovoltage_polarization_dc import Therm
 from contextlib import ExitStack
 from optics.current_vs_voltage.current_vs_voltage import CurrentVoltageSweep
 from optics.electromigrate.daq_break import DAQBreak
+import datetime
+import csv
+import os
+from os import path
 
 class BaseGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
@@ -64,7 +68,8 @@ class BaseGUI:
                        'ivsweep': self._app.build_sweep_iv_gui,
                        'singlereference': self._app.build_single_reference_gui,
                        'dualharmonic': self._app.build_dual_harmonic_gui,
-                       'electromigrate': self._app.build_daqbreak_gui}
+                       'electromigrate': self._app.build_daqbreak_gui,
+                       'measureresistance': self._app.build_measure_resistance_gui}
         measurement[measurementtype]()
 
     def make_measurement_button(self, master, text, measurement_type):
@@ -103,6 +108,8 @@ class BaseGUI:
         self.make_measurement_button(row, 'position', 'position')
         self.make_measurement_button(row, 'intensity', 'intensity')
         self.make_measurement_button(row, 'polarization', 'polarization')
+        row = self.makerow('measure resistance')
+        self.make_measurement_button(row, 'lock in', 'measureresistance')
         row = self.makerow('single reference lock in')
         b1 = tk.Button(row, text='auto phase',
                        command=lambda lockin=self._sr7270_single_reference: self.autophase(lockin))
@@ -612,6 +619,39 @@ class LockinMeasurementGUI:
         self.make_option_menu('sensitivity 2 (mV)', self._sen2, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
                                                                        0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_dual_harmonic_lockin_parameters)
+
+    def build_measure_resistance_gui(self):
+        caption = 'Measure lock in resistance'
+        self._fields = {'file path': '', 'file name': str(datetime.date.today()) + ' resistance measurements',
+                        'device': '', 'notes': ''}
+        self.beginform(caption, True)
+        self.make_option_menu('Current amplifier gain', self._current_gain, self._current_amplifier_gain_options)
+        self.maketextbox('Resistance (ohms)', str(''))
+        self.maketextbox2('Corrected resistance (ohms)', str(''))
+        self.endform(self.resistance)
+
+    def resistance(self, event=None):
+        self.fetch(event)
+        gain = float(self._current_amplifier_gain_options[self._current_gain.get()])
+        osc = self._sr7270_dual_harmonic.read_oscillator_amplitude()
+        x, y = self._sr7270_dual_harmonic.read_xy1()
+        resistance = osc / x * gain
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, resistance)
+        self._textbox2.delete(1.0, tk.END)
+        self._textbox2.insert(tk.END, resistance - 51)
+        self._textbox.pack()
+        if path.exists(path.join(self._inputs['file path'], self._inputs['file name'] + '.csv')):
+            file_type = 'a'
+        else:
+            file_type = 'w'
+        with open(path.join(self._inputs['file path'], self._inputs['file name'] + '.csv'), file_type, newline='') as q:
+            writer = csv.writer(q)
+            if file_type == 'w':
+                writer.writerow(['device', 'notes', 'total resistance (ohms)', 'corrected resistance (ohms)',
+                                 'osc. amplitude (V)', 'gain', 'raw x', 'raw y'])
+            writer.writerow([self._inputs['device'], self._inputs['notes'], resistance,
+                             resistance - 51, osc, gain, x, y])
 
     def build_coming_soon(self):
         caption = "Coming soon"

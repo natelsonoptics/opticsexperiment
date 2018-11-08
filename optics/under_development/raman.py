@@ -11,11 +11,12 @@ import time
 
 
 class RamanGUI:
-    def __init__(self, master, mono=None, ccd=None, raman_gain=None):
+    def __init__(self, master, mono=None, ccd=None, raman_gain=None, grating=None):
         self._mono = mono
         self._ccd = ccd
         self._master = master
         self._raman_gain = raman_gain
+        self._grating = grating
         self._browse_button = tk.Button(self._master, text="Browse", command=self.onclick_browse)
         self._fields = {}
         self._filepath = tk.StringVar()
@@ -96,15 +97,17 @@ class RamanBaseGUI:
         self._mono = MonoController()
         self._mono.set_wavelength(785)
         self._ccd = CCDController2()
-        self._gain = 1
+        self._gain = self._ccd.read_gain()
         self._gain_options = tk.StringVar()
-        self._gain_options.set(1)
+        gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
+        self._gain_options.set(gain_options[self._gain])
         self._newWindow = None
         self._app = None
+        self._grating = None
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
-        self._app = RamanGUI(self._newWindow, self._mono, self._ccd, self._gain)
+        self._app = RamanGUI(self._newWindow, self._mono, self._ccd, self._gain, self._grating)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui}
         measurement[measurementtype]()
 
@@ -125,7 +128,7 @@ class RamanBaseGUI:
         self.make_measurement_button(row, 'Raman', 'singlespectrum')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
-                       command=self.change_gain)
+                       command=self.change_gain_gui)
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
@@ -136,10 +139,10 @@ class RamanBaseGUI:
         b1 = tk.Button(master, text=caption, command=run_command)
         b1.pack(side=tk.LEFT, padx=5, pady=5)
 
-    def change_gain(self):
+    def change_gain_gui(self):
         self._newWindow = tk.Toplevel(self._master)
-        self._newWindow.title('hello')
-        label = tk.Label(self._newWindow, text='hello')
+        self._newWindow.title('Change Raman gain')
+        label = tk.Label(self._newWindow, text='Change Raman gain')
         label.pack()
         gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
         self._gain_options.set(gain_options[self._gain])
@@ -149,14 +152,15 @@ class RamanBaseGUI:
         lab.pack(side=tk.LEFT)
         t = tk.OptionMenu(row, self._gain_options, *['high light', 'best dynamic range', 'high sensitivity'])
         t.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-        self._newWindow.bind('<Return>', self.changeit)
-        self.makebutton('Run', self.changeit, master=self._newWindow)
+        self._newWindow.bind('<Return>', self.change_gain)
+        self.makebutton('Run', self.change_gain, master=self._newWindow)
         self.makebutton('Quit', self._newWindow.destroy, master=self._newWindow)
 
-    def changeit(self):
+    def change_gain(self):
         gain_options = {'high light': 0, 'best dynamic range': 1, 'high sensitivity': 2}
-        self._gain = gain_options[self._gain_options.get()]
-        print(self._gain)
+        self._gain = float(gain_options[self._gain_options.get()])
+        self._ccd.set_gain(self._gain)
+        print('Raman gain set to {}'.format(self._gain_options.get()))
 
 
 def main():

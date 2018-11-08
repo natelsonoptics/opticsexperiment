@@ -3,6 +3,7 @@ import sys
 import datetime
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 
 sys.path.append("C:\\Users\\NatLabUser\\Desktop\\python") #  adds DLL path to PATH
@@ -17,40 +18,6 @@ clr.AddReference("Interop.JYSYSTEMLIBlib")
 
 import JYCCDLib
 import JYSYSTEMLIBLib
-
-
-class CCDController2:
-    def __init__(self):
-        self._ccd = CCDController()
-        self._ccd.set_unique_id()
-        self._ccd.load()
-        self._ccd.open_communications()
-        self._ccd.initialize()
-        self._ccd.set_default_units()
-        time.sleep(1)
-        self._xpixels, _ = self._ccd.read_chip_size()
-
-    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True):
-        self._ccd.set_integration_time(integration_time_seconds)
-        self._ccd.set_adc()
-        self._ccd.set_gain(gain)
-        self._ccd.set_acquisition_format()
-        self._ccd.set_area(self._xpixels)
-        data_size = self._ccd.read_data_size()
-        raw_data = np.zeros([scans, data_size])
-        self._ccd.set_acquisition_mode(True)
-        self._ccd.set_operating_mode()
-        self._ccd.set_acquisition_count(scans)
-        for j in range(scans):
-            while not self._ccd.is_ready():
-                time.sleep(0.01)
-            self._ccd.start_acquisition(shutter_open)
-            while self._ccd.is_busy():
-                time.sleep(0.01)
-            raw_data[j] = self._ccd.read_result()
-        self._ccd.stop_acquisition()
-        averaged_data = np.mean(np.array([i for i in raw_data]), axis=0)
-        return raw_data, averaged_data
 
 class CCDController:
     def __init__(self, unique_id='CCD1'):
@@ -90,6 +57,9 @@ class CCDController:
 
     def set_gain(self, gain):
         self._ccd.Gain = gain
+
+    def read_gain(self):
+        return self._ccd.Gain
 
     def set_acquisition_format(self):
         self._ccd.DefineAcquisitionFormat(JYSYSTEMLIBLib.jyCCDDataType.JYMCD_ACQ_FORMAT_SCAN, 1)
@@ -159,7 +129,8 @@ class CCDController:
     def enable_input_triggers(self):
         trig_address, trig_address_string = self._ccd.GetFirstSupportedInputTriggerAddress()
         event_ptr, trig_event_string = self._ccd.GetFirstSupportedInputTriggerEvent(trig_address)
-        trig_signal_type, trig_signal_type_string = self._ccd.GetFirstSupportedInputTriggerSignalType(trig_address, event_ptr)
+        trig_signal_type, trig_signal_type_string = self._ccd.GetFirstSupportedInputTriggerSignalType(trig_address,
+                                                                                                      event_ptr)
         event_ptr = JYSYSTEMLIBLib.jyTriggerEvent.jyTrigEventOnStart
         trig_signal_type = JYSYSTEMLIBLib.jyTriggerSignalType.jyTRigSigTypeTTLHigh
         self._ccd.EnableInputTrigger(trig_address, event_ptr, trig_signal_type)
@@ -167,11 +138,44 @@ class CCDController:
     def disable_input_triggers(self):
         self._ccd.DisableAllInputTriggers()
 
-ccd = CCDController2()
-for i in range(5):
-    time.sleep(1)
-    _, data = ccd.take_spectrum(scans=5)
-    print(data)
+
+class CCDController2(CCDController):
+    def __init__(self):
+        super().__init__()
+        self.set_unique_id()
+        self.load()
+        self.open_communications()
+        self.initialize()
+        self.set_default_units()
+        time.sleep(1)
+        self._xpixels, _ = self.read_chip_size()
+
+    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True):
+        self.set_integration_time(integration_time_seconds)
+        self.set_adc()
+        self.set_gain(gain)
+        self.set_acquisition_format()
+        self.set_area(self._xpixels)
+        data_size = self._ccd.read_data_size()
+        raw_data = np.zeros([scans, data_size])
+        self.set_acquisition_mode(True)
+        self.set_operating_mode()
+        self.set_acquisition_count(scans)
+        for j in range(scans):
+            while not self._ccd.is_ready():
+                time.sleep(0.1)
+            self.start_acquisition(shutter_open)
+            while self._ccd.is_busy():
+                time.sleep(0.1)
+            raw_data[j] = self.read_result()
+        averaged_data = np.mean(np.array([i for i in raw_data]), axis=0)
+        return raw_data, averaged_data
+
+    def stop(self):
+        self.stop_acquisition()
+
+
+
 
 
 # TODO getminmaxwavelengthrange
