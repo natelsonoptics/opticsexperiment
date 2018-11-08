@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def do_nothing():
     pass
 

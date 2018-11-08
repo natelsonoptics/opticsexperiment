@@ -35,16 +35,24 @@ def convert_x2_to_d2idv2(x2, gain, osc):
 
 
 def normalize_dgdv_from_didv(vdc, didv, d2idv2):
-        return np.abs(vdc * d2idv2 / didv)
+    return np.abs(vdc * d2idv2 / didv)
 
 
 def normalize_dgdv_from_x1(vdc, x1, x2, gain, osc):
     return normalize_dgdv_from_didv(vdc, convert_x1_to_didv(x1, gain, osc), convert_x2_to_d2idv2(x2, gain, osc))
 
 
+def normalize_iets_from_x1(x1, x2, gain, osc):
+    return normalize_iets_from_didv(convert_x1_to_didv(x1, gain, osc), convert_x2_to_d2idv2(x2, gain, osc))
+
+
+def normalize_iets_from_didv(didv, d2idv2):
+    return np.abs(d2idv2 / didv)
+
+
 def convert_adc_to_idc(adc, gain, lpf_factor=low_pass_filter_factor):
     return adc / (gain * lpf_factor)
 
 
-def differentiate_d2idv2(didv1, didv2, osc):
-    return np.diff([didv1, didv2])[0] / (1/4 * osc ** 2)
+def differentiate_d2idv2(didv1, didv2):
+    return np.diff([didv1, didv2])[0]

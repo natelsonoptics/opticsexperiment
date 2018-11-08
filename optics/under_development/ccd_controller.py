@@ -3,8 +3,7 @@ import sys
 import datetime
 import numpy as np
 import time
-import contextlib
-import matplotlib.pyplot as plt
+
 
 sys.path.append("C:\\Users\\NatLabUser\\Desktop\\python") #  adds DLL path to PATH
 
@@ -136,9 +135,13 @@ class CCDController:
 
     def read_result(self):
         r = self._ccd.GetResult()
-        o = JYSYSTEMLIBLib.IJYResultsObject.GetFirstDataObject(r)
-        d = JYSYSTEMLIBLib.IJYDataObject.GetRawData(o)
-        return np.array([i for i in d])
+        if r:
+            o = JYSYSTEMLIBLib.IJYResultsObject.GetFirstDataObject(r)
+            if o:
+                d = JYSYSTEMLIBLib.IJYDataObject.GetRawData(o)
+                return np.array([i for i in d])
+        else:
+            pass
 
     def enable_output_triggers(self):
         """Turns on TTL trigger outputs on CCD. This is a bunch of JY COM code access"""
@@ -163,6 +166,12 @@ class CCDController:
 
     def disable_input_triggers(self):
         self._ccd.DisableAllInputTriggers()
+
+ccd = CCDController2()
+for i in range(5):
+    time.sleep(1)
+    _, data = ccd.take_spectrum(scans=5)
+    print(data)
 
 
 # TODO getminmaxwavelengthrange
