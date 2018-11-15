@@ -1,5 +1,4 @@
 import matplotlib
-
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 import tkinter as tk
 import tkinter.filedialog
@@ -23,25 +22,19 @@ import datetime
 import csv
 import os
 from os import path
-from optics.hardware_control import hardware_addresses_and_constants, keithley_k2400
-from optics.gui.base_gui import BaseGUI
-from optics.electromigrate.k2400_break import KeithleyBreak
 
 
-class BaseLockinGUI(BaseGUI):
+class BaseLockinGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None,
-                 polarizer=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, keithley=None):
+                 sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None, polarizer=None,
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None):
         self._master = master
-        super().__init__(self._master)
         self._master.title('Optics setup measurements')
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
-        self._keithley = keithley
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
         self._polarizer = polarizer
@@ -58,9 +51,8 @@ class BaseLockinGUI(BaseGUI):
                                          sr7270_dual_harmonic=self._sr7270_dual_harmonic,
                                          sr7270_single_reference=self._sr7270_single_reference,
                                          powermeter=self._powermeter, attenuatorwheel=self._attenuatorwheel,
-                                         polarizer=self._polarizer, daq_input=self._daq_input,
-                                         daq_switch_ai=self._daq_switch_ai,
-                                         daq_switch_ao=self._daq_switch_ao, keithley=self._keithley)
+                                         polarizer=self._polarizer, daq_input=self._daq_input, daq_switch_ai=self._daq_switch_ai,
+                                         daq_switch_ao=self._daq_switch_ao)
         measurement = {'heatmap': self._app.build_heating_scan_gui,
                        'ptemap': self._app.build_thermovoltage_scan_gui,
                        'ptemapdc': self._app.build_thermovoltage_scan_dc_gui,
@@ -78,9 +70,20 @@ class BaseLockinGUI(BaseGUI):
                        'singlereference': self._app.build_single_reference_gui,
                        'dualharmonic': self._app.build_dual_harmonic_gui,
                        'electromigrate': self._app.build_daqbreak_gui,
-                       'k2400electromigrate': self._app.build_k2400_break_gui,
                        'measureresistance': self._app.build_measure_resistance_gui}
         measurement[measurementtype]()
+
+    def make_measurement_button(self, master, text, measurement_type):
+        b1 = tk.Button(master, text=text,
+                       command=lambda measurementtype=measurement_type: self.new_window(measurementtype))
+        b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+
+    def makerow(self, title):
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=20, text=title, anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        return row
 
     def build(self):
         row = self.makerow('map scans')
@@ -88,31 +91,20 @@ class BaseLockinGUI(BaseGUI):
         self.make_measurement_button(row, 'heating', 'heatmap')
         row = self.makerow('DC map scans')
         self.make_measurement_button(row, 'thermovoltage map', 'ptemapdc')
-        if self._polarizer:
-            self.make_measurement_button(row, 'pte polarization', 'ptepolarizationdc')
+        self.make_measurement_button(row, 'pte polarization', 'ptepolarizationdc')
         row = self.makerow('I-V curves')
         self.make_measurement_button(row, 'current', 'ivsweep')
         row = self.makerow('polarization scans')
-        if self._polarizer:
-            self.make_measurement_button(row, 'thermovoltage', 'ptepolarization')
-            self.make_measurement_button(row, 'heating', 'heatpolarization')
-        else:
-            row = self.makerow('Polarizer not connected', side=None, width=20)
+        self.make_measurement_button(row, 'thermovoltage', 'ptepolarization')
+        self.make_measurement_button(row, 'heating', 'heatpolarization')
         row = self.makerow('intensity scans')
-        if self._powermeter and self._attenuatorwheel:
-            self.make_measurement_button(row, 'thermovoltage', 'pteintensity')
-            self.make_measurement_button(row, 'heating', 'heatintensity')
-        if not self._powermeter:
-            self.makerow('Power detector not connected', side=None, width=25)
-        if not self._attenuatorwheel:
-            self.makerow('Attenuator wheel not connected', side=None, width=25)
+        self.make_measurement_button(row, 'thermovoltage', 'pteintensity')
+        self.make_measurement_button(row, 'heating', 'heatintensity')
         row = self.makerow('time scans')
         self.make_measurement_button(row, 'thermovoltage', 'ptetime')
         self.make_measurement_button(row, 'heating', 'heattime')
         row = self.makerow('electromigrate')
         self.make_measurement_button(row, 'DAQ break', 'electromigrate')
-        if self._keithley:
-            self.make_measurement_button(row, 'Keithley break', 'k2400electromigrate')
         row = self.makerow('change parameters')
         self.make_measurement_button(row, 'position', 'position')
         self.make_measurement_button(row, 'intensity', 'intensity')
@@ -135,14 +127,14 @@ class BaseLockinGUI(BaseGUI):
     def autophase(self, lockin, event=None):
         lockin.auto_phase()
 
-
-class LockinMeasurementGUI(BaseGUI):
+class LockinMeasurementGUI:
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
-                 sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None,
-                 polarizer=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, keithley=None):
+                 sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None, polarizer=None,
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None):
         self._master = master
-        super().__init__(self._master)
+        self._fields = {}
+        self._entries = []
+        self._inputs = {}
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._npc3sg_input = npc3sg_input
@@ -150,16 +142,29 @@ class LockinMeasurementGUI(BaseGUI):
         self._sr7270_single_reference = sr7270_single_reference
         self._daq_switch_ai = daq_switch_ai
         self._daq_switch_ao = daq_switch_ao
-        self._keithley = keithley
         self._powermeter = powermeter
         self._attenuatorwheel = attenuatorwheel
         self._polarizer = polarizer
+        self._textbox = None
+        self._textbox2 = None
+        self._filepath = tk.StringVar()
+        self._browse_button = tk.Button(self._master, text="Browse", command=self.onclick_browse)
         self._daq_input = daq_input
         self._direction = tk.StringVar()
         self._direction.set('Forward')
         self._axis = tk.StringVar()
         self._axis.set('y')
         self._current_gain = tk.StringVar()
+        self._current_amplifier_gain_options = {'1 mA/V': 1e3, '500 uA/V': 2e3,'200 uA/V': 5e3,
+                                                '100 uA/V': 1e4, '50 uA/V': 2e4,'20 uA/V': 5e4,
+                                                '10 uA/V': 1e5, '5 uA/V': 2e5,'2 uA/V': 5e5,
+                                                '1 uA/V': 1e6, '500 nA/V': 2e6,'200 nA/V': 5e6,
+                                                '100 nA/V': 1e7, '50 nA/V': 2e7,'20 nA/V': 5e7,
+                                                '10 nA/V': 1e8, '5 nA/V': 2e8,'2 nA/V': 5e8,
+                                                '1 nA/V': 1e9, '500 pA/V': 2e9,'200 pA/V': 5e9,
+                                                '100 pA/V': 1e10, '50 pA/V': 2e10,'20 pA/V': 5e10,
+                                                '10 pA/V': 1e11, '5 pA/V': 2e11,'2 pA/V': 5e11,
+                                                '1 pA/V': 1e12}
         self._current_gain.set('1 mA/V')
         self._voltage_gain = tk.StringVar()
         self._voltage_gain.set(1000)
@@ -171,6 +176,69 @@ class LockinMeasurementGUI(BaseGUI):
         self._sen2 = tk.StringVar()
         self._abort = tk.StringVar()
         self._increase = tk.StringVar()
+
+    def beginform(self, caption, browse_button=True):
+        self._master.title(caption)
+        label = tk.Label(self._master, text=caption)
+        label.pack()
+        if browse_button:
+            self._browse_button.pack()
+        for key in self._fields:
+            row = tk.Frame(self._master)
+            lab = tk.Label(row, width=15, text=key, anchor='w')
+            if key == 'file path':
+                ent = tk.Entry(row, textvariable=self._filepath)
+            else:
+                ent = tk.Entry(row)
+            row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+            lab.pack(side=tk.LEFT)
+            ent.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+            ent.insert(0, str(self._fields[key]))
+            self._entries.append((key, ent))
+        return self._entries
+
+    def endform(self, run_command):
+        self._master.bind('<Return>', run_command)
+        self.makebutton('Run', run_command)
+        self.makebutton('Quit', self._master.destroy)
+
+    def makebutton(self, caption, run_command, master=None):
+        if not master:
+            master = self._master
+        b1 = tk.Button(master, text=caption, command=run_command)
+        b1.pack(side=tk.LEFT, padx=5, pady=5)
+
+    def maketextbox(self, title, displaytext):
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=15, text=title, anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self._textbox = tk.Text(row, height=1, width=10)
+        self._textbox.insert(tk.END, displaytext)
+        self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+
+    def make_option_menu(self, label, parameter, option_list):
+        row = tk.Frame(self._master)
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab = tk.Label(row, width=15, text=label, anchor='w')
+        lab.pack(side=tk.LEFT)
+        t = tk.OptionMenu(row, parameter, *option_list)
+        t.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+
+    def maketextbox2(self, title, displaytext):  # TODO fix this
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, width=15, text=title, anchor='w')
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab.pack(side=tk.LEFT)
+        self._textbox2 = tk.Text(row, height=1, width=10)
+        self._textbox2.insert(tk.END, displaytext)
+        self._textbox2.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+
+    def fetch(self, event=None):  # stop trying to make fetch happen. It's not going to happen. -Regina, Mean Girls
+        for entry in self._entries:
+            field = entry[0]
+            text = entry[1].get()
+            self._inputs[field] = text
 
     def electromigrate(self, event=None):
         self.fetch(event)
@@ -201,8 +269,7 @@ class LockinMeasurementGUI(BaseGUI):
             direction = False
         else:
             direction = True
-        run = ThermovoltageScan(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                self._inputs['device'],
+        run = ThermovoltageScan(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                 int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 int(self._inputs['x pixel density']), int(self._inputs['y pixel density']),
                                 int(self._inputs['x range']), int(self._inputs['y range']),
@@ -217,8 +284,7 @@ class LockinMeasurementGUI(BaseGUI):
             direction = False
         else:
             direction = True
-        run = ThermovoltageScanDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                  self._inputs['device'],
+        run = ThermovoltageScanDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                   int(self._inputs['scan']), float(self._voltage_gain.get()),
                                   int(self._inputs['x pixel density']),
                                   int(self._inputs['y pixel density']), int(self._inputs['x range']),
@@ -233,8 +299,7 @@ class LockinMeasurementGUI(BaseGUI):
             direction = False
         else:
             direction = True
-        run = HeatingScan(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                          self._inputs['device'],
+        run = HeatingScan(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                           int(self._inputs['scan']),
                           float(self._current_amplifier_gain_options[self._current_gain.get()]),
                           float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
@@ -247,8 +312,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def thermovoltage_time(self, event=None):
         self.fetch(event)
-        run = ThermovoltageTime(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                self._inputs['device'],
+        run = ThermovoltageTime(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                 int(self._inputs['scan']), float(self._voltage_gain.get()),
                                 float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
                                 self._npc3sg_input, self._sr7270_single_reference,
@@ -257,8 +321,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def heating_time(self, event=None):
         self.fetch(event)
-        run = HeatingTime(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                          self._inputs['device'],
+        run = HeatingTime(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                           int(self._inputs['scan']),
                           float(self._current_amplifier_gain_options[self._current_gain.get()]),
                           float(self._inputs['rate (per second)']), float(self._inputs['max time (s)']),
@@ -295,8 +358,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def thermovoltage_intensity(self, event=None):
         self.fetch(event)
-        run = ThermovoltageIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                     self._inputs['device'],
+        run = ThermovoltageIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                      int(self._inputs['scan']), float(self._voltage_gain.get()),
                                      float(self._inputs['max time (s)']), int(self._inputs['steps']),
                                      self._npc3sg_input, self._sr7270_single_reference,
@@ -305,8 +367,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def heating_intensity(self, event=None):
         self.fetch(event)
-        run = HeatingIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                               self._inputs['device'],
+        run = HeatingIntensity(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                int(self._inputs['scan']),
                                float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
@@ -318,7 +379,7 @@ class LockinMeasurementGUI(BaseGUI):
     def iv_sweep(self, event=None):
         self.fetch(event)
         run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                  self._inputs['device'], int(self._inputs['index']),
+                                  self._inputs['device'],int(self._inputs['index']),
                                   float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['oscillator amplitude (mV)']),
                                   float(self._inputs['start voltage (mV)']),
@@ -346,8 +407,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def heating_polarization(self, event=None):
         self.fetch(event)
-        run = HeatingPolarization(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                  self._inputs['device'],
+        run = HeatingPolarization(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'], self._inputs['device'],
                                   int(self._inputs['scan']),
                                   float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
@@ -364,10 +424,6 @@ class LockinMeasurementGUI(BaseGUI):
         self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
         self._textbox.pack()
 
-    def center_beam(self):
-        self._npc3sg_x.move(80)
-        self._npc3sg_y.move(80)
-
     def change_single_reference_lockin_parameters(self, event=None):
         self.fetch(event)
         if self._tc.get() != '':
@@ -377,6 +433,7 @@ class LockinMeasurementGUI(BaseGUI):
         print('lock in parameters: \ntime constant: {} ms\nsensitivity: {} '
               'mV'.format(self._sr7270_single_reference.read_tc() * 1000,
                           self._sr7270_single_reference.read_sensitivity() * 1000))
+
 
     def change_dual_harmonic_lockin_parameters(self, event=None):
         self.fetch(event)
@@ -404,12 +461,15 @@ class LockinMeasurementGUI(BaseGUI):
                              self._sr7270_dual_harmonic.read_oscillator_frequency(),
                              self._sr7270_dual_harmonic.read_oscillator_amplitude() * 1000))
 
+    def onclick_browse(self):
+        self._filepath.set(tkinter.filedialog.askdirectory())
+
     def build_thermovoltage_scan_gui(self):
         caption = "Thermovoltage map scan"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'x pixel density': 20,
                         'y pixel density': 20, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
         self.beginform(caption)
-        self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.make_option_menu('direction', self._direction, ['Forward', 'Reverse'])
         self.make_option_menu('cutthrough axis', self._axis, ['x', 'y'])
         self.endform(self.thermovoltage_scan)
@@ -419,7 +479,7 @@ class LockinMeasurementGUI(BaseGUI):
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'x pixel density': 20,
                         'y pixel density': 20, 'x range': 160, 'y range': 160, 'x center': 80, 'y center': 80}
         self.beginform(caption)
-        self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.make_option_menu('direction', self._direction, ['Forward', 'Reverse'])
         self.endform(self.thermovoltage_scan_dc)
 
@@ -438,7 +498,7 @@ class LockinMeasurementGUI(BaseGUI):
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'rate (per second)': 3,
                         'max time (s)': 300}
         self.beginform(caption)
-        self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_time)
 
     def build_change_intensity_gui(self):
@@ -451,7 +511,7 @@ class LockinMeasurementGUI(BaseGUI):
         self.makebutton('Read power', self.power)
         self.makebutton('Quit', self._master.destroy)
 
-    def build_change_polarization_gui(self):  # TODO fix this
+    def build_change_polarization_gui(self): # TODO fix this
         caption = "Change laser polarization"
         self._fields = {'desired polarization': 90}
         self.beginform(caption, False)
@@ -466,37 +526,36 @@ class LockinMeasurementGUI(BaseGUI):
         caption = "Thermovoltage vs. laser intensity"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'steps': 2, 'max time (s)': 300}
         self.beginform(caption)
-        self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_intensity)
 
     def build_thermovoltage_polarization_gui(self):
         caption = "Thermovoltage vs. polarization"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': ""}
         self.beginform(caption)
-        self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_polarization)
 
     def build_thermovoltage_polarization_dc_gui(self):
         caption = "Thermovoltage DC vs. polarization"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': ""}
         self.beginform(caption)
-        self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
+        self.make_option_menu('gain', self._voltage_gain, [1, 10, 100, 1000, 10000])
         self.endform(self.thermovoltage_polarization_dc)
 
     def build_heating_polarization_gui(self):
-        caption = "Heating vs. polarization"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'bias (mV)': 5,
-                        'oscillator amplitude (mV)': 7}
-        self.beginform(caption)
-        self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
-        self.endform(self.heating_polarization)
+       caption = "Heating vs. polarization"
+       self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'bias (mV)': 5,
+                       'oscillator amplitude (mV)': 7}
+       self.beginform(caption)
+       self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
+       self.endform(self.heating_polarization)
 
     def build_change_position_gui(self):
         caption = "Change laser position"
         self._fields = {'x': 80, 'y': 80}
         self.beginform(caption, False)
         self.maketextbox('Current Position', [np.round(x, 1) for x in self._npc3sg_input.read()])
-        self.makebutton('Go to center', self.center_beam)
         self.makebutton('Change Position', self.changeposition)
         self.makebutton('Quit', self._master.destroy)
 
@@ -528,8 +587,10 @@ class LockinMeasurementGUI(BaseGUI):
     def build_single_reference_gui(self):
         caption = "Change single reference lock in parameters"
         self.beginform(caption, False)
-        self.make_option_menu('time constant (s)', self._tc, self._time_constant_options)
-        self.make_option_menu('sensitivity (mV)', self._sen, self._lockin_sensitivity_options)
+        self.make_option_menu('time constant (s)', self._tc,
+                              [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
+        self.make_option_menu('sensitivity (mV)', self._sen, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_single_reference_lockin_parameters)
 
     def build_daqbreak_gui(self):
@@ -550,10 +611,14 @@ class LockinMeasurementGUI(BaseGUI):
         self._fields = {'bias (mV)': '', 'oscillator amplitude (mV)': '',
                         'oscillator frequency (Hz)': ''}
         self.beginform(caption, False)
-        self.make_option_menu('time constant 1 (s)', self._tc1, self._time_constant_options)
-        self.make_option_menu('time constant 2 (s)', self._tc2, self._time_constant_options)
-        self.make_option_menu('sensitivity 1 (mV)', self._sen1, self._lockin_sensitivity_options)
-        self.make_option_menu('sensitivity 2 (mV)', self._sen2, self._lockin_sensitivity_options)
+        self.make_option_menu('time constant 1 (s)', self._tc1,
+                              [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
+        self.make_option_menu('time constant 2 (s)', self._tc2,
+                              [1e-3, 2e-3, 5e-3, 10e-03, 20e-03, 50e-03, 100e-03, 200e-03, 500e-03, 1, 2, 5, 10])
+        self.make_option_menu('sensitivity 1 (mV)', self._sen1, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
+        self.make_option_menu('sensitivity 2 (mV)', self._sen2, [1e-2, 2e-2, 5e-2, 0.1, 0.2,
+                                                                       0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500])
         self.endform(self.change_dual_harmonic_lockin_parameters)
 
     def build_measure_resistance_gui(self):
@@ -589,41 +654,6 @@ class LockinMeasurementGUI(BaseGUI):
             writer.writerow([self._inputs['device'], self._inputs['notes'], resistance,
                              resistance - 51, osc, gain, x, y])
 
-    def build_k2400_break_gui(self):
-        caption = 'Keithley K2400 electromigration'
-        self._fields = {'file path': '', 'device': '', 'desired resistance': 100,
-                        'stop voltage (resistance measurement)': 0.05, 'steps': 10, 'start voltage': 0.1,
-                        'break voltage': 1.5, 'delta break voltage': 0.005, 'delta voltage': 0.002,
-                        'percent current drop': 0.4, 'passes': 1}
-        self.beginform(caption, True)
-        self.make_option_menu('abort', self._abort, ['True', 'False'])
-        self.make_option_menu('increase break voltage', self._increase, ['True', 'False'])
-        self._master.bind('<Return>', self.k2400electromigrate)
-        self.endform(self.k2400electromigrate)
-
-    def k2400electromigrate(self, event=None):
-        self.fetch(event)
-        if self._abort.get() == 'True':
-            abort = True
-        else:
-            abort = False
-        if self._increase.get() == 'True':
-            increase = True
-        else:
-            increase = False
-        run = KeithleyBreak(tk.Toplevel(self._master), self._keithley, self._inputs['file path'],
-                            self._inputs['device'],
-                            steps=int(self._inputs['steps']),
-                            stop_voltage=float(self._inputs['stop voltage (resistance measurement)']),
-                            desired_resistance=float(self._inputs['desired resistance']),
-                            break_voltage=float(self._inputs['break voltage']), passes=float(self._inputs['passes']),
-                            increase_break_voltage=increase,
-                            delta_break_voltage=float(self._inputs['delta break voltage']),
-                            start_voltage=float(self._inputs['start voltage']),
-                            delta_voltage=float(self._inputs['delta voltage']),
-                            r_percent=float(self._inputs['percent current drop']), abort=abort)
-        run.main()
-
     def build_coming_soon(self):
         caption = "Coming soon"
         self._master.title(caption)
@@ -635,7 +665,6 @@ class LockinMeasurementGUI(BaseGUI):
 def main():
     sr7270_dual_harmonic = None
     sr7270_single_reference = None
-    print('connecting hardware')
     try:
         with ExitStack() as cm:
             npc3sg_x = cm.enter_context(daq.create_ao_task(hw.ao_x))
@@ -652,45 +681,28 @@ def main():
                 print('Lock in amplifiers not configured correctly. Make sure that two are connected with one in'
                       ' dual harmonic mode and the other in single reference mode')
                 raise ValueError
-            try:
-                powermeter = cm.enter_context(pm100d.connect(hw.pm100d_address))
-            except Exception as err:
-                if 'NFOUND' in str(err):
-                    print('Warning: PM100D power detector not connected')
-                else:
-                    print('Warning: {}'.format(err))
-                powermeter = None
+            powermeter = cm.enter_context(pm100d.connect(hw.pm100d_address))
             try:
                 polarizer = cm.enter_context(polarizercontroller.connect_kdc101(hw.kdc101_serial_number))
             except Exception:
                 polarizer = None
-                print('Warning: Polarizer controller not connected')
             attenuatorwheel = cm.enter_context(attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs))
             daq_input = cm.enter_context(daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000))
             daq_switch_ai = cm.enter_context(daq.create_ai_task(hw.ai_switch, sleep=0))
             daq_switch_ao = cm.enter_context(daq.create_ao_task(hw.ao_switch))
-            keithley = cm.enter_context(keithley_k2400.connect(hardware_addresses_and_constants.keithley_address))
-            try:
-                keithley.reset()
-            except Exception:
-                keithley = None
-                print('Warning: Keithley K2400 not connected')
-            print('hardware connection complete')
             root = tk.Tk()
             app = BaseLockinGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
-                                sr7270_dual_harmonic=sr7270_dual_harmonic,
-                                sr7270_single_reference=sr7270_single_reference,
+                                sr7270_dual_harmonic=sr7270_dual_harmonic, sr7270_single_reference=sr7270_single_reference,
                                 powermeter=powermeter, attenuatorwheel=attenuatorwheel, polarizer=polarizer,
-                                daq_input=daq_input, daq_switch_ai=daq_switch_ai, daq_switch_ao=daq_switch_ao,
-                                keithley=keithley)
+                                daq_input=daq_input, daq_switch_ai=daq_switch_ai, daq_switch_ao=daq_switch_ao)
             app.build()
             root.mainloop()
     except Exception as err:
-        if 'VI_ERROR_NLISTENERS' in str(err):  # this error occurs if Keithley isn't connected and you exit the stack
-            pass
+        if 'NFOUND' in str(err):
+            print('PM100D power detector communication error')
         else:
             print(err)
-            input('Press enter to exit')
+        input('Press enter to exit')
 
 
 if __name__ == '__main__':

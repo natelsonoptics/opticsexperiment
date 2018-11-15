@@ -35,7 +35,8 @@ def convert_x2_to_d2idv2(x2, gain, osc):
 
 
 def normalize_dgdv_from_didv(vdc, didv, d2idv2):
-    return np.abs(vdc * d2idv2 / didv)
+   # return np.abs(vdc * d2idv2 / didv)
+   return d2idv2 / didv
 
 
 def normalize_dgdv_from_x1(vdc, x1, x2, gain, osc):
@@ -47,7 +48,8 @@ def normalize_iets_from_x1(x1, x2, gain, osc):
 
 
 def normalize_iets_from_didv(didv, d2idv2):
-    return np.abs(d2idv2 / didv)
+    #return np.abs(d2idv2 / didv)
+    return d2idv2 / didv
 
 
 def convert_adc_to_idc(adc, gain, lpf_factor=low_pass_filter_factor):

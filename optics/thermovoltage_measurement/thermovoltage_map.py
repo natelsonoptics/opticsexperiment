@@ -32,8 +32,11 @@ class ThermovoltageScan:
         self._xc = xc  # x center position
         self._yc = yc  # y center position
         self._polarizer = polarizer
-        self._measuredpolarization = self._polarizer.read_polarization()
-        self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
+        if self._polarizer:
+            self._measuredpolarization = self._polarizer.read_polarization()
+            self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
+        else:
+            self._polarization = 'x'
         self._fig = Figure()
         self._ax1 = self._fig.add_subplot(221)
         self._ax2 = self._fig.add_subplot(223)
@@ -81,11 +84,18 @@ class ThermovoltageScan:
         self._writer.writerow(['y range:', self._yr])
         self._writer.writerow(['x center:', self._xc])
         self._writer.writerow(['y center:', self._yc])
-        self._writer.writerow(['polarization:', self._polarization])
-        self._writer.writerow(['actual polarization:', self._measuredpolarization])
-        self._writer.writerow(['power (W):', self._powermeter.read_power()])
-        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
-        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
+        if self._polarizer:
+            self._writer.writerow(['polarization:', self._polarization])
+            self._writer.writerow(['raw polarization:', self._measuredpolarization])
+        else:
+            self._writer.writerow(['polarization:', 'not measured'])
+            self._writer.writerow(['raw polarization:', 'not measured'])
+        if self._powermeter:
+            self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        else:
+            self._writer.writerow(['power (W):', 'not measured'])
+        self._writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase:', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['x_raw', 'y_raw', 'x_v', 'y_v', 'x_pixel', 'y_pixel'])
