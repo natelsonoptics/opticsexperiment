@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
@@ -34,8 +35,11 @@ class HeatingScan:
         self._xc = xc  # x center position
         self._yc = yc  # y center position
         self._polarizer = polarizer
-        self._measuredpolarization = self._polarizer.read_polarization()
-        self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
+        if self._polarizer:
+            self._measuredpolarization = self._polarizer.read_polarization()
+            self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
+        else:
+            self._polarization = ''
         self._fig = Figure()
         self._ax1 = self._fig.add_subplot(211)
         self._ax2 = self._fig.add_subplot(212)
@@ -76,9 +80,16 @@ class HeatingScan:
         self._writer.writerow(['y range:', self._yr])
         self._writer.writerow(['x center:', self._xc])
         self._writer.writerow(['y center:', self._yc])
-        self._writer.writerow(['polarization:', self._polarization])
-        self._writer.writerow(['actual polarization:', self._measuredpolarization])
-        self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        if self._polarizer:
+            self._writer.writerow(['polarization:', self._polarization])
+            self._writer.writerow(['raw polarization:', self._measuredpolarization])
+        else:
+            self._writer.writerow(['polarization:', 'not measured'])
+            self._writer.writerow(['raw polarization:', 'not measured'])
+        if self._powermeter:
+            self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        else:
+            self._writer.writerow(['power (W):', 'not measured'])
         self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
         self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
@@ -106,7 +117,7 @@ class HeatingScan:
 
     def onclick(self, event):
         try:
-            points = [int(np.ceil(event.xdata-0.5)), int(np.ceil(event.ydata-0.5))]
+            points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(event.ydata - 0.5))]
             if not self._direction:
                 points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(self._yd - event.ydata - 0.5 - 1))]
             self._npc3sg_x.move(self._x_val[points[0]])
@@ -120,11 +131,14 @@ class HeatingScan:
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
         self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+        self._imagefile = path.join(self._filepath,
+                                    '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
         while path.exists(self._filename):
             index += 1
-            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+            self._filename = path.join(self._filepath,
+                                       '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+            self._imagefile = path.join(self._filepath,
+                                        '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
 
     def run_scan(self):
         for y_ind, i in enumerate(self._y_val):
@@ -173,15 +187,18 @@ class HeatingScan:
                 heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
                 heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(self._z2), np.amin(self._z2))
                 self._canvas.draw()
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data
                 heating_plot.plot(self._ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
                 heating_plot.plot(self._ax2, self._im2, self._z2, np.amax(self._z2), np.amin(self._z2))
                 self._canvas.draw()  # shows the completed scan
                 warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
                 # that was never written
-                cid = self._fig.canvas.mpl_connect('button_press_event', self.onclick)  # click on pixel to move laser position there
+                cid = self._fig.canvas.mpl_connect('button_press_event',
+                                                   self.onclick)  # click on pixel to move laser position there
             except KeyboardInterrupt:
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data
                 self._npc3sg_x.move(0)
                 self._npc3sg_y.move(0)
                 self._sr7270_dual_harmonic.change_applied_voltage(0)

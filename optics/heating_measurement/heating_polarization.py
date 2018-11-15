@@ -55,7 +55,10 @@ class HeatingPolarization:
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
-        self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        if self._powermeter:
+            self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        else:
+            self._writer.writerow(['power (W):', 'not measured'])
         self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
         self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])

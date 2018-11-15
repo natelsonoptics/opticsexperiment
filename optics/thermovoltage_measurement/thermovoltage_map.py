@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
@@ -13,6 +14,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import tkinter as tk
 from optics.misc_utility.tkinter_utilities import tk_sleep
+
 
 class ThermovoltageScan:
     def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
@@ -34,7 +36,7 @@ class ThermovoltageScan:
         self._polarizer = polarizer
         if self._polarizer:
             self._measuredpolarization = self._polarizer.read_polarization()
-            self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180)/10)*10)
+            self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         else:
             self._polarization = 'x'
         self._fig = Figure()
@@ -76,6 +78,10 @@ class ThermovoltageScan:
     def abort(self):
         self._abort = True
 
+    def centerbeam(self):
+        self._npc3sg_y.move(80)
+        self._npc3sg_x.move(80)
+
     def write_header(self):
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['x scan density:', self._xd])
@@ -115,11 +121,11 @@ class ThermovoltageScan:
         self._ax3.set_ylabel('voltage (uV)')
         self._ax4.set_ylabel('voltage (uV)')
         if self._axis == 'y':
-            self._ax3.set_xlim(0, self._yd-1, 1)
-            self._ax4.set_xlim(0, self._yd-1, 1)
+            self._ax3.set_xlim(0, self._yd - 1, 1)
+            self._ax4.set_xlim(0, self._yd - 1, 1)
         else:
-            self._ax3.set_xlim(0, self._xd-1, 1)
-            self._ax4.set_xlim(0, self._xd-1, 1)
+            self._ax3.set_xlim(0, self._xd - 1, 1)
+            self._ax4.set_xlim(0, self._xd - 1, 1)
 
     def update_plot(self, im, data, min_val, max_val):
         im.set_data(data.T)
@@ -128,7 +134,7 @@ class ThermovoltageScan:
 
     def onclick(self, event):
         try:
-            points = [int(np.ceil(event.xdata-0.5)), int(np.ceil(event.ydata-0.5))]
+            points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(event.ydata - 0.5))]
             if not self._direction:
                 points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(self._yd - event.ydata - 0.5 - 1))]
             self._npc3sg_x.move(self._x_val[points[0]])
@@ -142,14 +148,18 @@ class ThermovoltageScan:
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
         self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-        self._cutfilename = path.join(self._filepath, '{}_{}_{}_cut{}'.format(self._device, self._polarization, index, '.csv'))
-        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+        self._cutfilename = path.join(self._filepath,
+                                      '{}_{}_{}_cut{}'.format(self._device, self._polarization, index, '.csv'))
+        self._imagefile = path.join(self._filepath,
+                                    '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
         while path.exists(self._filename):
             index += 1
-            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+            self._filename = path.join(self._filepath,
+                                       '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
             self._cutfilename = path.join(self._filepath,
                                           '{}_{}_{}_cut{}'.format(self._device, self._polarization, index, '.csv'))
-            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+            self._imagefile = path.join(self._filepath,
+                                        '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
 
     def run_scan(self):
         if self._axis == 'y':
@@ -236,26 +246,36 @@ class ThermovoltageScan:
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
+        button = tk.Button(master=self._master, text="Go to center", command=self.centerbeam)
+        button.pack(side=tk.BOTTOM)
         self.makefile()
-        with open(self._filename, 'w', newline='') as inputfile, open(self._cutfilename, 'w', newline='') as cutinputfile:
+        with open(self._filename, 'w', newline='') as inputfile, open(self._cutfilename, 'w',
+                                                                      newline='') as cutinputfile:
             try:
                 self._writer = csv.writer(inputfile)
                 self._cut_writer = csv.writer(cutinputfile)
                 self.setup_plots()
                 self.write_header()
                 self.run_scan()
-                thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
-                thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
+                thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)),
+                                        -np.amax(np.abs(self._z1)))
+                thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)),
+                                        -np.amax(np.abs(self._z2)))
                 self._canvas.draw()
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
-                thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)), -np.amax(np.abs(self._z1)))
-                thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)), -np.amax(np.abs(self._z2)))
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data
+                thermovoltage_plot.plot(self._ax1, self._im1, self._z1, np.amax(np.abs(self._z1)),
+                                        -np.amax(np.abs(self._z1)))
+                thermovoltage_plot.plot(self._ax2, self._im2, self._z2, np.amax(np.abs(self._z2)),
+                                        -np.amax(np.abs(self._z2)))
                 self._canvas.draw()
                 warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
                 # that was never written
-                cid = self._fig.canvas.mpl_connect('button_press_event', self.onclick)  # click on pixel to move laser position there
+                cid = self._fig.canvas.mpl_connect('button_press_event',
+                                                   self.onclick)  # click on pixel to move laser position there
             except KeyboardInterrupt:
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data
                 self._npc3sg_x.move(0)
                 self._npc3sg_y.move(0)
             except TclError:  # this is an annoying error that requires you to have tkinter events in mainloop

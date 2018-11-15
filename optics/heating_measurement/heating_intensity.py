@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -10,6 +11,7 @@ from os import path
 import numpy as np
 from optics.misc_utility.tkinter_utilities import tk_sleep
 import tkinter as tk
+
 
 class HeatingIntensity:
     def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, maxtime, steps, npc3sg_input,
@@ -24,8 +26,11 @@ class HeatingIntensity:
         self._bias = bias
         self._osc = osc
         self._polarizer = polarizer
-        self._measuredpolarization = self._polarizer.read_polarization()
-        self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
+        if self._polarizer:
+            self._measuredpolarization = self._polarizer.read_polarization()
+            self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
+        else:
+            self._polarization = ''
         self._npc3sg_input = npc3sg_input
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
@@ -62,8 +67,12 @@ class HeatingIntensity:
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
-        self._writer.writerow(['polarization:', self._polarization])
-        self._writer.writerow(['actual polarization:', self._measuredpolarization])
+        if self._polarizer:
+            self._writer.writerow(['polarization:', self._polarization])
+            self._writer.writerow(['raw polarization:', self._measuredpolarization])
+        else:
+            self._writer.writerow(['polarization:', 'not measured'])
+            self._writer.writerow(['raw polarization:', 'not measured'])
         self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
         self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
@@ -167,5 +176,5 @@ class HeatingIntensity:
                 self.measure()
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
-
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data

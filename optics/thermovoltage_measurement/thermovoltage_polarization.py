@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('TkAgg')
 import tkinter as tk
 from optics.misc_utility.tkinter_utilities import tk_sleep
@@ -9,6 +10,7 @@ from os import path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
+
 
 class ThermovoltagePolarization:
     def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, sr7270_single_reference, powermeter,
@@ -50,9 +52,12 @@ class ThermovoltagePolarization:
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
-        self._writer.writerow(['power (W):', self._powermeter.read_power()])
-        self._writer.writerow(['time constant: ', self._sr7270_single_reference.read_tc()])
-        self._writer.writerow(['reference phase: ', self._sr7270_single_reference.read_reference_phase()])
+        if self._powermeter:
+            self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        else:
+            self._writer.writerow(['power (W):', ''])
+        self._writer.writerow(['time constant:', self._sr7270_single_reference.read_tc()])
+        self._writer.writerow(['reference phase:', self._sr7270_single_reference.read_reference_phase()])
         self._writer.writerow(['notes:', self._notes])
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'polarization', 'x_raw', 'y_raw', 'x_v', 'y_v'])
@@ -60,12 +65,16 @@ class ThermovoltagePolarization:
     def makefile(self):
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
-        self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.csv'))
-        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.png'))
+        self._filename = path.join(self._filepath,
+                                   '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.csv'))
+        self._imagefile = path.join(self._filepath,
+                                    '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.png'))
         while path.exists(self._filename):
             index += 1
-            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.csv'))
-            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.png'))
+            self._filename = path.join(self._filepath,
+                                       '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.csv'))
+            self._imagefile = path.join(self._filepath,
+                                        '{}_{}_{}{}'.format(self._device, 'polarization_scan', index, '.png'))
 
     def setup_plots(self):
         self._ax1.title.set_text('|X_1| (uV)')
@@ -115,4 +124,5 @@ class ThermovoltagePolarization:
                 self.measure()
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data

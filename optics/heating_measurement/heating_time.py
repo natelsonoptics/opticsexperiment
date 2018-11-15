@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('TkAgg')
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -11,6 +12,7 @@ from os import path
 import numpy as np
 import tkinter as tk
 
+
 class HeatingTime:
     def __init__(self, master, filepath, notes, device, scan, gain, rate, maxtime, bias, osc, npc3sg_input,
                  sr7270_dual_harmonic, sr7270_single_reference, powermeter, polarizer):
@@ -21,8 +23,11 @@ class HeatingTime:
         self._scan = scan
         self._gain = gain
         self._polarizer = polarizer
-        self._measuredpolarization = self._polarizer.read_polarization()
-        self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
+        if self._polarizer:
+            self._measuredpolarization = self._polarizer.read_polarization()
+            self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
+        else:
+            self._polarization = ''
         self._npc3sg_input = npc3sg_input
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
@@ -58,9 +63,16 @@ class HeatingTime:
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
-        self._writer.writerow(['polarization:', self._polarization])
-        self._writer.writerow(['actual polarization:', self._measuredpolarization])
-        self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        if self._polarizer:
+            self._writer.writerow(['polarization:', self._polarization])
+            self._writer.writerow(['raw polarization:', self._measuredpolarization])
+        else:
+            self._writer.writerow(['polarization:', 'not measured'])
+            self._writer.writerow(['raw polarization:', 'not measured'])
+        if self._powermeter:
+            self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        else:
+            self._writer.writerow(['power (W):', 'not measured'])
         self._writer.writerow(['applied voltage (V):', self._sr7270_dual_harmonic.read_applied_voltage()])
         self._writer.writerow(['osc amplitude (V):', self._sr7270_dual_harmonic.read_oscillator_amplitude()])
         self._writer.writerow(['osc frequency:', self._sr7270_dual_harmonic.read_oscillator_frequency()])
@@ -79,11 +91,14 @@ class HeatingTime:
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan
         self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-        self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+        self._imagefile = path.join(self._filepath,
+                                    '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
         while path.exists(self._filename):
             index += 1
-            self._filename = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
-            self._imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
+            self._filename = path.join(self._filepath,
+                                       '{}_{}_{}{}'.format(self._device, self._polarization, index, '.csv'))
+            self._imagefile = path.join(self._filepath,
+                                        '{}_{}_{}{}'.format(self._device, self._polarization, index, '.png'))
 
     def setup_plots(self):
         self._ax1.title.set_text('X_1')
@@ -149,4 +164,5 @@ class HeatingTime:
                 self.measure()
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
             except KeyboardInterrupt:
-                self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')  # saves an image of the completed data
+                self._fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data
