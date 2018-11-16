@@ -1,127 +1,72 @@
 import ctypes
+
 co_initialize = ctypes.windll.ole32.CoInitialize
 import tkinter as tk
 from tkinter.filedialog import askdirectory
 import numpy as np
 import matplotlib.pyplot as plt
+
 co_initialize(None)
 from optics.under_development.ccd_controller import CCDController2
 from optics.under_development.mono_controller import MonoController
 import time
+from optics.raman import unit_conversions
+from optics.gui.base_gui import BaseGUI
+import time
 
 
-class RamanGUI:
-    def __init__(self, master, mono=None, ccd=None, raman_gain=None, grating=None):
-        self._mono = mono
-        self._ccd = ccd
+class RamanGUI(BaseGUI):
+    def __init__(self, master, mono=None, ccd_controller=None, raman_gain=None, grating=None, center_wavelength=785):
         self._master = master
+        super().__init__(self._master)
+        self._mono = mono
+        self._ccd_controller = ccd_controller
         self._raman_gain = raman_gain
         self._grating = grating
-        self._browse_button = tk.Button(self._master, text="Browse", command=self.onclick_browse)
-        self._fields = {}
-        self._filepath = tk.StringVar()
-        self._entries = []
-        self._inputs = {}
         self._shutter = tk.StringVar()
         self._shutter.set('True')
-
-    def beginform(self, caption, browse_button=True):
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
-        label.pack()
-        if browse_button:
-            self._browse_button.pack()
-        for key in self._fields:
-            row = tk.Frame(self._master)
-            lab = tk.Label(row, width=15, text=key, anchor='w')
-            if key == 'file path':
-                ent = tk.Entry(row, textvariable=self._filepath)
-            else:
-                ent = tk.Entry(row)
-            row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-            lab.pack(side=tk.LEFT)
-            ent.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-            ent.insert(0, str(self._fields[key]))
-            self._entries.append((key, ent))
-        return self._entries
-
-    def endform(self, run_command):
-        self._master.bind('<Return>', run_command)
-        self.makebutton('Run', run_command)
-        self.makebutton('Quit', self._master.destroy)
-
-    def make_option_menu(self, label, parameter, option_list):
-        row = tk.Frame(self._master)
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab = tk.Label(row, width=15, text=label, anchor='w')
-        lab.pack(side=tk.LEFT)
-        t = tk.OptionMenu(row, parameter, *option_list)
-        t.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
-
-    def fetch(self, event=None):  # stop trying to make fetch happen. It's not going to happen. -Regina, Mean Girls
-        for entry in self._entries:
-            field = entry[0]
-            text = entry[1].get()
-            self._inputs[field] = text
-
-    def makebutton(self, caption, run_command, master=None):
-        if not master:
-            master = self._master
-        b1 = tk.Button(master, text=caption, command=run_command)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
-
-    def onclick_browse(self):
-        self._filepath.set(askdirectory())
+        self._center_wavelength = center_wavelength
+        self._units = tk.StringVar()
+        self._units.set('cm^-1')
 
     def build_single_spectrum_gui(self):
         caption = "Single Raman spectrum"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
-                        'acquisitions to average': 1}
+                        'acquisitions to average': 1, 'center wavelength': 785}
         self.beginform(caption)
         self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
         self.endform(self.single_spectrum)
 
     def single_spectrum(self, event=None):
+        from optics.raman.single_spectrum import take_single_spectrum
         self.fetch(event)
-        raw, data = self._ccd.take_spectrum(float(self._inputs['integration time (s)']), self._raman_gain,
-                                            int(self._inputs['acquisitions to average']), self._shutter)
-        print(np.shape(data))
-        plt.plot([i for i in range(len(data))], data)
-        plt.show()
+        take_single_spectrum()
 
 
-class RamanBaseGUI:
+class RamanBaseGUI(BaseGUI):
     def __init__(self, master):
         self._master = master
+        super().__init__(self._master)
         self._master.title('Optics Raman setup measurements')
         self._mono = MonoController()
-        self._mono.set_wavelength(785)
-        self._ccd = CCDController2()
-        self._gain = self._ccd.read_gain()
+        self._ccd_controller = CCDController2()
+        self._gain = self._ccd_controller.read_gain()
         self._gain_options = tk.StringVar()
         gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
         self._gain_options.set(gain_options[self._gain])
+        _, self._current_grating, _, _ = self._mono.get_current_turret()
+        self._grating = tk.StringVar()
         self._newWindow = None
         self._app = None
-        self._grating = None
+        self._width = tk.StringVar()
+        self._center_wavelength = self._mono.read_wavelength()
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
-        self._app = RamanGUI(self._newWindow, self._mono, self._ccd, self._gain, self._grating)
+        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._gain, self._current_grating)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui}
         measurement[measurementtype]()
-
-    def make_measurement_button(self, master, text, measurement_type):
-        b1 = tk.Button(master, text=text,
-                       command=lambda measurementtype=measurement_type: self.new_window(measurementtype))
-        b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-
-    def makerow(self, title):
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, width=20, text=title, anchor='w')
-        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
-        lab.pack(side=tk.LEFT)
-        return row
 
     def build(self):
         row = self.makerow('single spectrum')
@@ -130,14 +75,14 @@ class RamanBaseGUI:
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        b = tk.Button(row, text='Grating', command=self.change_grating_gui)
+        b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        b = tk.Button(row, text='Slit width', command=self.change_slit_width_gui)
+        b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        b = tk.Button(row, text='Center wavelength', command=self.change_center_wavelength_gui)
+        b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
-
-    def makebutton(self, caption, run_command, master=None):
-        if not master:
-            master = self._master
-        b1 = tk.Button(master, text=caption, command=run_command)
-        b1.pack(side=tk.LEFT, padx=5, pady=5)
 
     def change_gain_gui(self):
         self._newWindow = tk.Toplevel(self._master)
@@ -159,8 +104,70 @@ class RamanBaseGUI:
     def change_gain(self):
         gain_options = {'high light': 0, 'best dynamic range': 1, 'high sensitivity': 2}
         self._gain = float(gain_options[self._gain_options.get()])
-        self._ccd.set_gain(self._gain)
+        self._ccd_controller.set_gain(self._gain)
         print('Raman gain set to {}'.format(self._gain_options.get()))
+
+    def change_grating_gui(self):
+        self._newWindow = tk.Toplevel(self._master)
+        self._newWindow.title('Change Raman grating')
+        label = tk.Label(self._newWindow, text='Change Raman grating')
+        label.pack()
+        self._grating.set(int(self._current_grating))
+        row = tk.Frame(self._newWindow)
+        row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
+        lab = tk.Label(row, width=15, text='grating', anchor='w')
+        lab.pack(side=tk.LEFT)
+        t = tk.OptionMenu(row, self._grating, *[1200, 300, 150])
+        t.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
+        self._newWindow.bind('<Return>', self.change_grating)
+        self.makebutton('Run', self.change_grating, master=self._newWindow)
+        self.makebutton('Quit', self._newWindow.destroy, master=self._newWindow)
+
+    def change_grating(self):
+        grating_options = {'1200': 0, '300': 1, '150': 2}
+        turret, self._current_grating, blazes, description = self._mono.set_turret(
+            int(grating_options[self._grating.get()]))
+        now = time.time()
+        while self._mono.is_busy():
+            print('Moving turret')
+            time.sleep(10)
+            if time.time() > now + 90:
+                print('Mono timeout')
+                break
+        print('Turret movement complete')
+        print('Current turret: {}\nCurrent grating: {}\nCurrent blazes: {}\nCurrent description {}'.format(turret,
+                                                                                                           self._current_grating,
+                                                                                                           blazes,
+                                                                                                           description))
+
+    def change_slit_width_gui(self):
+        print(self._mono.read_front_slit_width())
+
+    def change_center_wavelength_gui(self):
+        self._newWindow = tk.Toplevel(self._master)
+        self._newWindow.title('Change center wavelength')
+        self._fields = {'Center wavelength (nm)': '785'}
+        self.beginform('Change center wavelength', False, self._newWindow)
+        self.makebutton('Run', self.change_center_wavelength, master=self._newWindow)
+        self.makebutton('Quit', self._newWindow.destroy, master=self._newWindow)
+
+    def change_center_wavelength(self, event=None):
+        self.fetch(event)
+        self._center_wavelength = self._inputs['Center wavelength (nm)']
+        print(self._center_wavelength)
+        #self._mono.set_wavelength(self._center_wavelength)
+        now = time.time()
+        while self._mono.is_busy():
+            if time.time() > now + 30:
+                print('timed out')
+                break
+            time.sleep(1)
+            print('monochrometer moving to center position')
+        print('Center wavelength set to {}'.format(self._mono.read_wavelength()))
+
+
+
+
 
 
 def main():
@@ -168,5 +175,6 @@ def main():
     app = RamanBaseGUI(root)
     app.build()
     root.mainloop()
+
 
 main()

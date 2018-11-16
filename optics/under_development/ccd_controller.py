@@ -156,16 +156,16 @@ class CCDController2(CCDController):
         self.set_gain(gain)
         self.set_acquisition_format()
         self.set_area(self._xpixels)
-        data_size = self._ccd.read_data_size()
+        data_size = self.read_data_size()
         raw_data = np.zeros([scans, data_size])
         self.set_acquisition_mode(True)
         self.set_operating_mode()
         self.set_acquisition_count(scans)
         for j in range(scans):
-            while not self._ccd.is_ready():
+            while not self.is_ready():
                 time.sleep(0.1)
             self.start_acquisition(shutter_open)
-            while self._ccd.is_busy():
+            while self.is_busy():
                 time.sleep(0.1)
             raw_data[j] = self.read_result()
         averaged_data = np.mean(np.array([i for i in raw_data]), axis=0)
@@ -173,7 +173,6 @@ class CCDController2(CCDController):
 
     def stop(self):
         self.stop_acquisition()
-
 
 
 

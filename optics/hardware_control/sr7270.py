@@ -46,13 +46,15 @@ class LockIn:
         self._mode = self.check_reference_mode()
         self._overload = False
         self._loops = count(0)
+        self._unlocked = False
 
     def check_status(self, i):
         """Checks lock in amplifier status and overload bytes"""
         self._overload = False
+        self._unlocked = False
         status_codes = OrderedDict({'command complete': 0, 'invalid command': 'Invalid lock in command',
                                     'invalid command parameter': 'Invalid lock in command parameter',
-                                    'reference unlock': 'Lock in reference unlocked',
+                                    'reference unlock': 0,
                                     'output overload': 0,
                                     'new ADC after trigger': 0,
                                     'input overload': 'Lock in input overload',
@@ -69,12 +71,15 @@ class LockIn:
                         raise ValueError(status_codes[list(status_codes.keys())[j]])
                     else:
                         print('Warning: {}'.format(status_codes[list(status_codes.keys())[j]]))
-                if list(status_codes.keys())[j] == 'output overload':
-                    for l, m in enumerate(reversed(bin(ord(status_bytes[1])))):
-                        if m == '1':
-                            print('{} output overload'.format(overload_codes[l]))
-                            if overload_codes[l] == 'X1' or overload_codes[l] == 'Y1':
-                                self._overload = True
+                if list(status_codes.keys())[j] == 'reference unlock':
+                    self._unlocked = True
+                else:
+                    if list(status_codes.keys())[j] == 'output overload':
+                        for l, m in enumerate(reversed(bin(ord(status_bytes[1])))):
+                            if m == '1':
+                                print('{} output overload'.format(overload_codes[l]))
+                                if overload_codes[l] == 'X1' or overload_codes[l] == 'Y1':
+                                    self._overload = True
         return [float(j) for j in i.split(',')] if i else None
 
     def auto_sensitivity(self, channel=0):
@@ -168,7 +173,11 @@ class LockIn:
         """Reads XY of single reference mode. Returns a list corresponding to [X, Y] in volts"""
         self._ep0.write('xy.')
         values = self.read()
-        if self._overload:
+        while self._unlocked:
+            time.sleep(0.25)
+            self._ep0.write('xy.')
+            values = self.read()
+        if self._overload and not self._unlocked:
             self._loops = count(0)
             self.auto_sensitivity(channel=0)
             self._ep0.write('xy.')

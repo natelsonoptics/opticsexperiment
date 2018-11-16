@@ -367,6 +367,9 @@ class LockinMeasurementGUI(BaseGUI):
     def center_beam(self):
         self._npc3sg_x.move(80)
         self._npc3sg_y.move(80)
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack()
 
     def change_single_reference_lockin_parameters(self, event=None):
         self.fetch(event)
@@ -491,6 +494,34 @@ class LockinMeasurementGUI(BaseGUI):
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.heating_polarization)
 
+    def moveup(self, event=None):
+        x, y = self._npc3sg_input.read()
+        self._npc3sg_y.move(y + 1)
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack()
+
+    def movedown(self, event=None):
+        x, y = self._npc3sg_input.read()
+        self._npc3sg_y.move(y - 1)
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack()
+
+    def moveleft(self, event=None):
+        x, y = self._npc3sg_input.read()
+        self._npc3sg_x.move(x - 1)
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack()
+
+    def moveright(self, event=None):
+        x, y = self._npc3sg_input.read()
+        self._npc3sg_x.move(x + 1)
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, [np.round(x, 1) for x in self._npc3sg_input.read()])
+        self._textbox.pack()
+
     def build_change_position_gui(self):
         caption = "Change laser position"
         self._fields = {'x': 80, 'y': 80}
@@ -498,6 +529,11 @@ class LockinMeasurementGUI(BaseGUI):
         self.maketextbox('Current Position', [np.round(x, 1) for x in self._npc3sg_input.read()])
         self.makebutton('Go to center', self.center_beam)
         self.makebutton('Change Position', self.changeposition)
+        self._master.bind('<Left>', self.moveleft)
+        self._master.bind('<Right>', self.moveright)
+        self._master.bind('<Up>', self.moveup)
+        self._master.bind('<Down>', self.movedown)
+        self._master.bind('<Return>', self.changeposition)
         self.makebutton('Quit', self._master.destroy)
 
     def build_heating_time_gui(self):

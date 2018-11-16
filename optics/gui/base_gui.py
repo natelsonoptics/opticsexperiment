@@ -44,14 +44,16 @@ class BaseGUI:
         lab.pack(side=side)
         return row
 
-    def beginform(self, caption, browse_button=True):
-        self._master.title(caption)
-        label = tk.Label(self._master, text=caption)
+    def beginform(self, caption, browse_button=True, master=None):
+        if not master:
+            master = self._master
+        master.title(caption)
+        label = tk.Label(master, text=caption)
         label.pack()
         if browse_button:
             self._browse_button.pack()
         for key in self._fields:
-            row = tk.Frame(self._master)
+            row = tk.Frame(master)
             lab = tk.Label(row, width=15, text=key, anchor='w')
             if key == 'file path':
                 ent = tk.Entry(row, textvariable=self._filepath)
@@ -64,10 +66,12 @@ class BaseGUI:
             self._entries.append((key, ent))
         return self._entries
 
-    def endform(self, run_command):
-        self._master.bind('<Return>', run_command)
-        self.makebutton('Run', run_command)
-        self.makebutton('Quit', self._master.destroy)
+    def endform(self, run_command, master=None):
+        if not master:
+            master = self._master
+        master.bind('<Return>', run_command)
+        self.makebutton('Run', run_command, master)
+        self.makebutton('Quit', master.destroy, master=master)
 
     def makebutton(self, caption, run_command, master=None):
         if not master:

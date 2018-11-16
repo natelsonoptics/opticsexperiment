@@ -31,7 +31,8 @@ class MonoController:
         self._mono.Initialize(False, False)
         time.sleep(1)
         self._current_turret = self._mono.GetCurrentTurret()
-        _, grating_density, self._grating, self._blazes, self._description = self._mono.GetCurrentGratingWithDetails(1, 1, 1, 1)
+        _, grating_density, self._grating, self._blazes, self._description = \
+            self._mono.GetCurrentGratingWithDetails(1, 1, 1, 1)
         self._current_grating = self._grating[self._current_turret]
         self._current_blazes = self._blazes[self._current_turret]
         self._current_description = self._description[self._current_turret]
@@ -39,6 +40,14 @@ class MonoController:
         self._wavelength = self._mono.GetCurrentWavelength()
         self._mono.SetDefaultUnits(JYSYSTEMLIBLib.jyUnitsType.jyutSlitWidth, JYSYSTEMLIBLib.jyUnits.jyuMillimeters)
         self._slit_width = self._mono.GetCurrentSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance)
+
+    def get_current_turret(self):
+        self._current_turret = self._mono.GetCurrentTurret()
+        _, density, grating, blazes, description = self._mono.GetCurrentGratingWithDetails(1, 1, 1, 1)
+        self._current_grating = grating[self._current_turret]
+        self._current_blazes = blazes[self._current_turret]
+        self._current_description = description[self._current_turret]
+        return density, self._current_grating, self._current_blazes, self._current_description
 
     def set_wavelength(self, wavelength):
         self._mono.MovetoWavelength(wavelength)

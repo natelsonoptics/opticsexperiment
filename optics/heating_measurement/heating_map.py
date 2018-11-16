@@ -1,5 +1,4 @@
 import matplotlib
-
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
