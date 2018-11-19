@@ -45,6 +45,7 @@ class BaseGUI:
         return row
 
     def beginform(self, caption, browse_button=True, master=None):
+        self._entries = []
         if not master:
             master = self._master
         master.title(caption)

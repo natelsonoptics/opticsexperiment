@@ -32,7 +32,7 @@ class RamanGUI(BaseGUI):
     def build_single_spectrum_gui(self):
         caption = "Single Raman spectrum"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
-                        'acquisitions to average': 1, 'center wavelength': 785}
+                        'acquisitions to average': 1}
         self.beginform(caption)
         self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
         self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
@@ -41,7 +41,14 @@ class RamanGUI(BaseGUI):
     def single_spectrum(self, event=None):
         from optics.raman.single_spectrum import take_single_spectrum
         self.fetch(event)
-        take_single_spectrum()
+        if self._shutter.get() == 'True':
+            shutter = True
+        else:
+            shutter = False
+        take_single_spectrum(self._ccd_controller, self._grating, self._raman_gain,
+                             self._center_wavelength, self._units.get(),
+                             float(self._inputs['integration time (s)']), int(self._inputs['acquisitions to average']),
+                             shutter)
 
 
 class RamanBaseGUI(BaseGUI):
@@ -64,7 +71,8 @@ class RamanBaseGUI(BaseGUI):
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
-        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._gain, self._current_grating)
+        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._gain, self._current_grating,
+                             self._center_wavelength)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui}
         measurement[measurementtype]()
 
@@ -153,9 +161,8 @@ class RamanBaseGUI(BaseGUI):
 
     def change_center_wavelength(self, event=None):
         self.fetch(event)
-        self._center_wavelength = self._inputs['Center wavelength (nm)']
-        print(self._center_wavelength)
-        #self._mono.set_wavelength(self._center_wavelength)
+        self._center_wavelength = float(self._inputs['Center wavelength (nm)'])
+        self._mono.set_wavelength(self._center_wavelength)
         now = time.time()
         while self._mono.is_busy():
             if time.time() > now + 30:

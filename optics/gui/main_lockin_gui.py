@@ -16,6 +16,7 @@ from optics.heating_measurement.heating_intensity import HeatingIntensity
 from optics.heating_measurement.heating_polarization import HeatingPolarization
 from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
 from optics.thermovoltage_measurement.thermovoltage_polarization_dc import ThermovoltagePolarizationDC
+from optics.current_vs_voltage.test import CurrentVoltageGateSweep
 from contextlib import ExitStack
 from optics.current_vs_voltage.current_vs_voltage import CurrentVoltageSweep
 from optics.electromigrate.daq_break import DAQBreak
@@ -317,15 +318,27 @@ class LockinMeasurementGUI(BaseGUI):
 
     def iv_sweep(self, event=None):
         self.fetch(event)
-        run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                  self._inputs['device'], int(self._inputs['index']),
-                                  float(self._current_amplifier_gain_options[self._current_gain.get()]),
-                                  float(self._inputs['oscillator amplitude (mV)']),
-                                  float(self._inputs['start voltage (mV)']),
-                                  float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
-                                  int(self._inputs['# to average']), self._sr7270_dual_harmonic,
-                                  self._sr7270_single_reference, float(self._inputs['wait time (ms)']),
-                                  int(self._inputs['scans']), int(self._inputs['tick spacing (mV)']))
+        if self._keithley:
+            run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
+                                    self._inputs['device'], int(self._inputs['index']),
+                                    float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                                    float(self._inputs['oscillator amplitude (mV)']),
+                                    float(self._inputs['start voltage (mV)']),
+                                    float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
+                                    int(self._inputs['# to average']), self._sr7270_dual_harmonic,
+                                    self._sr7270_single_reference, float(self._inputs['wait time (ms)']),
+                                    int(self._inputs['scans']), int(self._inputs['tick spacing (mV)']), self._keithley,
+                                    float(self._inputs['gate (V)']))
+        else:
+            run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
+                                    self._inputs['device'], int(self._inputs['index']),
+                                    float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                                    float(self._inputs['oscillator amplitude (mV)']),
+                                    float(self._inputs['start voltage (mV)']),
+                                    float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
+                                    int(self._inputs['# to average']), self._sr7270_dual_harmonic,
+                                    self._sr7270_single_reference, float(self._inputs['wait time (ms)']),
+                                    int(self._inputs['scans']), int(self._inputs['tick spacing (mV)']))
         run.main()
 
     def thermovoltage_polarization(self, event=None):
@@ -554,9 +567,14 @@ class LockinMeasurementGUI(BaseGUI):
 
     def build_sweep_iv_gui(self):
         caption = "Current vs. Voltage curves"
-        self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
-                        'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
-                        'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1}
+        if self._keithley:
+            self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
+                            'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
+                            'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'gate (V)': 0}
+        else:
+            self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
+                            'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
+                            'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1}
         self.beginform(caption)
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.iv_sweep)
