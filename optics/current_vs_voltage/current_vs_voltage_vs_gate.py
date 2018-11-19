@@ -12,6 +12,7 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 from optics.misc_utility.conversions import convert_x_to_iphoto, convert_x1_to_didv, convert_x2_to_d2idv2, \
     convert_adc_to_idc, normalize_iets_from_x1, normalize_iets_from_didv, differentiate_d2idv2
 import pandas as pd
+import time
 
 
 class CurrentVoltageGateSweep:
@@ -28,16 +29,16 @@ class CurrentVoltageGateSweep:
         self._number_measurements = number_measurements
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
-        #self._fig = None
-        #self._canvas = None
-        #self._ax1 = None
-        #self._ax2 = None
-        #self._ax3 = None
-        #self._ax4 = None
-        #self._ax5 = None
-        #self._ax2_twin = None
-        #self._ax3_twin = None
-        #self._ax4_twin = None
+        self._fig = None
+        self._canvas = None
+        self._ax1 = None
+        self._ax2 = None
+        self._ax3 = None
+        self._ax4 = None
+        self._ax5 = None
+        self._ax2_twin = None
+        self._ax3_twin = None
+        self._ax4_twin = None
         self._voltages = np.linspace(stop_voltage / 1000, start_voltage / 1000, steps)
         self._writer = None
         self._sweep_writer = None
@@ -46,6 +47,13 @@ class CurrentVoltageGateSweep:
         self._sweep_filename = None
         self._averaged_filename = None
         self._averaged_imagefile = None
+        self._wf_imagefile = None
+        self._wf_didvx_file = None
+        self._wf_didvy_file = None
+        self._wf_d2idvx2_file = None
+        self._wf_d2idvy2_file = None
+        self._wf_iets_file = None
+        self._wf_iets_y_file = None
         self._gates = np.linspace(min_gate, max_gate, gate_steps)
         self._gate = self._gates[0]
         self._wf_fig = Figure()
@@ -62,18 +70,18 @@ class CurrentVoltageGateSweep:
         self._wf_4 = np.zeros((len(self._gates), len(self._voltages)))
         self._wf_5 = np.zeros((len(self._gates), len(self._voltages)))
         self._wf_6 = np.zeros((len(self._gates), len(self._voltages)))
-        self._im1 = self._wf_ax1.imshow(self._wf_1, interpolation='nearest',
-                                     origin='lower')
+        self._im1 = self._wf_ax1.imshow(self._wf_1, interpolation='nearest', origin='lower', aspect='auto',
+                                        extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
         self._im2 = self._wf_ax2.imshow(self._wf_2, interpolation='nearest',
-                                     origin='lower')
+                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
         self._im3 = self._wf_ax3.imshow(self._wf_3,  interpolation='nearest',
-                                     origin='lower')
+                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
         self._im4 = self._wf_ax4.imshow(self._wf_4, interpolation='nearest',
-                                     origin='lower')
+                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
         self._im5 = self._wf_ax5.imshow(self._wf_5, interpolation='nearest',
-                                     origin='lower')
+                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
         self._im6 = self._wf_ax6.imshow(self._wf_6, interpolation='nearest',
-                                     origin='lower')
+                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
         self._wf_ax1.set_title('dIdVx')
         self._wf_ax2.set_title('dIdVy')
         self._wf_ax3.set_title('d2IdV2x')
@@ -83,19 +91,16 @@ class CurrentVoltageGateSweep:
         for ax in [self._wf_ax1, self._wf_ax2, self._wf_ax3, self._wf_ax4, self._wf_ax5, self._wf_ax6]:
             ax.set_xlabel('applied voltage')
             ax.set_ylabel('gate (V)')
-            x = self._voltages
+            x = np.flip(self._voltages, axis=0)
             y = self._gates
-            ax.set_xticks(range(len(x)))
-            ax.set_xticklabels(x)
-            ax.set_yticks(range(len(y)))
-            ax.set_yticklabels(y)
         self._clb1 = self._wf_fig.colorbar(self._im1, ax=self._wf_ax1)
         self._clb2 = self._wf_fig.colorbar(self._im2, ax=self._wf_ax2)
         self._clb3 = self._wf_fig.colorbar(self._im3, ax=self._wf_ax3)
         self._clb4 = self._wf_fig.colorbar(self._im4, ax=self._wf_ax4)
         self._clb5 = self._wf_fig.colorbar(self._im5, ax=self._wf_ax5)
         self._clb6 = self._wf_fig.colorbar(self._im6, ax=self._wf_ax6)
-        self._wf_canvas = FigureCanvasTkAgg(self._wf_fig, master=self._master)
+        self._wf_canvas = FigureCanvasTkAgg(self._wf_fig, master=tk.Toplevel(self._master))
+        self._wf_fig.tight_layout()
         self._wf_canvas.draw()
         self._wf_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._didvx = []
@@ -123,6 +128,16 @@ class CurrentVoltageGateSweep:
                                                           'diff d2idvx2', 'diff d2idvy2'])
         self._keithley = keithley
         self._keithley.reset()
+        self._keithley.enable_output()
+        if self._gate:
+            print('ramping the gate voltage to {} V'.format(self._gate))
+            for i in np.linspace(0, self._gate, np.abs(self._gate * 4)):
+                self._keithley.set_voltage_no_compliance(i)
+                tk_sleep(self._master, 100)
+        self._keithley.set_voltage_no_compliance(self._gate)
+        self._raw_filepath = None
+        self._averaged_filepath = None
+        self._v = np.zeros((1, ))
 
     def abort(self):
         self._abort = True
@@ -158,23 +173,38 @@ class CurrentVoltageGateSweep:
                                      'normalized IETS (1/V)', 'normalized IETS y (1/V)', 'PhotoX', 'PhotoY', 'resistance (V/I)', 'r (dV/dI)',
                                      'diff d2I/dVx2', 'diff d2I/dVy2'])
 
-    def makefile(self, scan):
+    def makewaterfallfile(self):
         os.makedirs(self._filepath, exist_ok=True)
+        self._wf_imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'waterfall', self._index, '.png'))
+        while path.exists(self._wf_imagefile):
+            self._index += 1
+            self._wf_imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'waterfall', self._index, '.png'))
+        self._wf_didvx_file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'didvx waterfall', self._index, '.csv'))
+        self._wf_didvy_file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'didvy waterfall', self._index, '.csv'))
+        self._wf_d2idvx2_file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'd2idvx2 waterfall', self._index, '.csv'))
+        self._wf_d2idvy2_file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'd2idvy2 waterfall', self._index, '.csv'))
+        self._wf_iets_file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'iets waterfall', self._index, '.csv'))
+        self._wf_iets_y_file = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'iets y waterfall', self._index, '.csv'))
+        self._raw_filepath = path.join(self._filepath, '{}_{}_{}'.format(self._device, 'raw scans', self._index))
+        os.makedirs(self._raw_filepath, exist_ok=True)
+        self._averaged_filepath = path.join(self._filepath, '{}_{}_{}'.format(self._device, 'averaged scans', self._index))
+        os.makedirs(self._averaged_filepath, exist_ok=True)
+
+    def makefile(self, scan):
         index = self._index
-        self._averaged_filename = path.join(self._filepath, '{}_{}_{}_{}_{}{}'.format(self._device, 'gate', self._gate,
-                                                                                      'total averaged IV sweep',
-                                                                                      index, '.csv'))
+        self._averaged_filename = path.join(self._averaged_filepath, '{}_{}_{}_{}_{}{}'.format(self._device, 'gate',
+                                                                                               self._gate,
+                                                                                               'total averaged IV sweep',
+                                                                                               index, '.csv'))
         while path.exists(self._averaged_filename):
             index += 1
-            self._averaged_filename = path.join(self._filepath,
-                                                '{}_{}_{}_{}_{}{}'.format(self._device, 'gate', self._gate,
-                                                                          'total averaged IV sweep',
-                                                                          index, '.csv'))
-        raw_filepath = path.join(self._filepath,
-                                 '{}_{}_{}_{}_{}'.format(self._device, 'gate', self._gate, 'raw scans', index))
+            self._averaged_filename = path.join(self._averaged_filepath, '{}_{}_{}_{}_{}{}'.format(self._device, 'gate',
+                                                                                                   self._gate,
+                                                                                                   'total averaged IV sweep',
+                                                                                                   index, '.csv'))
+        raw_filepath = path.join(self._raw_filepath, '{}_{}_{}_{}_{}'.format(self._device, 'gate', self._gate, 'raw scans', index))
         os.makedirs(raw_filepath, exist_ok=True)
-        sweep_filepath = path.join(self._filepath,
-                                   '{}_{}_{}_{}_{}'.format(self._device, 'gate', self._gate, 'individual scans', index))
+        sweep_filepath = path.join(self._averaged_filepath, '{}_{}_{}_{}_{}'.format(self._device, 'gate', self._gate, 'individual scans', index))
         os.makedirs(sweep_filepath, exist_ok=True)
         self._filename = path.join(raw_filepath, '{}_{}_{}_{}_{} {} {} {}_{}{}'.format(self._device, 'gate', self._gate,
                                                                                        'raw IV sweep', 'scan',
@@ -330,29 +360,29 @@ class CurrentVoltageGateSweep:
                                                                                  -1] if self._diff_d2idvx2 else 0,
                                                                              self._diff_d2idvy2[
                                                                                  -1] if self._diff_d2idvy2 else 0]
-            #self._ax1.plot(vdc, self._idc[i], linestyle='', color='blue', marker='o', markersize=2)
-            #self._ax2.plot(vdc, self._didvx[i], linestyle='', color='blue', marker='o', markersize=2)
-            #self._ax2_twin.plot(vdc, self._didvy[i], linestyle='', color='red', marker='o', markersize=2)
-            #self._ax3.plot(vdc, self._d2idvx2[i], linestyle='', color='blue', marker='o', markersize=2)
-            #self._ax3_twin.plot(vdc, self._d2idvy2[i], linestyle='', color='red', marker='o', markersize=2)
-            #self._ax4.plot(vdc, self._iets_normalized[i], linestyle='', color='blue', marker='o', markersize=2)
-            #self._ax4_twin.plot(vdc, self._iphotox[i], linestyle='', color='red', marker='o', markersize=2)
-            #if i >= 1:
-            #    self._ax5.plot(vdc, differentiate_d2idv2(self._didvx[i], self._didvx[i - 1]), linestyle='',
-            #                   color='blue',
-            #                   marker='o', markersize=2)
-            #    self._sweep_writer.writerow([vdc, adc[-1][0], xy[-1][0], xy[-1][1], xy1[-1][0], xy1[-1][1], xy2[-1][0],
-            #                                 xy2[-1][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
-            #                                 self._d2idvy2[i], self._iets_normalized[i], self._iphotox[i],
-            #                                 self._iphotoy[i], vdc / self._idc[i], 1 / self._didvx[i],
-            #                                 self._diff_d2idvx2[i - 1], self._diff_d2idvy2[i - 1]])
-            #else:
-            #    self._sweep_writer.writerow([vdc, adc[-1][0], xy[-1][0], xy[-1][1], xy1[-1][0], xy1[-1][1], xy2[-1][0],
-            #                                 xy2[-1][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
-            #                                 self._d2idvy2[i], self._iets_normalized[i], self._iphotox[i],
-            #                                 self._iphotoy[i], vdc / self._idc[i], 1 / self._didvx[i]])
-            #self._fig.tight_layout()
-            #self._fig.canvas.draw()
+            self._ax1.plot(vdc, self._idc[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax2.plot(vdc, self._didvx[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax2_twin.plot(vdc, self._didvy[i], linestyle='', color='red', marker='o', markersize=2)
+            self._ax3.plot(vdc, self._d2idvx2[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax3_twin.plot(vdc, self._d2idvy2[i], linestyle='', color='red', marker='o', markersize=2)
+            self._ax4.plot(vdc, self._iets_normalized[i], linestyle='', color='blue', marker='o', markersize=2)
+            self._ax4_twin.plot(vdc, self._iphotox[i], linestyle='', color='red', marker='o', markersize=2)
+            if i >= 1:
+                self._ax5.plot(vdc, differentiate_d2idv2(self._didvx[i], self._didvx[i - 1]), linestyle='',
+                               color='blue',
+                               marker='o', markersize=2)
+                self._sweep_writer.writerow([vdc, adc[-1][0], xy[-1][0], xy[-1][1], xy1[-1][0], xy1[-1][1], xy2[-1][0],
+                                             xy2[-1][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
+                                             self._d2idvy2[i], self._iets_normalized[i], self._iphotox[i],
+                                             self._iphotoy[i], vdc / self._idc[i], 1 / self._didvx[i],
+                                             self._diff_d2idvx2[i - 1], self._diff_d2idvy2[i - 1]])
+            else:
+                self._sweep_writer.writerow([vdc, adc[-1][0], xy[-1][0], xy[-1][1], xy1[-1][0], xy1[-1][1], xy2[-1][0],
+                                             xy2[-1][1], self._idc[i], self._didvx[i], self._didvy[i], self._d2idvx2[i],
+                                             self._d2idvy2[i], self._iets_normalized[i], self._iphotox[i],
+                                             self._iphotoy[i], vdc / self._idc[i], 1 / self._didvx[i]])
+            self._fig.tight_layout()
+            self._fig.canvas.draw()
 
     def close(self):
         self.abort()
@@ -364,6 +394,7 @@ class CurrentVoltageGateSweep:
         button = tk.Button(master=self._master, text='Abort', command=self.abort)
         button.pack(side=tk.BOTTOM)
         self._master.protocol("WM_DELETE_WINDOW", self.close)
+        self.makewaterfallfile()
         for n, gate in enumerate(self._gates):
             if self._abort:
                 break
@@ -379,41 +410,48 @@ class CurrentVoltageGateSweep:
                         self._writer = csv.writer(inputfile)
                         self._sweep_writer = csv.writer(fin)
                         self.write_header()
-                        #self.setup_plots()
-                        #self._ax1.set_title('Scan {} of {}, Gate = {} V'.format(scan, self._scans, self._gate))
+                        self.setup_plots()
+                        self._ax1.set_title('Scan {} of {}, Gate = {} V'.format(scan, self._scans, self._gate))
                         self.measure()
-                        #self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
-                        #self._canvas.get_tk_widget().destroy()
+                        self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
+                        self._canvas.get_tk_widget().destroy()
                         self.reset_values()
                     except ValueError as err:
                         print(err)
-                        #self._fig.savefig(self._imagefile, format='png',
-                         #                 bbox_inches='tight')  # saves an image of the completed data
+                        self._fig.savefig(self._imagefile, format='png',
+                                          bbox_inches='tight')  # saves an image of the completed data
             self._sr7270_dual_harmonic.change_applied_voltage(0)
-            #self.setup_plots()
-            #self._ax1.set_title('Average of {} scans, Gate = {} V'.format(self._scans, self._gate))
+            self.setup_plots()
+            self._ax1.set_title('Average of {} scans, Gate = {} V'.format(self._scans, self._gate))
             averaged_data = self._averaged_data_frame.groupby('voltage', as_index=False).mean()
-            #self._ax1.plot(averaged_data['voltage'], averaged_data['idc'], linestyle='', color='blue', marker='o',
-            #               markersize=2)
-            #self._ax2.plot(averaged_data['voltage'], averaged_data['didvx'], linestyle='', color='blue', marker='o',
-            #               markersize=2)
-            #self._ax2_twin.plot(averaged_data['voltage'], averaged_data['didvy'], linestyle='', color='red', marker='o',
-            #                    markersize=2)
-            #self._ax3.plot(averaged_data['voltage'], averaged_data['d2idvx2'], linestyle='', color='blue', marker='o',
-            #               markersize=2)
-            #self._ax3_twin.plot(averaged_data['voltage'], averaged_data['d2idvy2'], linestyle='', color='red', marker='o',
-            #                    markersize=2)
-            #self._ax4.plot(averaged_data['voltage'], averaged_data['iets_normalized'], linestyle='', color='blue',
-            #               marker='o',
-            #               markersize=2)
-            #self._ax4_twin.plot(averaged_data['voltage'], averaged_data['iphotox'], linestyle='', color='red', marker='o',
-            #                    markersize=2)
-            #self._ax5.plot(averaged_data['voltage'], averaged_data['diff d2idvx2'], linestyle='', color='blue', marker='o',
-            #               markersize=2)
-            #self._fig.tight_layout()
-            #self._fig.canvas.draw()
-            #self._fig.savefig(self._averaged_imagefile, format='png', bbox_inches='tight')
-            #self._canvas.get_tk_widget().destroy()
+            self._ax1.plot(averaged_data['voltage'], averaged_data['idc'], linestyle='', color='blue', marker='o',
+                           markersize=2)
+            self._fig.canvas.draw()
+            self._ax2.plot(averaged_data['voltage'], averaged_data['didvx'], linestyle='', color='blue', marker='o',
+                           markersize=2)
+            self._fig.canvas.draw()
+            self._ax2_twin.plot(averaged_data['voltage'], averaged_data['didvy'], linestyle='', color='red', marker='o',
+                                markersize=2)
+            self._fig.canvas.draw()
+            self._ax3.plot(averaged_data['voltage'], averaged_data['d2idvx2'], linestyle='', color='blue', marker='o',
+                           markersize=2)
+            self._fig.canvas.draw()
+            self._ax3_twin.plot(averaged_data['voltage'], averaged_data['d2idvy2'], linestyle='', color='red', marker='o',
+                                markersize=2)
+            self._fig.canvas.draw()
+            self._ax4.plot(averaged_data['voltage'], averaged_data['iets_normalized'], linestyle='', color='blue',
+                           marker='o', markersize=2)
+            self._fig.canvas.draw()
+            self._ax4_twin.plot(averaged_data['voltage'], averaged_data['iphotox'], linestyle='', color='red', marker='o',
+                                markersize=2)
+            self._fig.canvas.draw()
+            self._ax5.plot(averaged_data['voltage'], averaged_data['diff d2idvx2'], linestyle='', color='blue', marker='o',
+                           markersize=2)
+            self._fig.tight_layout()
+            self._fig.canvas.draw()
+            self._fig.savefig(self._averaged_imagefile, format='png', bbox_inches='tight')
+            tk_sleep(self._master, 2000)
+            self._canvas.get_tk_widget().destroy()
             averaged_data.to_csv(self._averaged_filename)
             self._wf_1[n] = averaged_data['didvx']
             self._wf_2[n] = averaged_data['didvy']
@@ -429,4 +467,5 @@ class CurrentVoltageGateSweep:
             self.update_plot(self._im6, self._wf_6)
             self._wf_canvas.draw()
             self._master.update()
+        self._wf_fig.savefig(self._wf_imagefile, format='png', bbox_inches='tight')
         self._keithley.set_voltage(0)

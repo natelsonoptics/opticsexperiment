@@ -16,7 +16,7 @@ from optics.heating_measurement.heating_intensity import HeatingIntensity
 from optics.heating_measurement.heating_polarization import HeatingPolarization
 from optics.thermovoltage_measurement.thermovoltage_map_dc import ThermovoltageScanDC
 from optics.thermovoltage_measurement.thermovoltage_polarization_dc import ThermovoltagePolarizationDC
-from optics.current_vs_voltage.test import CurrentVoltageGateSweep
+from optics.current_vs_voltage.current_vs_voltage_vs_gate import CurrentVoltageGateSweep
 from contextlib import ExitStack
 from optics.current_vs_voltage.current_vs_voltage import CurrentVoltageSweep
 from optics.electromigrate.daq_break import DAQBreak
@@ -76,6 +76,7 @@ class BaseLockinGUI(BaseGUI):
                        'intensity': self._app.build_change_intensity_gui,
                        'polarization': self._app.build_change_polarization_gui,
                        'ivsweep': self._app.build_sweep_iv_gui,
+                       'ivsweepgate': self._app.build_sweep_iv_gate_gui,
                        'singlereference': self._app.build_single_reference_gui,
                        'dualharmonic': self._app.build_dual_harmonic_gui,
                        'electromigrate': self._app.build_daqbreak_gui,
@@ -93,6 +94,8 @@ class BaseLockinGUI(BaseGUI):
             self.make_measurement_button(row, 'pte polarization', 'ptepolarizationdc')
         row = self.makerow('I-V curves')
         self.make_measurement_button(row, 'current', 'ivsweep')
+        if self._keithley:
+            self.make_measurement_button(row, 'gate', 'ivsweepgate')
         row = self.makerow('polarization scans')
         if self._polarizer:
             self.make_measurement_button(row, 'thermovoltage', 'ptepolarization')
@@ -316,19 +319,33 @@ class LockinMeasurementGUI(BaseGUI):
                                self._attenuatorwheel, self._polarizer)
         run.main()
 
+    def iv_sweep_gate(self, event=None):
+        self.fetch(event)
+        run = CurrentVoltageGateSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
+                                      self._inputs['device'], int(self._inputs['index']),
+                                      float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                                      float(self._inputs['oscillator amplitude (mV)']),
+                                      float(self._inputs['start voltage (mV)']),
+                                      float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
+                                      int(self._inputs['# to average']), self._sr7270_dual_harmonic,
+                                      self._sr7270_single_reference, float(self._inputs['wait time (ms)']),
+                                      int(self._inputs['scans']), int(self._inputs['tick spacing (mV)']),
+                                      self._keithley, float(self._inputs['min gate (V)']),
+                                      float(self._inputs['max gate (V)']), int(self._inputs['gate steps']))
+        run.main()
+
     def iv_sweep(self, event=None):
         self.fetch(event)
         if self._keithley:
             run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
-                                    self._inputs['device'], int(self._inputs['index']),
-                                    float(self._current_amplifier_gain_options[self._current_gain.get()]),
-                                    float(self._inputs['oscillator amplitude (mV)']),
-                                    float(self._inputs['start voltage (mV)']),
-                                    float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']),
-                                    int(self._inputs['# to average']), self._sr7270_dual_harmonic,
-                                    self._sr7270_single_reference, float(self._inputs['wait time (ms)']),
-                                    int(self._inputs['scans']), int(self._inputs['tick spacing (mV)']), self._keithley,
-                                    float(self._inputs['gate (V)']))
+                                      self._inputs['device'], int(self._inputs['index']),
+                                      float(self._current_amplifier_gain_options[self._current_gain.get()]),
+                                      float(self._inputs['oscillator amplitude (mV)']),
+                                      float(self._inputs['start voltage (mV)']),
+                                      float(self._inputs['stop voltage (mV)']), int(self._inputs['steps']), int(self._inputs['# to average']),
+                                      self._sr7270_dual_harmonic, self._sr7270_single_reference, float(self._inputs['wait time (ms)']),
+                                      int(self._inputs['scans']), int(self._inputs['tick spacing (mV)']), self._keithley,
+                                      float(self._inputs['gate (V)']), int(self._inputs['gate ramp spacing (mV)']))
         else:
             run = CurrentVoltageSweep(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
                                     self._inputs['device'], int(self._inputs['index']),
@@ -565,12 +582,23 @@ class LockinMeasurementGUI(BaseGUI):
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.heating_intensity)
 
+    def build_sweep_iv_gate_gui(self):
+        caption = "Current vs. Voltage vs. Gate waterfall"
+        self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
+                        'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
+                        'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'min gate (V)': 0,
+                        'max gate (V)': 10, 'gate steps': 10}
+        self.beginform(caption)
+        self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
+        self.endform(self.iv_sweep_gate)
+
     def build_sweep_iv_gui(self):
         caption = "Current vs. Voltage curves"
         if self._keithley:
             self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
                             'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
-                            'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'gate (V)': 0}
+                            'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'gate (V)': 0,
+                            'gate ramp spacing (mV)': 250}
         else:
             self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
                             'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,

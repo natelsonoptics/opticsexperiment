@@ -30,6 +30,10 @@ class SourceMeter:
     def set_voltage(self, output_level, compliance_level=0.1):
         self.configure_source(source_mode=0, compliance_level=compliance_level, output_level=output_level)
 
+    def set_voltage_no_compliance(self, output_level):
+        self._inst.write(':SOUR:FUNC {}'.format('VOLT'))
+        self._inst.write(':SOUR:{} {}'.format('VOLT', output_level))
+
     def configure_measurement(self, measurement_mode=0, auto_range=True, manual_range=0.1):
         """measurement_mode: 0 for voltage, 1 for current, 2 for resistance"""
         values = {0: 'VOLT', 1: 'CURR', 2: 'RES'}

@@ -17,7 +17,7 @@ import pandas as pd
 class CurrentVoltageSweep:
     def __init__(self, master, filepath, notes, device, index, gain, osc, start_voltage, stop_voltage, steps,
                  number_measurements, sr7270_dual_harmonic, sr7270_single_reference, wait_time_ms, scans, tick_spacing,
-                 keithley=None, gate=0):
+                 keithley=None, gate=0, gate_spacing=250):
         self._master = master
         self._filepath = filepath
         self._notes = notes
@@ -70,11 +70,15 @@ class CurrentVoltageSweep:
                                                           'diff d2idvy2'])
         self._keithley = keithley
         self._gate = gate
+        self._gate_spacing = gate_spacing
         if self._keithley:
-            self._keithley.reset()
-            tk_sleep(self._master, 1000)
-            self._keithley.set_voltage(self._gate)
             self._keithley.enable_output()
+            if self._gate:
+                print('ramping the gate voltage to {} V'.format(self._gate))
+                for i in np.linspace(0, self._gate, np.abs(self._gate * self._gate_spacing)):
+                    self._keithley.set_voltage_no_compliance(i)
+                    tk_sleep(self._master, 100)
+            self._keithley.set_voltage_no_compliance(self._gate)
 
     def abort(self):
         self._abort = True
@@ -334,23 +338,35 @@ class CurrentVoltageSweep:
         averaged_data = self._averaged_data_frame.groupby('voltage', as_index=False).mean()
         self._ax1.plot(averaged_data['voltage'], averaged_data['idc'], linestyle='', color='blue', marker='o',
                        markersize=2)
+        self._fig.canvas.draw()
         self._ax2.plot(averaged_data['voltage'], averaged_data['didvx'], linestyle='', color='blue', marker='o',
                        markersize=2)
+        self._fig.canvas.draw()
         self._ax2_twin.plot(averaged_data['voltage'], averaged_data['didvy'], linestyle='', color='red', marker='o',
                             markersize=2)
+        self._fig.canvas.draw()
         self._ax3.plot(averaged_data['voltage'], averaged_data['d2idvx2'], linestyle='', color='blue', marker='o',
                        markersize=2)
+        self._fig.canvas.draw()
         self._ax3_twin.plot(averaged_data['voltage'], averaged_data['d2idvy2'], linestyle='', color='red', marker='o',
                             markersize=2)
+        self._fig.canvas.draw()
         self._ax4.plot(averaged_data['voltage'], averaged_data['iets_normalized'], linestyle='', color='blue',
-                       marker='o',
-                       markersize=2)
+                       marker='o', markersize=2)
+        self._fig.canvas.draw()
         self._ax4_twin.plot(averaged_data['voltage'], averaged_data['iphotox'], linestyle='', color='red', marker='o',
                             markersize=2)
+        self._fig.canvas.draw()
         self._ax5.plot(averaged_data['voltage'], averaged_data['diff d2idvx2'], linestyle='', color='blue', marker='o',
                        markersize=2)
         self._fig.tight_layout()
         self._fig.canvas.draw()
         self._fig.savefig(self._averaged_imagefile, format='png', bbox_inches='tight')
         averaged_data.to_csv(self._averaged_filename)
-        self._keithley.set_voltage(0)
+        if self._keithley:
+            if self._gate:
+                print('ramping the gate voltage to 0 V')
+                for i in np.linspace(self._gate, 0, np.abs(self._gate * self._gate_spacing)):
+                    self._keithley.set_voltage_no_compliance(i)
+                    tk_sleep(self._master, 100)
+            self._keithley.set_voltage_no_compliance(0)

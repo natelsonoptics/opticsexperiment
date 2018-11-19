@@ -69,8 +69,8 @@ class LockIn:
                 if status_codes[list(status_codes.keys())[j]]:
                     if status_codes[list(status_codes.keys())[j]] != 'Lock in input overload':
                         raise ValueError(status_codes[list(status_codes.keys())[j]])
-                    else:
-                        print('Warning: {}'.format(status_codes[list(status_codes.keys())[j]]))
+                    #else:
+                    #    print('Warning: {}'.format(status_codes[list(status_codes.keys())[j]]))
                 if list(status_codes.keys())[j] == 'reference unlock':
                     self._unlocked = True
                 else:
