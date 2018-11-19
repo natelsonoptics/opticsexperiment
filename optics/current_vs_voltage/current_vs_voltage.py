@@ -75,7 +75,7 @@ class CurrentVoltageSweep:
             self._keithley.enable_output()
             if self._gate:
                 print('ramping the gate voltage to {} V'.format(self._gate))
-                for i in np.linspace(0, self._gate, np.abs(self._gate * self._gate_spacing)):
+                for i in np.linspace(0, self._gate, np.abs(self._gate / (self._gate_spacing / 1000))):
                     self._keithley.set_voltage_no_compliance(i)
                     tk_sleep(self._master, 100)
             self._keithley.set_voltage_no_compliance(self._gate)
@@ -366,7 +366,7 @@ class CurrentVoltageSweep:
         if self._keithley:
             if self._gate:
                 print('ramping the gate voltage to 0 V')
-                for i in np.linspace(self._gate, 0, np.abs(self._gate * self._gate_spacing)):
+                for i in np.linspace(self._gate, 0, np.abs(self._gate / (self._gate_spacing / 1000))):
                     self._keithley.set_voltage_no_compliance(i)
                     tk_sleep(self._master, 100)
             self._keithley.set_voltage_no_compliance(0)
