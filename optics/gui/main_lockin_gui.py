@@ -584,10 +584,10 @@ class LockinMeasurementGUI(BaseGUI):
 
     def build_sweep_iv_gate_gui(self):
         caption = "Current vs. Voltage vs. Gate waterfall"
-        self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
-                        'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
-                        'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'min gate (V)': 0,
-                        'max gate (V)': 10, 'gate steps': 10}
+        self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -250,
+                        'stop voltage (mV)': 250, 'steps': 251, '# to average': 10, 'wait time (ms)': 10,
+                        'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'min gate (V)': -100,
+                        'max gate (V)': 100, 'gate steps': 11}
         self.beginform(caption)
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.iv_sweep_gate)
@@ -595,13 +595,13 @@ class LockinMeasurementGUI(BaseGUI):
     def build_sweep_iv_gui(self):
         caption = "Current vs. Voltage curves"
         if self._keithley:
-            self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
-                            'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
+            self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -250,
+                            'stop voltage (mV)': 250, 'steps': 251, '# to average': 20, 'wait time (ms)': 10,
                             'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1, 'gate (V)': 0,
                             'gate ramp spacing (mV)': 250}
         else:
-            self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -300,
-                            'stop voltage (mV)': 300, 'steps': 301, '# to average': 20, 'wait time (ms)': 10,
+            self._fields = {'file path': "", 'device': "", 'index': 0, 'notes': "", 'start voltage (mV)': -250,
+                            'stop voltage (mV)': 250, 'steps': 251, '# to average': 20, 'wait time (ms)': 10,
                             'oscillator amplitude (mV)': 7, 'tick spacing (mV)': 25, 'scans': 1}
         self.beginform(caption)
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())

@@ -36,7 +36,7 @@ def convert_x2_to_d2idv2(x2, gain, osc):
 
 def normalize_dgdv_from_didv(vdc, didv, d2idv2):
     if not didv:
-        print('divide by 0 error')
+        print('warning: divide by 0 error in normalize dgdv')
         return 0
     else:
         return vdc * d2idv2 / didv

@@ -173,10 +173,6 @@ class RamanBaseGUI(BaseGUI):
         print('Center wavelength set to {}'.format(self._mono.read_wavelength()))
 
 
-
-
-
-
 def main():
     root = tk.Tk()
     app = RamanBaseGUI(root)

@@ -138,6 +138,7 @@ class CurrentVoltageGateSweep:
         self._raw_filepath = None
         self._averaged_filepath = None
         self._v = np.zeros((1, ))
+        self._v = []
 
     def abort(self):
         self._abort = True
@@ -220,27 +221,27 @@ class CurrentVoltageGateSweep:
                                                                           'scan',
                                                                           scan, 'of', self._scans, index,
                                                                           '.png'))
-        self._averaged_imagefile = path.join(self._filepath, '{}_{}_{}_{}_{}{}'.format(self._device, 'gate', self._gate,
+        self._averaged_imagefile = path.join(self._averaged_filepath, '{}_{}_{}_{}_{}{}'.format(self._device, 'gate', self._gate,
                                                                                        'total averaged IV sweep',
                                                                                        index, '.png'))
         while path.exists(self._filename):
             index += 1
-            self._filename = path.join(self._filepath, '{}_{}_{} {} {} {}_{}{}'.format(self._device, 'raw IV sweep',
+            self._filename = path.join(self._raw_filepath, '{}_{}_{} {} {} {}_{}{}'.format(self._device, 'raw IV sweep',
                                                                                        'scan', scan, 'of',
                                                                                        self._scans, index, '.csv'))
-            self._sweep_filename = path.join(self._filepath, '{}_{}_{} {} {} {}_{}{}'.format(self._device,
+            self._sweep_filename = path.join(self._averaged_filepath, '{}_{}_{} {} {} {}_{}{}'.format(self._device,
                                                                                              'averaged IV sweep',
                                                                                              'scan', scan, 'of',
                                                                                              self._scans, index,
                                                                                              '.csv'))
-            self._imagefile = path.join(self._filepath, '{}_{}_{} {} {} {}_{}{}'.format(self._device, 'IV sweep',
+            self._imagefile = path.join(self._raw_filepath, '{}_{}_{} {} {} {}_{}{}'.format(self._device, 'IV sweep',
                                                                                         'scan', scan, 'of',
                                                                                         self._scans, index, '.png'))
-            self._averaged_filename = path.join(self._filepath, '{}_{} {} {}_{}{}'.format(self._device,
+            self._averaged_filename = path.join(self._averaged_filepath, '{}_{} {} {}_{}{}'.format(self._device,
                                                                                           'total averaged IV sweep of',
                                                                                           self._scans, 'scans', index,
                                                                                           '.csv'))
-            self._averaged_imagefile = path.join(self._filepath, '{}_{} {} {}_{}{}'.format(self._device,
+            self._averaged_imagefile = path.join(self._averaged_filepath, '{}_{} {} {}_{}{}'.format(self._device,
                                                                                            'total averaged IV sweep of',
                                                                                            self._scans, 'scans', index,
                                                                                            '.png'))
@@ -337,7 +338,7 @@ class CurrentVoltageGateSweep:
                                        convert_x_to_iphoto(xy[k][0], self._gain),
                                        convert_x_to_iphoto(xy[k][1], self._gain),
                                        vdc / convert_adc_to_idc(adc[k][0], self._gain),
-                                       1 / convert_x1_to_didv(xy1[k][0], self._gain, self._osc)])
+                                       1 / convert_x1_to_didv(xy1[k][0], self._gain, self._osc) if xy1[k][0] else 0])
             self._didvx.append(convert_x1_to_didv(np.average([k[0] for k in xy1]), self._gain, self._osc))
             self._didvy.append(convert_x1_to_didv(np.average([k[1] for k in xy1]), self._gain, self._osc))
             if i >= 1:
@@ -459,6 +460,7 @@ class CurrentVoltageGateSweep:
             self._wf_4[n] = averaged_data['d2idvy2']
             self._wf_5[n] = averaged_data['iets_normalized']
             self._wf_6[n] = averaged_data['iets_normalized_y']
+            self._v = averaged_data['voltage']
             self.update_plot(self._im1, self._wf_1)
             self.update_plot(self._im2, self._wf_2)
             self.update_plot(self._im3, self._wf_3)
@@ -468,4 +470,12 @@ class CurrentVoltageGateSweep:
             self._wf_canvas.draw()
             self._master.update()
         self._wf_fig.savefig(self._wf_imagefile, format='png', bbox_inches='tight')
+        #for i in [(self._wf_1, self._wf_didvx_file), (self._wf_2, self._wf_didvy_file), (self._wf_3, self._wf_d2idvx2_file),
+        #          (self._wf_4, self._wf_d2idvy2_file), (self._wf_5, self._wf_iets_file), (self._wf_6, self._wf_iets_y_file)]:
+        #    df = pd.DataFrame(np.concatenate((np.array(self._gates).reshape((len(self._gates), 1)) + i[0]), 1), columns=['gate', *[j for j in self._v]])
+        #    df.to_csv(i[1])
+        print('ramping gate to 0 V')
+        for i in np.linspace(self._gate, 0, np.abs(self._gate * 4)):
+            self._keithley.set_voltage_no_compliance(i)
+            tk_sleep(self._master, 100)
         self._keithley.set_voltage(0)
