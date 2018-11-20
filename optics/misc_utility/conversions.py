@@ -54,7 +54,7 @@ def normalize_iets_from_didv(didv, d2idv2):
         print('warning: divide by zero error in normalize IETS')
         return 0
     else:
-        return d2idv2 / didv
+        return np.abs(d2idv2 / didv)
 
 def convert_adc_to_idc(adc, gain, lpf_factor=low_pass_filter_factor):
     return adc / (gain * lpf_factor)

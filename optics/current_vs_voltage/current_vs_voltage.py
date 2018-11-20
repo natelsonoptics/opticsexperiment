@@ -253,11 +253,11 @@ class CurrentVoltageSweep:
                                        convert_x1_to_didv(xy1[k][1], self._gain, self._osc),
                                        convert_x2_to_d2idv2(xy2[k][0], self._gain, self._osc),
                                        convert_x2_to_d2idv2(xy2[k][1], self._gain, self._osc),
-                                       normalize_iets_from_x1(xy1[k][0], xy2[k][1], self._gain, self._osc),
+                                       normalize_iets_from_x1(xy1[k][0], xy2[k][0], self._gain, self._osc),
                                        convert_x_to_iphoto(xy[k][0], self._gain),
                                        convert_x_to_iphoto(xy[k][1], self._gain),
                                        vdc / convert_adc_to_idc(adc[k][0], self._gain),
-                                       1 / convert_x1_to_didv(xy1[k][0], self._gain, self._osc)])
+                                       1 / convert_x1_to_didv(xy1[k][0], self._gain, self._osc) if xy1[k][0] else 0])
             self._didvx.append(convert_x1_to_didv(np.average([k[0] for k in xy1]), self._gain, self._osc))
             self._didvy.append(convert_x1_to_didv(np.average([k[1] for k in xy1]), self._gain, self._osc))
             if i >= 1:
