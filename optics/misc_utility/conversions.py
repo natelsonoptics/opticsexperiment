@@ -39,9 +39,7 @@ def normalize_dgdv_from_didv(vdc, didv, d2idv2):
         print('divide by 0 error')
         return 0
     else:
-        return (vdc * d2idv2 / didv)
-
-
+        return vdc * d2idv2 / didv
 
 def normalize_dgdv_from_x1(vdc, x1, x2, gain, osc):
     return normalize_dgdv_from_didv(vdc, convert_x1_to_didv(x1, gain, osc), convert_x2_to_d2idv2(x2, gain, osc))
