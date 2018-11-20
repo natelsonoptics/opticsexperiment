@@ -176,6 +176,12 @@ class CurrentVoltageGateSweep:
 
     def makewaterfallfile(self):
         os.makedirs(self._filepath, exist_ok=True)
+        f = os.path.join(self._filepath, '{}_{}'.format(self._device, self._index))
+        while path.exists(f):
+            self._index += 1
+            f = os.path.join(self._filepath, '{}_{}'.format(self._device, self._index))
+        os.makedirs(f, exist_ok=True)
+        self._filepath = f
         self._wf_imagefile = path.join(self._filepath, '{}_{}_{}{}'.format(self._device, 'waterfall', self._index, '.png'))
         while path.exists(self._wf_imagefile):
             self._index += 1
@@ -451,7 +457,7 @@ class CurrentVoltageGateSweep:
             self._fig.tight_layout()
             self._fig.canvas.draw()
             self._fig.savefig(self._averaged_imagefile, format='png', bbox_inches='tight')
-            tk_sleep(self._master, 2000)
+            tk_sleep(self._master, 1000)
             self._canvas.get_tk_widget().destroy()
             averaged_data.to_csv(self._averaged_filename)
             self._wf_1[n] = averaged_data['didvx']
@@ -470,10 +476,10 @@ class CurrentVoltageGateSweep:
             self._wf_canvas.draw()
             self._master.update()
         self._wf_fig.savefig(self._wf_imagefile, format='png', bbox_inches='tight')
-        #for i in [(self._wf_1, self._wf_didvx_file), (self._wf_2, self._wf_didvy_file), (self._wf_3, self._wf_d2idvx2_file),
-        #          (self._wf_4, self._wf_d2idvy2_file), (self._wf_5, self._wf_iets_file), (self._wf_6, self._wf_iets_y_file)]:
-        #    df = pd.DataFrame(np.concatenate((np.array(self._gates).reshape((len(self._gates), 1)) + i[0]), 1), columns=['gate', *[j for j in self._v]])
-        #    df.to_csv(i[1])
+        for i in [(self._wf_1, self._wf_didvx_file), (self._wf_2, self._wf_didvy_file), (self._wf_3, self._wf_d2idvx2_file),
+                  (self._wf_4, self._wf_d2idvy2_file), (self._wf_5, self._wf_iets_file), (self._wf_6, self._wf_iets_y_file)]:
+            df = pd.DataFrame(np.concatenate((self._gates.reshape((len(self._gates), 1)), i[0]), 1), columns=['gate', *[j for j in self._v]])
+            df.to_csv(i[1])
         print('ramping gate to 0 V')
         for i in np.linspace(self._gate, 0, np.abs(self._gate * 4)):
             self._keithley.set_voltage_no_compliance(i)
