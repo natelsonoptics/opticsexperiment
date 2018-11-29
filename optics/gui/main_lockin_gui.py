@@ -178,24 +178,15 @@ class LockinMeasurementGUI(BaseGUI):
 
     def electromigrate(self, event=None):
         self.fetch(event)
-        if self._abort.get() == 'True':
-            abort = True
-        else:
-            abort = False
-        if self._increase.get() == 'True':
-            increase = True
-        else:
-            increase = False
-
         run = DAQBreak(tk.Toplevel(self._master), self._daq_switch_ao, self._daq_switch_ai, self._inputs['file path'],
                        self._inputs['device'], steps=int(self._inputs['steps']),
                        stop_voltage=float(self._inputs['stop voltage (resistance measurement)']),
                        desired_resistance=float(self._inputs['desired resistance']),
                        break_voltage=float(self._inputs['break voltage']), passes=float(self._inputs['passes']),
-                       increase_break_voltage=increase, delta_break_voltage=float(self._inputs['delta break voltage']),
+                       increase_break_voltage=self.string_to_bool(self._increase.get()), delta_break_voltage=float(self._inputs['delta break voltage']),
                        start_voltage=float(self._inputs['start voltage']),
                        delta_voltage=float(self._inputs['delta voltage']),
-                       current_drop=float(self._inputs['current drop']), abort=abort,
+                       current_drop=float(self._inputs['current drop']), abort=self.string_to_bool(self._abort.get()),
                        gain=float(self._current_amplifier_gain_options[self._current_gain.get()]))
         run.main()
 
@@ -675,7 +666,7 @@ class LockinMeasurementGUI(BaseGUI):
         caption = 'Keithley K2400 electromigration'
         self._fields = {'file path': '', 'device': '', 'desired resistance': 100,
                         'stop voltage (resistance measurement)': 0.05, 'steps': 10, 'start voltage': 0.1,
-                        'break voltage': 1.5, 'delta break voltage': 0.005, 'delta voltage': 0.002,
+                        'break voltage': 0.7, 'delta break voltage': 0.005, 'delta voltage': 0.002,
                         'percent current drop': 0.4, 'passes': 1}
         self.beginform(caption, True)
         self.make_option_menu('abort', self._abort, ['True', 'False'])
@@ -685,25 +676,17 @@ class LockinMeasurementGUI(BaseGUI):
 
     def k2400electromigrate(self, event=None):
         self.fetch(event)
-        if self._abort.get() == 'True':
-            abort = True
-        else:
-            abort = False
-        if self._increase.get() == 'True':
-            increase = True
-        else:
-            increase = False
         run = KeithleyBreak(tk.Toplevel(self._master), self._keithley, self._inputs['file path'],
                             self._inputs['device'],
                             steps=int(self._inputs['steps']),
                             stop_voltage=float(self._inputs['stop voltage (resistance measurement)']),
                             desired_resistance=float(self._inputs['desired resistance']),
                             break_voltage=float(self._inputs['break voltage']), passes=float(self._inputs['passes']),
-                            increase_break_voltage=increase,
+                            increase_break_voltage=self.string_to_bool(self._increase.get()),
                             delta_break_voltage=float(self._inputs['delta break voltage']),
                             start_voltage=float(self._inputs['start voltage']),
                             delta_voltage=float(self._inputs['delta voltage']),
-                            r_percent=float(self._inputs['percent current drop']), abort=abort)
+                            r_percent=float(self._inputs['percent current drop']), abort=self.string_to_bool(self._abort.get()))
         run.main()
 
     def build_coming_soon(self):

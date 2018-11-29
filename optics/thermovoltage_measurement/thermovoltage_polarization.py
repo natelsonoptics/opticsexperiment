@@ -10,6 +10,7 @@ from os import path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
+import numpy as np
 
 
 class ThermovoltagePolarization:
@@ -111,6 +112,18 @@ class ThermovoltagePolarization:
             self._canvas.draw()
             self._master.update()
 
+    def home_polarizer(self):
+        polarization = self._polarizer.read_polarization()
+        self._polarizer.move_nearest(0)
+        tk_sleep(self._master, 10000)
+        self._polarizer.home()
+        tk_sleep(self._master, 5000)
+        self._polarizer.move_nearest(174)
+        tk_sleep(self._master, 20000)
+        self._polarizer.home()
+        if not polarization < 5 and not 175 < polarization < 185 and not polarization > 355:
+            self._polarizer.move_nearest(np.round(polarization, 1))
+
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
@@ -123,6 +136,8 @@ class ThermovoltagePolarization:
                 self.setup_plots()
                 self.measure()
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
+                if not self._abort:
+                    self.home_polarizer()
             except KeyboardInterrupt:
                 self._fig.savefig(self._imagefile, format='png',
                                   bbox_inches='tight')  # saves an image of the completed data

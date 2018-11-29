@@ -67,7 +67,7 @@ class ThermovoltageScan:
         self._direction = direction
         if not self._direction:
             self._y_val = self._y_val[::-1]
-        self._fig.tight_layout()
+        self._fig.set_tight_layout(True)
         self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)  # A tk.DrawingArea.
         self._canvas.draw()
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -184,7 +184,7 @@ class ThermovoltageScan:
                     self._z2[x_ind][y_ind] = voltages[1] * 1000000
                     self.update_plot(self._im1, self._z1, -np.amax(np.abs(self._z1)), np.amax(np.abs(self._z1)))
                     self.update_plot(self._im2, self._z2, -np.amax(np.abs(self._z2)), np.amax(np.abs(self._z2)))
-                    self._fig.tight_layout()
+                    self._fig.set_tight_layout(True)
                     self._canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
                     self._master.update()
                     if self._abort:
@@ -198,7 +198,7 @@ class ThermovoltageScan:
                 self._ax4.plot(y_ind, v_y_cut * 1000000,
                                linestyle='', color='blue', marker='o', markersize=2)
                 self._cut_writer.writerow([y_ind, v_x_cut, v_y_cut])
-                self._fig.tight_layout()
+                self._fig.set_tight_layout(True)
                 self._canvas.draw()
             self._npc3sg_x.move(0)
             self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
@@ -224,7 +224,7 @@ class ThermovoltageScan:
                     self._z2[x_ind][y_ind] = voltages[1] * 1000000
                     self.update_plot(self._im1, self._z1, -np.amax(np.abs(self._z1)), np.amax(np.abs(self._z1)))
                     self.update_plot(self._im2, self._z2, -np.amax(np.abs(self._z2)), np.amax(np.abs(self._z2)))
-                    self._fig.tight_layout()
+                    self._fig.set_tight_layout(True)
                     self._canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
                     self._master.update()
                     if self._abort:
@@ -238,7 +238,7 @@ class ThermovoltageScan:
                                linestyle='', color='blue', marker='o', markersize=2)
                 self._ax4.plot(x_ind, v_y_cut * 1000000,
                                linestyle='', color='blue', marker='o', markersize=2)
-                self._fig.tight_layout()
+                self._fig.set_tight_layout(True)
                 self._canvas.draw()
             self._npc3sg_x.move(0)
             self._npc3sg_y.move(0)  # returns piezo controller position to 0,0

@@ -115,4 +115,10 @@ class BaseGUI:
     def onclick_browse(self):
         self._filepath.set(tkinter.filedialog.askdirectory())
 
+    def string_to_bool(self, s):
+        if s == 'True':
+            return True
+        else:
+            return False
+
 

@@ -1,33 +1,31 @@
 import ctypes
-
 co_initialize = ctypes.windll.ole32.CoInitialize
 import tkinter as tk
-from tkinter.filedialog import askdirectory
-import numpy as np
-import matplotlib.pyplot as plt
-
 co_initialize(None)
 from optics.under_development.ccd_controller import CCDController2
 from optics.under_development.mono_controller import MonoController
-import time
-from optics.raman import unit_conversions
+from optics.raman.single_spectrum import BaseRamanMeasurement
 from optics.gui.base_gui import BaseGUI
 import time
 
 
 class RamanGUI(BaseGUI):
-    def __init__(self, master, mono=None, ccd_controller=None, raman_gain=None, grating=None, center_wavelength=785):
+    def __init__(self, master, mono=None, ccd_controller=None):
         self._master = master
         super().__init__(self._master)
         self._mono = mono
         self._ccd_controller = ccd_controller
-        self._raman_gain = raman_gain
-        self._grating = grating
+        self._raman_gain = self._ccd_controller.read_gain()
+        self._grating = self._mono.get_current_turret()[1]
         self._shutter = tk.StringVar()
         self._shutter.set('True')
-        self._center_wavelength = center_wavelength
+        self._center_wavelength = self._mono.read_wavelength()
         self._units = tk.StringVar()
         self._units.set('cm^-1')
+        self._darkcurrent = tk.StringVar()
+        self._dark_corrected = tk.StringVar()
+        self._dark_corrected.set('False')
+        self._darkcurrent.set('False')
 
     def build_single_spectrum_gui(self):
         caption = "Single Raman spectrum"
@@ -36,19 +34,40 @@ class RamanGUI(BaseGUI):
         self.beginform(caption)
         self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
         self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
+        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
+        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
         self.endform(self.single_spectrum)
 
+    def build_waterfall_spectrum_gui(self):
+        caption = 'Raman vs time waterfall spectrum'
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
+                        'acquisitions to average': 1, 'number of scans': 10}
+        self.beginform(caption)
+        self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
+        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
+        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
+        self.endform(self.waterfall)
+
+    def build_spectrum_map_gui(self):
+        caption = 'Raman map'
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
+                        'acquisitions to average': 1, 'x pixel density': 10, 'y pixel density': 10, 'x range': 160,
+                        'y range': 160, 'x center': 80, 'y center': 80}
+
     def single_spectrum(self, event=None):
-        from optics.raman.single_spectrum import take_single_spectrum
         self.fetch(event)
-        if self._shutter.get() == 'True':
-            shutter = True
-        else:
-            shutter = False
-        take_single_spectrum(self._ccd_controller, self._grating, self._raman_gain,
-                             self._center_wavelength, self._units.get(),
-                             float(self._inputs['integration time (s)']), int(self._inputs['acquisitions to average']),
-                             shutter)
+        run = BaseRamanMeasurement(tk.Toplevel(self._master), self._ccd_controller, self._grating, self._raman_gain,
+                                   self._center_wavelength, self._units.get(), float(self._inputs['integration time (s)']),
+                                   int(self._inputs['acquisitions to average']),
+                                   self.string_to_bool(self._shutter.get()), self.string_to_bool(self._darkcurrent.get()), self.string_to_bool(self._dark_corrected.get()), self._inputs['device'], self._inputs['file path'], self._fields['notes'],
+                                   int(self._fields['scan']), polarizer=None, powermeter=None)
+        run.main()
+
+    def waterfall(self, event=None):
+        self.fetch(event)
+
+
 
 
 class RamanBaseGUI(BaseGUI):
@@ -71,8 +90,7 @@ class RamanBaseGUI(BaseGUI):
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
-        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._gain, self._current_grating,
-                             self._center_wavelength)
+        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui}
         measurement[measurementtype]()
 
@@ -91,6 +109,12 @@ class RamanBaseGUI(BaseGUI):
         b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
         b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
         b12.pack()
+
+    def to_bool(self, s):
+        if s == 'True':
+            return True
+        else:
+            return False
 
     def change_gain_gui(self):
         self._newWindow = tk.Toplevel(self._master)

@@ -39,7 +39,8 @@ class CurrentVoltageGateSweep:
         self._ax2_twin = None
         self._ax3_twin = None
         self._ax4_twin = None
-        self._voltages = np.linspace(stop_voltage / 1000, start_voltage / 1000, steps)
+        #self._voltages = np.linspace(stop_voltage / 1000, start_voltage / 1000, steps)
+        self._voltages = np.linspace(start_voltage / 1000, stop_voltage / 1000, steps)
         self._writer = None
         self._sweep_writer = None
         self._filename = None
@@ -71,17 +72,17 @@ class CurrentVoltageGateSweep:
         self._wf_5 = np.zeros((len(self._gates), len(self._voltages)))
         self._wf_6 = np.zeros((len(self._gates), len(self._voltages)))
         self._im1 = self._wf_ax1.imshow(self._wf_1, interpolation='nearest', origin='lower', aspect='auto',
-                                        extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
+                                        extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
         self._im2 = self._wf_ax2.imshow(self._wf_2, interpolation='nearest',
-                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
+                                     origin='lower', aspect='auto', extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
         self._im3 = self._wf_ax3.imshow(self._wf_3,  interpolation='nearest',
-                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
+                                     origin='lower', aspect='auto', extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
         self._im4 = self._wf_ax4.imshow(self._wf_4, interpolation='nearest',
-                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
+                                     origin='lower', aspect='auto', extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
         self._im5 = self._wf_ax5.imshow(self._wf_5, interpolation='nearest',
-                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
+                                     origin='lower', aspect='auto', extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
         self._im6 = self._wf_ax6.imshow(self._wf_6, interpolation='nearest',
-                                     origin='lower', aspect='auto', extent=[self._voltages[-1], self._voltages[0], self._gates[0], self._gates[-1]])
+                                     origin='lower', aspect='auto', extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
         self._wf_ax1.set_title('dIdVx')
         self._wf_ax2.set_title('dIdVy')
         self._wf_ax3.set_title('d2IdV2x')
@@ -91,8 +92,6 @@ class CurrentVoltageGateSweep:
         for ax in [self._wf_ax1, self._wf_ax2, self._wf_ax3, self._wf_ax4, self._wf_ax5, self._wf_ax6]:
             ax.set_xlabel('applied voltage')
             ax.set_ylabel('gate (V)')
-            x = np.flip(self._voltages, axis=0)
-            y = self._gates
         self._clb1 = self._wf_fig.colorbar(self._im1, ax=self._wf_ax1)
         self._clb2 = self._wf_fig.colorbar(self._im2, ax=self._wf_ax2)
         self._clb3 = self._wf_fig.colorbar(self._im3, ax=self._wf_ax3)
@@ -408,7 +407,7 @@ class CurrentVoltageGateSweep:
             self._gate = gate
             self._keithley.set_voltage(gate)
             for scan in range(1, self._scans + 1):
-                self._voltages = np.flip(self._voltages, axis=0)
+                #self._voltages = np.flip(self._voltages, axis=0)
                 self.makefile(scan)
                 with open(self._filename, 'w', newline='') as inputfile, open(self._sweep_filename, 'w', newline='') as fin:
                     try:

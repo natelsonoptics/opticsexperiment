@@ -138,6 +138,9 @@ class CCDController:
     def disable_input_triggers(self):
         self._ccd.DisableAllInputTriggers()
 
+    def dark_subtract(self, bool=True):
+        self._ccd.DarkSubtract = bool
+
 
 class CCDController2(CCDController):
     def __init__(self):
@@ -150,7 +153,8 @@ class CCDController2(CCDController):
         time.sleep(1)
         self._xpixels, _ = self.read_chip_size()
 
-    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True):
+    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True, darksubstract=True):
+        self.dark_subtract(darksubstract)
         self.set_integration_time(integration_time_seconds)
         self.set_adc()
         self.set_gain(gain)
