@@ -173,7 +173,19 @@ class RamanBaseGUI(BaseGUI):
                                                                                                            description))
 
     def change_slit_width_gui(self):
-        print(self._mono.read_front_slit_width())
+        self._newWindow = tk.Toplevel(self._master)
+        self._newWindow.title('Change slit width')
+        self._fields = {'slit width': self._mono.read_front_slit_width()}
+        self.beginform('Change slit width', False, self._newWindow)
+        self.makebutton('Run', self.change_slit_width, master=self._newWindow)
+        self.makebutton('Quit', self._newWindow.destroy, master=self._newWindow)
+
+    def change_slit_width(self, event=None):
+        self.fetch(event)
+        self._mono.set_front_slit_width(float(self._inputs['slit width']))
+        while self._mono.is_busy():
+            time.sleep(0.1)
+        print('Front slit width changed to {}'.format(self._mono.read_front_slit_width()))
 
     def change_center_wavelength_gui(self):
         self._newWindow = tk.Toplevel(self._master)

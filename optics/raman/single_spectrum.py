@@ -141,6 +141,12 @@ class WaterfallRaman(BaseRamanMeasurement):
         self._polarizer = polarizer
         self._scans = scans
         self._powermeter = powermeter
+        self._wf_fig = Figure()
+        self._wf_fig.set_size_inches(14, 9)
+        self._wf_ax1 = self._wf_fig.add_subplot(111)
+        self._wf_1 = np.zeros((len(self._scans), 1024))
+        #self._im1 = self._wf_ax1.imshow(self._wf_1, interpolation='nearest', origin='lower', aspect='auto',
+        #                                extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
 
 
 
