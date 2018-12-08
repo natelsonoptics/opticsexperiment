@@ -91,7 +91,7 @@ class BaseRamanMeasurement:
 
     def integrate_spectrum(self, start, stop):
         return np.trapz([self._data[i] for i in range(len(self._xvalues)) if start <= self._xvalues[i] <= stop],
-                        [i for i in self._xvalues if stop <= i <= stop])
+                        [i for i in self._xvalues if start <= i <= stop])
 
     def save_single_spectrum(self):
         with open(self._filename, 'w', newline='') as inputfile:
@@ -165,10 +165,11 @@ class RamanTime(BaseRamanMeasurement):
         with open(self._filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
             while time.time() - start_time < self._maxtime:
-                now = time.time()
+                now = time.time() - start_time
                 self.take_spectrum()
                 writer.writerow(['time scan {}'.format(now), *[i for i in self._data]])
                 self.plot_point(now, self.integrate_spectrum(self._start, self._stop))
+                self._master.update()
                 tk_sleep(self._master, self._sleep_time * 1000)
                 if self._abort:
                     break

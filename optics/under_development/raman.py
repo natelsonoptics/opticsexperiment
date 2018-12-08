@@ -72,16 +72,16 @@ class RamanGUI(BaseGUI):
     def time_spectrum(self, event=None):
         self.fetch(event)
         run = RamanTime(tk.Toplevel(self._master), self._ccd_controller, self._grating, self._raman_gain,
-                                   self._center_wavelength, self._units.get(),
-                                   float(self._inputs['integration time (s)']),
-                                   int(self._inputs['acquisitions to average']),
-                                   self.string_to_bool(self._shutter.get()),
-                                   self.string_to_bool(self._darkcurrent.get()),
-                                   self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
-                                   self._inputs['file path'], self._fields['notes'],
-                                   int(self._fields['scan']), float(self._fields['wait time between scans (s)']),
-                        float(self._fields['maximum time (s)']), float(self._fields['start wavelength']),
-                        float(self._fields['stop wavelength']), polarizer=None, powermeter=None)
+                        self._center_wavelength, self._units.get(),
+                        float(self._inputs['integration time (s)']),
+                        int(self._inputs['acquisitions to average']),
+                        self.string_to_bool(self._shutter.get()),
+                        self.string_to_bool(self._darkcurrent.get()),
+                        self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
+                        self._inputs['file path'], self._fields['notes'],
+                        int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
+                        float(self._inputs['maximum time (s)']), float(self._inputs['start wavelength']),
+                        float(self._inputs['stop wavelength']), polarizer=None, powermeter=None)
         run.main()
 
 
