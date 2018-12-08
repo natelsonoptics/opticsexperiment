@@ -4,7 +4,7 @@ import tkinter as tk
 co_initialize(None)
 from optics.under_development.ccd_controller import CCDController2
 from optics.under_development.mono_controller import MonoController
-from optics.raman.single_spectrum import BaseRamanMeasurement
+from optics.raman.single_spectrum import BaseRamanMeasurement, RamanTime
 from optics.gui.base_gui import BaseGUI
 import time
 
@@ -57,9 +57,32 @@ class RamanGUI(BaseGUI):
                                    int(self._fields['scan']), polarizer=None, powermeter=None)
         run.main()
 
+    def build_time_spectrum_gui(self):
+        caption = 'Raman time'
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
+                        'acquisitions to average': 1, 'start wavelength': '', 'stop wavelength': '',
+                        'maximum time (s)': 60, 'wait time between scans (s)': 1}
+        self.beginform(caption)
+        self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
+        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
+        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
+        self.endform(self.time_spectrum)
 
-
-
+    def time_spectrum(self, event=None):
+        self.fetch(event)
+        run = RamanTime(tk.Toplevel(self._master), self._ccd_controller, self._grating, self._raman_gain,
+                                   self._center_wavelength, self._units.get(),
+                                   float(self._inputs['integration time (s)']),
+                                   int(self._inputs['acquisitions to average']),
+                                   self.string_to_bool(self._shutter.get()),
+                                   self.string_to_bool(self._darkcurrent.get()),
+                                   self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
+                                   self._inputs['file path'], self._fields['notes'],
+                                   int(self._fields['scan']), float(self._fields['wait time between scans (s)']),
+                        float(self._fields['maximum time (s)']), float(self._fields['start wavelength']),
+                        float(self._fields['stop wavelength']), polarizer=None, powermeter=None)
+        run.main()
 
 
 class RamanBaseGUI(BaseGUI):
@@ -83,12 +106,14 @@ class RamanBaseGUI(BaseGUI):
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
         self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller)
-        measurement = {'singlespectrum': self._app.build_single_spectrum_gui}
+        measurement = {'singlespectrum': self._app.build_single_spectrum_gui,
+                       'timespectrum': self._app.build_time_spectrum_gui}
         measurement[measurementtype]()
 
     def build(self):
         row = self.makerow('single spectrum')
         self.make_measurement_button(row, 'Raman', 'singlespectrum')
+        self.make_measurement_button(row, 'Time', 'timespectrum')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
