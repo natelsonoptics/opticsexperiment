@@ -3,18 +3,17 @@ matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 from optics.misc_utility import scanner, conversions
 import csv
 import numpy as np
-from optics.thermovoltage_plot import thermovoltage_plot
 from tkinter import *
 import warnings
 import os
 from os import path
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 import tkinter as tk
 from optics.misc_utility.tkinter_utilities import tk_sleep
 from optics.raman.unit_conversions import convert_pixels_to_unit
 from optics.hardware_control.hardware_addresses_and_constants import laser_wavelength
+import time
 
 
 class BaseRamanMeasurement:
@@ -90,6 +89,10 @@ class BaseRamanMeasurement:
         self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
 
+    def integrate_spectrum(self, start, stop):
+        return np.trapz([self._data[i] for i in range(len(self._xvalues)) if start <= self._xvalues[i] <= stop],
+                        [i for i in self._xvalues if stop <= i <= stop])
+
     def save_single_spectrum(self):
         with open(self._filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
@@ -117,36 +120,69 @@ class BaseRamanMeasurement:
         self.plot_single_spectrum()
         self.save_single_spectrum()
 
-class WaterfallRaman(BaseRamanMeasurement):
-    def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions, scans,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer=None, powermeter=None):
+
+class RamanTime(BaseRamanMeasurement):
+    def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
+                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, sleep_time, maxtime, start, stop,
+                 polarizer=None, powermeter=None):
         super().__init__(master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer=None, powermeter=None)
-        self._master = master
-        self._ccd = ccd
-        self._grating = grating
-        self._raman_gain = raman_gain
-        self._center_wavelength = center_wavelength
-        self._units = units
-        self._integration_time = integration_time
-        self._acquisitions = acquisitions
-        self._shutter = shutter
-        self._dark_current = darkcurrent
-        self._dark_corrected = darkcorrected
-        self._device = device
-        self._filepath = filepath
-        self._notes = notes
-        self._index = index
-        self._data = []
-        self._polarizer = polarizer
-        self._scans = scans
-        self._powermeter = powermeter
-        self._wf_fig = Figure()
-        self._wf_fig.set_size_inches(14, 9)
-        self._wf_ax1 = self._wf_fig.add_subplot(111)
-        self._wf_1 = np.zeros((len(self._scans), 1024))
-        #self._im1 = self._wf_ax1.imshow(self._wf_1, interpolation='nearest', origin='lower', aspect='auto',
-        #                                extent=[self._voltages[0], self._voltages[-1], self._gates[0], self._gates[-1]])
+                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer, powermeter)
+        self._sleep_time = sleep_time
+        self._maxtime = maxtime
+        self._start = start
+        self._stop = stop
+
+    def write_header(self):
+        with open(self._filename, 'w', newline='') as inputfile:
+            writer = csv.writer(inputfile)
+            writer.writerow(['laser wavelength:', laser_wavelength])
+            writer.writerow(['polarization:', self._polarization])
+            writer.writerow(['power (W):', self._power])
+            gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
+            writer.writerow(['raman gain:', gain_options[self._raman_gain]])
+            writer.writerow(['center wavelength:', self._center_wavelength])
+            writer.writerow(['acquisitions:', self._acquisitions])
+            writer.writerow(['integration time:', self._integration_time])
+            writer.writerow(['shutter open:', self._shutter])
+            writer.writerow(['dark current corrected:', self._dark_current])
+            writer.writerow(['dark corrected:', self._dark_corrected])
+            writer.writerow(['grating:', self._grating])
+            writer.writerow(['notes:', self._notes])
+            writer.writerow(['x value units:', self._units])
+            writer.writerow(['end:', 'end of header'])
+            writer.writerow(['x values', *self._xvalues])
+
+    def plot_point(self, x, y):
+        self._single_ax1.plot(x, y, linestyle='', color='blue', marker='o', markersize=2)
+        self._single_ax1.set_xlabel('time (s)')
+        self._single_ax1.set_ylabel('counts')
+        self._single_fig.tight_layout()
+        self._single_canvas.draw()
+        self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+    def measure(self):
+        start_time = time.time()
+        with open(self._filename, 'a', newline='') as inputfile:
+            writer = csv.writer(inputfile)
+            while time.time() - start_time < self._maxtime:
+                now = time.time()
+                self.take_spectrum()
+                writer.writerow(['time scan {}'.format(now), *[i for i in self._data]])
+                self.plot_point(now, self.integrate_spectrum(self._start, self._stop))
+                tk_sleep(self._master, self._sleep_time * 1000)
+                if self._abort:
+                    break
+
+    def main(self):
+        button = tk.Button(master=self._master, text="Abort", command=self.abort)
+        button.pack(side=tk.BOTTOM)
+        self.make_file(measurement_title='time measurement')
+        self.write_header()
+        self.measure()
+        self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
+
+
+
 
 
 

@@ -38,17 +38,6 @@ class RamanGUI(BaseGUI):
         self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
         self.endform(self.single_spectrum)
 
-    def build_waterfall_spectrum_gui(self):
-        caption = 'Raman vs time waterfall spectrum'
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
-                        'acquisitions to average': 1, 'number of scans': 10}
-        self.beginform(caption)
-        self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
-        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
-        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
-        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
-        self.endform(self.waterfall)
-
     def build_spectrum_map_gui(self):
         caption = 'Raman map'
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
@@ -58,14 +47,17 @@ class RamanGUI(BaseGUI):
     def single_spectrum(self, event=None):
         self.fetch(event)
         run = BaseRamanMeasurement(tk.Toplevel(self._master), self._ccd_controller, self._grating, self._raman_gain,
-                                   self._center_wavelength, self._units.get(), float(self._inputs['integration time (s)']),
+                                   self._center_wavelength, self._units.get(),
+                                   float(self._inputs['integration time (s)']),
                                    int(self._inputs['acquisitions to average']),
-                                   self.string_to_bool(self._shutter.get()), self.string_to_bool(self._darkcurrent.get()), self.string_to_bool(self._dark_corrected.get()), self._inputs['device'], self._inputs['file path'], self._fields['notes'],
+                                   self.string_to_bool(self._shutter.get()),
+                                   self.string_to_bool(self._darkcurrent.get()),
+                                   self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
+                                   self._inputs['file path'], self._fields['notes'],
                                    int(self._fields['scan']), polarizer=None, powermeter=None)
         run.main()
 
-    def waterfall(self, event=None):
-        self.fetch(event)
+
 
 
 
@@ -167,10 +159,8 @@ class RamanBaseGUI(BaseGUI):
                 print('Mono timeout')
                 break
         print('Turret movement complete')
-        print('Current turret: {}\nCurrent grating: {}\nCurrent blazes: {}\nCurrent description {}'.format(turret,
-                                                                                                           self._current_grating,
-                                                                                                           blazes,
-                                                                                                           description))
+        print('Current turret: {}\nCurrent grating: {}\nCurrent blazes: {}'
+              '\nCurrent description {}'.format(turret, self._current_grating, blazes, description))
 
     def change_slit_width_gui(self):
         self._newWindow = tk.Toplevel(self._master)
