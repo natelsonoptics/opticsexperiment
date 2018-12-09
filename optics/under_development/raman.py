@@ -138,9 +138,9 @@ class RamanBaseGUI(BaseGUI):
 
     def build(self):
         row = self.makerow('Raman measurements')
-        self.make_measurement_button(row, 'Single Spectrum', 'singlespectrum')
-        self.make_measurement_button(row, 'Time', 'timespectrum')
-        self.make_measurement_button(row, 'Time Waterfall', 'timewaterfall')
+        self.make_measurement_button(row, 'single spectrum', 'singlespectrum')
+        self.make_measurement_button(row, 'time', 'timespectrum')
+        self.make_measurement_button(row, 'time waterfall', 'timewaterfall')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
