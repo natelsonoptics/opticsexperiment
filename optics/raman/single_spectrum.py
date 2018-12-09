@@ -14,6 +14,7 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 from optics.raman.unit_conversions import convert_pixels_to_unit
 from optics.hardware_control.hardware_addresses_and_constants import laser_wavelength
 import time
+import matplotlib.pyplot as plt
 
 
 class BaseRamanMeasurement:
@@ -89,8 +90,8 @@ class BaseRamanMeasurement:
         self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
 
-    def integrate_spectrum(self, start, stop):
-        return np.trapz([self._data[i] for i in range(len(self._xvalues)) if start <= self._xvalues[i] <= stop],
+    def integrate_spectrum(self, data, start, stop):
+        return np.trapz([data[i] for i in range(len(self._xvalues)) if start <= self._xvalues[i] <= stop],
                         [i for i in self._xvalues if start <= i <= stop])
 
     def save_single_spectrum(self):
@@ -116,6 +117,8 @@ class BaseRamanMeasurement:
 
     def main(self):
         self.make_file()
+        self._single_ax1.set_title('{} single spectrum, {} polarization'.format(self._device, self._polarization))
+        self._single_fig.tight_layout()
         self.take_spectrum()
         self.plot_single_spectrum()
         self.save_single_spectrum()
@@ -131,6 +134,10 @@ class RamanTime(BaseRamanMeasurement):
         self._maxtime = maxtime
         self._start = start
         self._stop = stop
+        self._new_start = tk.StringVar()
+        self._new_stop = tk.StringVar()
+        self._new_start.set(self._start)
+        self._new_stop.set(self._stop)
 
     def write_header(self):
         with open(self._filename, 'w', newline='') as inputfile:
@@ -153,7 +160,7 @@ class RamanTime(BaseRamanMeasurement):
             writer.writerow(['x values', *self._xvalues])
 
     def plot_point(self, x, y):
-        self._single_ax1.plot(x, y, linestyle='', color='blue', marker='o', markersize=2, picker=5)
+        self._single_ax1.plot(x, y, linestyle='', color='blue', marker='o', markersize=5, picker=5)
         self._single_ax1.set_xlabel('time (s)')
         self._single_ax1.set_ylabel('counts')
         self._single_fig.tight_layout()
@@ -168,7 +175,7 @@ class RamanTime(BaseRamanMeasurement):
                 now = time.time() - start_time
                 self.take_spectrum()
                 writer.writerow(['time scan {}'.format(now), *[i for i in self._data]])
-                self.plot_point(now, self.integrate_spectrum(self._start, self._stop))
+                self.plot_point(now, self.integrate_spectrum(self._data, self._start, self._stop))
                 self._master.update()
                 tk_sleep(self._master, self._sleep_time * 1000)
                 if self._abort:
@@ -179,11 +186,61 @@ class RamanTime(BaseRamanMeasurement):
         xdata = thisline.get_xdata()
         ind = event.ind[0]
         point = xdata[ind]
-        print('onpick points:', point)
+        with open(self._filename) as inputfile:
+            reader = csv.reader(inputfile, delimiter=',')
+            for row in reader:
+                if 'time scan {}'.format(point) in row:
+                    title = row[0]
+                    data = [float(i) for i in row[1::]]
+                    fig = plt.figure()
+                    ax = fig.add_subplot(111)
+                    ax.set_title('{} seconds'.format(title))
+                    ax.set_xlabel(self._units)
+                    ax.set_ylabel('counts')
+                    ax.plot(self._xvalues, data)
+                    fig.show()
+
+    def replot(self):
+        start = float(self._new_start.get())
+        stop = float(self._new_stop.get())
+        time = []
+        data = []
+        with open(self._filename) as inputfile:
+            reader = csv.reader(inputfile, delimiter=',')
+            for row in reader:
+                if 'time scan' in row[0]:
+                    time.append(float(row[0].split('scan ')[1]))
+                    data.append(self.integrate_spectrum([float(i) for i in row[1::]], start, stop))
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title('{} time scan, {} polarization, {} - {} {}'.format(self._device, self._polarization, start, stop,
+                                                                        self._units))
+        ax.scatter(time, data)
+        ax.set_xlabel('time (seconds)')
+        ax.set_ylabel('counts')
+        fig.show()
 
     def main(self):
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, text='start {}'.format(self._units), anchor='w')
+        ent = tk.Entry(row, textvariable=self._new_start)
+        row.pack(side=tk.TOP)
+        lab.pack()
+        ent.pack()
+        row = tk.Frame(self._master)
+        lab = tk.Label(row, text='stop {}'.format(self._units), anchor='w')
+        ent = tk.Entry(row, textvariable=self._new_stop)
+        row.pack(side=tk.TOP)
+        lab.pack()
+        ent.pack()
+        button = tk.Button(master=row, text="Replot", command=self.replot)
+        button.pack()
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
+        self._single_ax1.set_title('{} time scan, {} polarization, {} - {} {}'.format(self._device, self._polarization,
+                                                                                      self._start, self._stop,
+                                                                                      self._units))
+        self._single_fig.tight_layout()
         self.make_file(measurement_title='time measurement')
         self.write_header()
         self.measure()
