@@ -153,7 +153,7 @@ class RamanTime(BaseRamanMeasurement):
             writer.writerow(['x values', *self._xvalues])
 
     def plot_point(self, x, y):
-        self._single_ax1.plot(x, y, linestyle='', color='blue', marker='o', markersize=2)
+        self._single_ax1.plot(x, y, linestyle='', color='blue', marker='o', markersize=2, picker=5)
         self._single_ax1.set_xlabel('time (s)')
         self._single_ax1.set_ylabel('counts')
         self._single_fig.tight_layout()
@@ -174,6 +174,13 @@ class RamanTime(BaseRamanMeasurement):
                 if self._abort:
                     break
 
+    def onpick(self, event):
+        thisline = event.artist
+        xdata = thisline.get_xdata()
+        ind = event.ind[0]
+        point = xdata[ind]
+        print('onpick points:', point)
+
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
@@ -181,6 +188,7 @@ class RamanTime(BaseRamanMeasurement):
         self.write_header()
         self.measure()
         self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
+        self._single_fig.canvas.mpl_connect('pick_event', self.onpick)
 
 
 
