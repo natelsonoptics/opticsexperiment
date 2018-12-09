@@ -107,6 +107,7 @@ class RamanGUI(BaseGUI):
                         self._inputs['file path'], self._fields['notes'],
                         int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
                         int(self._inputs['number of scans']), polarizer=None, powermeter=None)
+        run.main()
 
 
 class RamanBaseGUI(BaseGUI):

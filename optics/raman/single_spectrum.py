@@ -256,7 +256,7 @@ class RamanTimeWaterfall(BaseRamanMeasurement):
                          shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer, powermeter)
         self._sleep_time = sleep_time
         self._number_scans = number_scans
-        self._wf = np.zeros((len(self._number_scans), len(self._xvalues)))
+        self._wf = np.zeros((self._number_scans, len(self._xvalues)))
         self._im = self._single_ax1.imshow(self._wf, interpolation='nearest', origin='lower', aspect='auto',
                                             extent=[self._xvalues[0], self._xvalues[-1], 0, self._number_scans])
         self._single_ax1.set_xlabel(self._units)
@@ -289,14 +289,16 @@ class RamanTimeWaterfall(BaseRamanMeasurement):
 
     def update_plot(self, im, data):
         im.set_data(data)
-        im.set_clim(vmin=np.amin(data))
+        values = np.unique(data)
+        im.set_clim(vmin=sorted(values)[1])
         im.set_clim(vmax=np.amax(data))
+        self._single_canvas.draw()
 
     def measure(self):
         start_time = time.time()
         with open(self._filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
-            for scan in self._number_scans:
+            for scan in range(self._number_scans):
                 now = time.time() - start_time
                 self.take_spectrum()
                 writer.writerow(['time scan {}'.format(now), *[i for i in self._data]])
