@@ -22,15 +22,15 @@ class RamanPolarization(BaseRamanMeasurement):
         self._waveplate = waveplate
         waveplate_angle = int(round(float(str(self._waveplate.read_position())))) % 360
         self._powermeter = powermeter
-        self._polarizations = np.arange(waveplate_angle, waveplate_angle + 180, steps)
+        self._waveplate_positions = np.arange(waveplate_angle, waveplate_angle + 180, steps / 2)
         self._fig = Figure()
         self._fig.set_size_inches(7, 7)
         self._ax1 = self._fig.add_subplot(211)
         self._ax2 = self._fig.add_subplot(212, polar=True)
-        self._wf = np.zeros((len(self._polarizations), len(self._xvalues)))
+        self._wf = np.zeros((len(self._waveplate_positions), len(self._xvalues)))
         self._im = self._ax1.imshow(self._wf, interpolation='nearest', origin='lower', aspect='auto',
-                                            extent=[self._xvalues[0], self._xvalues[-1], self._polarizations[0],
-                                                    self._polarizations[-1]])
+                                    extent=[self._xvalues[0], self._xvalues[-1], self._waveplate_positions[0] * 2,
+                                            self._waveplate_positions[-1] * 2])
         self._canvas = FigureCanvasTkAgg(self._fig, master=self._master)  # A tk.DrawingArea.
         self._canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._ax1.set_xlabel(self._units)
@@ -42,8 +42,6 @@ class RamanPolarization(BaseRamanMeasurement):
         self._start = start
         self._stop = stop
         self._npc3sg_input = npc3sg_input
-        self._new_start = tk.StringVar()
-        self._new_stop = tk.StringVar()
         self._new_start.set(self._start)
         self._new_stop.set(self._stop)
 
@@ -83,16 +81,16 @@ class RamanPolarization(BaseRamanMeasurement):
     def measure(self):
         with open(self._filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
-            for i, polarization in enumerate(self._polarizations):
+            for i, waveplate_position in enumerate(self._waveplate_positions):
                 self._master.update()
-                self._waveplate.move(polarization)
+                self._waveplate.move(waveplate_position)
                 tk_sleep(self._master, 1500)
                 _, data = self.take_spectrum()
-                writer.writerow(['polarization {}'.format(polarization), *data])
+                writer.writerow(['polarization {}'.format(waveplate_position * 2), *data])
                 self._wf[i] = data
                 self.update_plot(self._im, self._wf)
                 integrated = self.integrate_spectrum(data, self._start, self._stop)
-                self._ax2.plot(conversions.degrees_to_radians(polarization), integrated, linestyle='',
+                self._ax2.plot(conversions.degrees_to_radians(waveplate_position * 2), integrated, linestyle='',
                                       color='blue', marker='o', markersize=2)
                 self._canvas.draw()
                 self._master.update()
@@ -103,13 +101,15 @@ class RamanPolarization(BaseRamanMeasurement):
     def onpick(self, event):
         ax = event.inaxes
         if ax == self._ax1:
-            ydata = int(np.ceil(event.ydata))
-            idx = (np.abs(np.asarray(self._polarizations) - ydata)).argmin()
-            point = self._polarizations[idx]
+            ydata = event.ydata
+            idx = (np.abs(np.asarray([i * 2 for i in self._waveplate_positions]) - ydata)).argmin()
+            point = self._waveplate_positions[idx] * 2
+            if point > ydata:
+                point = self._waveplate_positions[idx - 1] * 2
         else:
             xdata = event.xdata * 180 / np.pi
-            idx = (np.abs(np.asarray(self._polarizations) - xdata)).argmin()
-            point = self._polarizations[idx]
+            idx = (np.abs(np.asarray([(i * 2) % 360 for i in self._waveplate_positions]) - xdata % 360)).argmin()
+            point = self._waveplate_positions[idx] * 2
         with open(self._filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
@@ -145,23 +145,23 @@ class RamanPolarization(BaseRamanMeasurement):
         ax.set_ylabel('counts')
         fig.show()
 
+    def rescale(self):
+        vmax = float(self._new_max.get())
+        vmin = float(self._new_min.get())
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title('{} polarization scan'.format(self._device, self._polarization))
+        im = ax.imshow(self._wf, interpolation='nearest', origin='lower', aspect='auto', vmax=vmax, vmin=vmin,
+                       extent=[self._xvalues[0], self._xvalues[-1], self._waveplate_positions[0] * 2, self._waveplate_positions[-1] * 2])
+        clb = fig.colorbar(im, ax=ax)
+        im.set_clim(vmin, vmax)
+        ax.set_xlabel('{}'.format(self._units))
+        ax.set_ylabel('scan')
+        fig.tight_layout()
+        fig.show()
+
     def main(self):
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, text='start {}'.format(self._units), anchor='w')
-        ent = tk.Entry(row, textvariable=self._new_start)
-        row.pack(side=tk.TOP)
-        lab.pack()
-        ent.pack()
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, text='stop {}'.format(self._units), anchor='w')
-        ent = tk.Entry(row, textvariable=self._new_stop)
-        row.pack(side=tk.TOP)
-        lab.pack()
-        ent.pack()
-        button = tk.Button(master=row, text="Replot", command=self.replot)
-        button.pack()
-        button = tk.Button(master=self._master, text="Abort", command=self.abort)
-        button.pack(side=tk.BOTTOM)
+        self.pack_buttons()
         self._ax1.set_title('{} polarization waterfall'.format(self._device))
         self._ax2.set_title('{} polarization spectrum, {} - {} {}'.format(self._device, self._start, self._stop, self._units))
         self._fig.tight_layout()

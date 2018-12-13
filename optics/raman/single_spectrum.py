@@ -60,6 +60,10 @@ class BaseRamanMeasurement:
         self._filename = None
         self._imagefile = None
         self._abort = False
+        self._new_max = tk.StringVar()
+        self._new_min = tk.StringVar()
+        self._new_start = tk.StringVar()
+        self._new_stop = tk.StringVar()
 
     def make_file(self, measurement_title='single spectrum'):
         os.makedirs(self._filepath, exist_ok=True)
@@ -73,6 +77,42 @@ class BaseRamanMeasurement:
                                        '{}_{}_{}_{}{}'.format(self._device, measurement_title, self._polarization, index, '.csv'))
             self._imagefile = path.join(self._filepath,
                                         '{}_{}_{}_{}{}'.format(self._device, measurement_title, self._polarization, index, '.png'))
+    def replot(self):
+        pass
+
+    def rescale(self):
+        pass
+
+    def pack_buttons(self, abort_option=True, integrated=True, colormap=True):
+        if integrated:
+            row = tk.Frame(self._master)
+            lab = tk.Label(row, text='start {}'.format(self._units), anchor='w')
+            ent = tk.Entry(row, textvariable=self._new_start)
+            lab.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            ent.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            lab = tk.Label(row, text='stop {}'.format(self._units), anchor='w')
+            ent = tk.Entry(row, textvariable=self._new_stop)
+            row.pack(side=tk.TOP)
+            lab.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            ent.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            button = tk.Button(master=row, text="Replot integrated plot", command=self.replot)
+            button.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        if colormap:
+            row = tk.Frame(self._master)
+            lab = tk.Label(row, text='max counts', anchor='w')
+            ent = tk.Entry(row, textvariable=self._new_max)
+            lab.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            ent.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            lab = tk.Label(row, text='min counts', anchor='w')
+            ent = tk.Entry(row, textvariable=self._new_min)
+            row.pack(side=tk.TOP)
+            lab.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            ent.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+            button = tk.Button(master=row, text="Change colormap range", command=self.rescale)
+            button.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
+        if abort_option:
+            button = tk.Button(master=self._master, text="Abort", command=self.abort)
+            button.pack(side=tk.BOTTOM)
 
     def abort(self):
         self._abort = True
@@ -245,8 +285,7 @@ class RamanMapScan(BaseRamanMeasurement):
         self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
 
     def main(self):
-        button = tk.Button(master=self._master, text="Abort", command=self.abort)
-        button.pack(side=tk.BOTTOM)
+        self.pack_buttons(True, False, False)
         self.make_file('Raman map')
         with open(self._filename, 'w', newline='') as inputfile:
             try:

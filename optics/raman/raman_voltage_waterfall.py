@@ -73,16 +73,16 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
             self._sr7270_dual_harmonic.change_applied_voltage(0)
 
     def onpick(self, event):
-        ydata = int(np.ceil(event.ydata))
+        ydata = event.ydata
         idx = (np.abs(self._voltages - ydata)).argmin()
-        ydata = self._voltages[idx]
+        point = self._voltages[idx]
         with open(self._filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'end:' in row:
                     break
             for row in reader:
-                if 'applied voltage {}'.format(ydata) in row:
+                if 'applied voltage {}'.format(point) in row:
                     title = row[0]
                     data = [float(i) for i in row[1::]]
                     fig = plt.figure()
@@ -93,9 +93,23 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
                     ax.plot(self._xvalues, data)
                     fig.show()
 
+    def rescale(self):
+        vmax = float(self._new_max.get())
+        vmin = float(self._new_min.get())
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title('{} applied voltage scan, {} polarization'.format(self._device, self._polarization))
+        im = ax.imshow(self._wf, interpolation='nearest', origin='lower', aspect='auto', vmax=vmax, vmin=vmin,
+                              extent=[self._xvalues[0], self._xvalues[-1], self._voltages[0], self._voltages[-1]])
+        clb = fig.colorbar(im, ax=ax)
+        im.set_clim(vmin, vmax)
+        ax.set_xlabel('{}'.format(self._units))
+        ax.set_ylabel('applied voltage (mV)')
+        fig.tight_layout()
+        fig.show()
+
     def main(self):
-        button = tk.Button(master=self._master, text="Abort", command=self.abort)
-        button.pack(side=tk.BOTTOM)
+        self.pack_buttons(True, False, True)
         self._single_ax1.set_title('{} applied voltage waterfall, {} polarization'.format(self._device, self._polarization))
         self._single_fig.tight_layout()
         self.make_file(measurement_title='applied voltage waterfall measurement')
