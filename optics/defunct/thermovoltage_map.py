@@ -145,3 +145,5 @@ class ThermovoltageScan:
                 self._npc3sg_y.move(0)
             except TclError:  # this is an annoying error that requires you to have tkinter events in mainloop
                 pass
+
+x = 'hello'
