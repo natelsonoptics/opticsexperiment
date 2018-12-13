@@ -5,33 +5,43 @@ import time
 import tkinter as tk
 import matplotlib.pyplot as plt
 from optics.misc_utility.tkinter_utilities import tk_sleep
+from optics.misc_utility import conversions
+import numpy as np
 
 
 class RamanPolarization(BaseRamanMeasurement):
     def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, sleep_time, maxtime, start, stop,
-                 steps, waveplate, powermeter):
+                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, sleep_time, start, stop, steps,
+                  waveplate, powermeter, npc3sg_input):
         super().__init__(master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                         shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate, powermeter)
+                         shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate, powermeter,
+                         single_plot=True, polar=True)
         self._sleep_time = sleep_time
-        self._maxtime = maxtime
         self._start = start
         self._stop = stop
         self._new_start = tk.StringVar()
         self._new_stop = tk.StringVar()
         self._new_start.set(self._start)
         self._new_stop.set(self._stop)
-        self._steps = steps
         self._powermeter = powermeter
         self._waveplate = waveplate
-        self._waveplate_angle = int(round(float(str(waveplate.read_position())))) % 360
+        self._waveplate_angle = int(round(float(str(self._waveplate.read_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
+        self._npc3sg_input = npc3sg_input
+        self._steps = steps
+        self._polarizations = []
 
     def write_header(self):
         with open(self._filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
+            position = self._npc3sg_input.read()
+            writer.writerow(['x laser position:', position[0]])
+            writer.writerow(['y laser position:', position[1]])
+            if self._powermeter:
+                writer.writerow(['power (W):', self._powermeter.read_power()])
+            else:
+                writer.writerow(['power (W):', 'not measured'])
             writer.writerow(['laser wavelength:', laser_wavelength])
-            writer.writerow(['polarization:', self._polarization])
             gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
             writer.writerow(['raman gain:', gain_options[self._raman_gain]])
             writer.writerow(['center wavelength:', self._center_wavelength])
@@ -56,57 +66,61 @@ class RamanPolarization(BaseRamanMeasurement):
         self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
     def measure(self):
-        start_time = time.time()
         with open(self._filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
-            while time.time() - start_time < self._maxtime:
-                now = time.time() - start_time
-                tk_sleep(self._master, 300)
-                power = self._powermeter.read_power()
-                self.take_spectrum()
-                writer.writerow(['power {}'.format(power), *[i for i in self._data]])
-                self.plot_point(now, self.integrate_spectrum(self._data, self._start, self._stop))
-                tk_sleep(self._master, self._sleep_time * 1000)
-                self._master.update()
+            for i in np.arange(self._waveplate_angle, self._max_waveplate_angle, self._steps):
                 if self._abort:
                     break
+                self._master.update()
+                self._waveplate.move(i)
+                tk_sleep(self._master, 1500)
+                self._master.update()
+                polarization = float(str(self._waveplate.read_polarization())) % 360
+                self._polarizations.append(polarization)
+                # converts waveplate angle to polarizaiton angle
+                _, data = self.take_spectrum()
+                writer.writerow(['polarization {}'.format(polarization), *data])
+                integrated = self.integrate_spectrum(data, self._start, self._stop)
+                self._single_ax1.plot(conversions.degrees_to_radians(polarization), integrated, linestyle='',
+                                      color='blue', marker='o', markersize=2)
+                self._single_fig.tight_layout()
+                self._single_canvas.draw()
+                self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+                self._master.update()
 
     def onpick(self, event):
-        thisline = event.artist
-        xdata = thisline.get_xdata()
-        ind = event.ind[0]
-        point = xdata[ind]
+        xdata = event.xdata * 180 / np.pi
+        idx = (np.abs(np.asarray(self._polarizations) - xdata)).argmin()
+        point = self._polarizations[idx]
+        print(point)
         with open(self._filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
-                if 'power {}'.format(point) in row:
+                if 'polarization {}'.format(point) in row:
                     title = row[0]
                     data = [float(i) for i in row[1::]]
                     fig = plt.figure()
                     ax = fig.add_subplot(111)
-                    ax.set_title('{}, {} polarization, {} mW'.format(self._device, self._polarization, title))
+                    ax.set_title('{}, {}'.format(self._device, title))
                     ax.set_xlabel(self._units)
-                    ax.set_ylabel('counts')
                     ax.plot(self._xvalues, data)
                     fig.show()
 
     def replot(self):
         start = float(self._new_start.get())
         stop = float(self._new_stop.get())
-        power = []
+        polarization = []
         data = []
         with open(self._filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
-                if 'power' in row[0]:
-                    power.append(float(row[0].split('scan ')[1]))
+                if 'polarization' in row[0]:
+                    polarization.append(float(row[0].split(' ')[1]))
                     data.append(self.integrate_spectrum([float(i) for i in row[1::]], start, stop))
         fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.set_title('{} time scan, {} polarization, {} - {} {}'.format(self._device, self._polarization, start, stop,
-                                                                        self._units))
-        ax.scatter(power, data)
-        ax.set_xlabel('time (seconds)')
+        ax = fig.add_subplot(111, polar=True)
+        ax.set_title('{} polarization scan, {} - {} {}'.format(self._device, start, stop, self._units))
+        ax.scatter([conversions.degrees_to_radians(i) for i in polarization], data)
         ax.set_ylabel('counts')
         fig.show()
 
@@ -127,12 +141,11 @@ class RamanPolarization(BaseRamanMeasurement):
         button.pack()
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
-        self._single_ax1.set_title('{} intensity scan, {} polarization, {} - {} {}'.format(self._device, self._polarization,
-                                                                                      self._start, self._stop,
-                                                                                      self._units))
+        self._single_ax1.set_title('{} polarization scan, {} - {} {}'.format(self._device, self._start, self._stop,
+                                                                             self._units))
         self._single_fig.tight_layout()
-        self.make_file(measurement_title='intensity measurement')
+        self.make_file(measurement_title='polarization measurement')
         self.write_header()
         self.measure()
         self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
-        self._single_fig.canvas.mpl_connect('pick_event', self.onpick)
+        self._single_fig.canvas.mpl_connect('button_press_event', self.onpick)

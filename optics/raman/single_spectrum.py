@@ -19,7 +19,8 @@ from optics import heating_plot
 
 class BaseRamanMeasurement:
     def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate=None, powermeter=None):
+                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate=None, powermeter=None,
+                 single_plot=True, polar=False):
         self._master = master
         self._ccd = ccd
         self._grating = grating
@@ -46,10 +47,16 @@ class BaseRamanMeasurement:
             self._power = 'not measured'
         self._xvalues = convert_pixels_to_unit(self._units, self._grating, self._center_wavelength, laser_wavelength)
         ## single plot
-        self._single_fig = Figure()
-        self._single_ax1 = self._single_fig.add_subplot(111)
-        self._single_fig.tight_layout()
-        self._single_canvas = FigureCanvasTkAgg(self._single_fig, master=self._master)  # A tk.DrawingArea.
+        if single_plot:
+            self._single_fig = Figure()
+            if not polar:
+                self._single_ax1 = self._single_fig.add_subplot(111)
+            else:
+                self._single_ax1 = self._single_fig.add_subplot(111, polar=True)
+            self._single_fig.tight_layout()
+            self._single_canvas = FigureCanvasTkAgg(self._single_fig, master=self._master)  # A tk.DrawingArea.
+            self._single_canvas.draw()
+            self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         self._filename = None
         self._imagefile = None
         self._abort = False
