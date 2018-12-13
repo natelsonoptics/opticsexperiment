@@ -118,10 +118,10 @@ class SetupGUI:
 
     def readpolarization(self):
         self._textbox.delete(1.0, tk.END)
-        self._textbox.insert(tk.END, self._polarizer.read_waveplate_position() * 2)
+        self._textbox.insert(tk.END, self._polarizer.read_position() * 2)
         self._textbox.pack()
         self._textbox2.delete(1.0, tk.END)
-        self._textbox2.insert(tk.END, (self._polarizer.read_waveplate_position() % 180) * 2)
+        self._textbox2.insert(tk.END, (self._polarizer.read_position() % 180) * 2)
         self._textbox2.pack()
 
     def homepolarizer(self):
@@ -206,14 +206,14 @@ class SetupGUI:
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
         self._textbox = tk.Text(row, height=1, width=10)
-        self._textbox.insert(tk.END, self._polarizer.read_waveplate_position() * 2)
+        self._textbox.insert(tk.END, self._polarizer.read_position() * 2)
         self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
         row = tk.Frame(self._master)
         lab = tk.Label(row, width=15, text='modulus polarization', anchor='w')
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab.pack(side=tk.LEFT)
         self._textbox2 = tk.Text(row, height=1, width=10)
-        self._textbox2.insert(tk.END, (self._polarizer.read_waveplate_position() % 90) * 2)
+        self._textbox2.insert(tk.END, (self._polarizer.read_position() % 90) * 2)
         self._textbox2.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
         b1 = tk.Button(self._master, text='Change polarization', command=self.changepolarization)
         b1.pack(side=tk.LEFT, padx=5, pady=5)

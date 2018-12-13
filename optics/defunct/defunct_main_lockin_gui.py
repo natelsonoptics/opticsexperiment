@@ -350,7 +350,7 @@ class LockinMeasurementGUI:
         self._textbox.insert(tk.END, self._waveplate.read_polarization())
         self._textbox.pack()
         self._textbox2.delete(1.0, tk.END)
-        self._textbox2.insert(tk.END, (self._waveplate.read_waveplate_position() % 180) * 2)
+        self._textbox2.insert(tk.END, (self._waveplate.read_position() % 180) * 2)
         self._textbox2.pack()
 
     def home_waveplate(self):
@@ -516,7 +516,7 @@ class LockinMeasurementGUI:
         self._fields = {'desired polarization': 90}
         self.beginform(caption, False)
         self.maketextbox('current position', self._waveplate.read_polarization())
-        self.maketextbox2('modulus polarization', (self._waveplate.read_waveplate_position() % 90) * 2)
+        self.maketextbox2('modulus polarization', (self._waveplate.read_position() % 90) * 2)
         self.makebutton('Change polarization', self.changepolarization)
         self.makebutton('Read polarization', self.readpolarization)
         self.makebutton('Home', self.home_waveplate)

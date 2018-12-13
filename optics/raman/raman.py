@@ -175,21 +175,21 @@ class RamanBaseGUI(BaseGUI):
 
     def build(self):
         row = self.makerow('Raman measurements')
-        self.make_measurement_button(row, 'Single Spectrum', 'singlespectrum')
-        self.make_measurement_button(row, 'Time', 'timespectrum')
-        self.make_measurement_button(row, 'Time Waterfall', 'timewaterfall')
-        self.make_measurement_button(row, 'Voltage Waterfall', 'voltagewaterfall')
+        self.make_measurement_button(row, 'single spectrum', 'singlespectrum')
+        self.make_measurement_button(row, 'time', 'timespectrum')
+        self.make_measurement_button(row, 'time waterfall', 'timewaterfall')
+        self.make_measurement_button(row, 'voltage waterfall', 'voltagewaterfall')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b = tk.Button(row, text='Grating', command=self.change_grating_gui)
+        b = tk.Button(row, text='grating', command=self.change_grating_gui)
         b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b = tk.Button(row, text='Slit width', command=self.change_slit_width_gui)
+        b = tk.Button(row, text='slit width', command=self.change_slit_width_gui)
         b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b = tk.Button(row, text='Center wavelength', command=self.change_center_wavelength_gui)
+        b = tk.Button(row, text='center wavelength', command=self.change_center_wavelength_gui)
         b.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-        b12 = tk.Button(self._master, text='Quit all windows', command=self._master.quit)
+        b12 = tk.Button(self._master, text='Quit all windows', command=self._master.destroy)
         b12.pack()
 
     def to_bool(self, s):

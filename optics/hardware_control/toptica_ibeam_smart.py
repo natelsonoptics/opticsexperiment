@@ -1,5 +1,6 @@
 import contextlib
 import serial
+import time
 
 @contextlib.contextmanager
 def connect_laser(serial_port='COM7'):
@@ -18,6 +19,7 @@ class Laser:
 
     def write(self, message):
         self._ser.write(('{}\r'.format(message)).encode())
+        return self.read()
 
     def read_raw(self):
         return self._ser.read(50).decode().split('\r\n')
@@ -27,59 +29,59 @@ class Laser:
         return [i for i in message if i != 'CMD>' if i != '' if i != 'CMD> ' if '%' not in i]
 
     def read_temperature(self):
-        self.write('sh temp')
-        data = self.read()[0]
+        data = self.write('sh temp')[0]
         return float((data.split(' = ')[1]).split(' C')[0])
 
     def read_fine_status(self):
-        self.write('sta fine')
-        return self.read()[0]
+        return self.write('sta fine')[0]
 
     def read_power_level(self):
-        self.write('sh level pow')
-        data = self.read()
+        data = self.write('sh level pow')
         ch1 = float((data[0].split(':')[1]).split(' mW')[0])
         ch2 = float((data[1].split(':')[1]).split(' mW')[0])
         return ch1, ch2
 
     def read_system_temperature(self):
-        self.write('sh temp sys')
-        return float(((self.read()[0].split(' = '))[1]).split(' C')[0])
+        data = self.write('sh temp sys')[0]
+        return float(((data.split(' = '))[1]).split(' C')[0])
 
     def read_current(self):
-        self.write('sh curr')
-        return float(self.read()[0].split(' = ')[1].split(' mA')[0])
-
-    def read_status(self):
-        self.write('')
-        print(self.read())
+        data = self.write('sh curr')[0]
+        return float(data.split(' = ')[1].split(' mA')[0])
 
     def turn_off(self):
         self.write('la off')
+        print('laser {}'.format(self.read_laser_status()))
 
     def turn_on(self):
         self.write('la on')
+        print('laser {}'.format(self.read_laser_status()))
 
     def set_fine_status(self, on=True, a=80, b=10, power=120):
         if on:
             self.set_power(2, 0)
+            time.sleep(0.5)
             self.set_power(1, 0)
+            time.sleep(0.5)
             self.write('fine a 0')
+            time.sleep(0.5)
+            self.write('fine b 0')
+            time.sleep(0.5)
             self.write('fine on')
+            time.sleep(0.5)
             self.write('fine a {}'.format(a))
+            time.sleep(0.5)
             self.write('fine b {}'.format(b))
+            time.sleep(0.5)
             self.set_power(1, power)
         else:
             self.write('fine off')
 
     def set_power(self, channel, power):
-        if power == 0:
-            power = 0.001
-        self.write('ch {} {}'.format(channel, power))
+        self.write('ch {} pow {}'.format(channel, power))
 
     def read_laser_status(self):
-        self.write('sta la')
-        return self.read()[0]
+        return self.write('sta la')[0]
 
 
 if __name__ == '__main__':

@@ -38,7 +38,7 @@ class HeatingPolarization:
         self._max_iphoto_y = 0
         self._min_iphoto_y = 0
         self._iphoto = None
-        self._waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
+        self._waveplate_angle = int(round(float(str(self._waveplate.read_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
         self._fig.tight_layout()

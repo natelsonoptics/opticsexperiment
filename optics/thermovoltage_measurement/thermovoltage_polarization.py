@@ -36,7 +36,7 @@ class ThermovoltagePolarization:
         self._max_voltage_x = 0
         self._max_voltage_y = 0
         self._voltages = None
-        self._waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
+        self._waveplate_angle = int(round(float(str(waveplate.read_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
         self._fig.tight_layout()

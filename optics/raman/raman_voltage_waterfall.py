@@ -99,7 +99,7 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         button.pack(side=tk.BOTTOM)
         self._single_ax1.set_title('{} applied voltage waterfall, {} polarization'.format(self._device, self._polarization))
         self._single_fig.tight_layout()
-        self.make_file(measurement_title='time waterfall measurement')
+        self.make_file(measurement_title='applied voltage waterfall measurement')
         self.write_header()
         self.measure()
         self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')

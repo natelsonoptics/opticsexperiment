@@ -292,7 +292,7 @@ class LockinMeasurementGUI(BaseGUI):
         self._textbox.insert(tk.END, self._waveplate.read_polarization())
         self._textbox.pack()
         self._textbox2.delete(1.0, tk.END)
-        self._textbox2.insert(tk.END, (self._waveplate.read_waveplate_position() % 180) * 2)
+        self._textbox2.insert(tk.END, (self._waveplate.read_position() % 180) * 2)
         self._textbox2.pack()
 
     def homewaveplate(self):
@@ -490,7 +490,7 @@ class LockinMeasurementGUI(BaseGUI):
         self._fields = {'desired polarization': 90}
         self.beginform(caption, False)
         self.maketextbox('current position', self._waveplate.read_polarization())
-        self.maketextbox2('modulus polarization', (self._waveplate.read_waveplate_position() % 90) * 2)
+        self.maketextbox2('modulus polarization', (self._waveplate.read_position() % 90) * 2)
         self.makebutton('Change polarization', self.changepolarization)
         self.makebutton('Read polarization', self.readpolarization)
         self.makebutton('Home', self.homewaveplate)
@@ -711,10 +711,8 @@ class LockinMeasurementGUI(BaseGUI):
         caption = 'Laser parameters'
         self._fields = {'file path': laser_log_path}
         self.beginform(caption, True)
-        if self._laser.read_laser_status() == 'OFF':
-            self.makebutton('Laser on', self._laser.turn_on)
-        if self._laser.read_laser_status() == 'ON':
-            self.makebutton('Laser off', self._laser.turn_off)
+        self.makebutton('Laser on', self._laser.turn_on)
+        self.makebutton('Laser off', self._laser.turn_off)
         self.makebutton('Fine mode', self._laser.set_fine_status)
         self.makebutton('Record status', self.record_laser_status)
         self.makebutton('Quit', self._master.destroy)

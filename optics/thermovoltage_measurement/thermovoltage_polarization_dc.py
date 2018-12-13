@@ -33,7 +33,7 @@ class ThermovoltagePolarizationDC:
         self._ax1 = self._fig.add_subplot(111, polar=True)
         self._max_voltage = 0
         self._voltage = None
-        self._waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
+        self._waveplate_angle = int(round(float(str(waveplate.read_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
         self._fig.tight_layout()
