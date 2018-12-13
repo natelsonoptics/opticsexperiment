@@ -32,7 +32,7 @@ if __name__ == "__main__":
     with sr7270.create_endpoints(hardware_addresses_and_constants.vendor, hardware_addresses_and_constants.product) as (sr7270_top, sr7270_bottom), \
         open(args.f, 'w', newline='') as fn,  \
             npc3sg_analog.create_ai_task(hardware_addresses_and_constants.ai_x, hardware_addresses_and_constants.ai_y) as npc3sg_input, \
-            polarizercontroller.connect_tdc001(hardware_addresses_and_constants.tdc001_serial_number) as polarizer:
+            polarizercontroller.connect_tdc001(hardware_addresses_and_constants.tdc001_serial_number) as waveplate:
         try:
             start_time = time.time()
             w = csv.writer(fn)
@@ -47,14 +47,14 @@ if __name__ == "__main__":
             min_voltage_x = 0
             max_voltage_y = 0
             min_voltage_y = 0
-            waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
+            waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
             max_angle = waveplate_angle + 180
             for i in range(waveplate_angle, max_angle):
                 if i > 360:
                     i = i - 360
-                polarizer.move(i)
+                waveplate.move(i)
                 time.sleep(1.5)
-                polarization = float(str(polarizer.read_waveplate_position())) * 2  #  converts waveplate angle to polarizaiton angle
+                polarization = float(str(waveplate.read_waveplate_position())) * 2  #  converts waveplate angle to polarizaiton angle
                 voltages = [conversions.convert_x_to_iphoto(x, args.gain) for x in sr7270_bottom.read_xy()]
                 time_now = time.time()- start_time
                 w.writerow([time_now, polarization, voltages[0], voltages[1]])

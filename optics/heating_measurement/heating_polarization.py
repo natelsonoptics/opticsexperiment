@@ -12,7 +12,7 @@ import time  # DO NOT USE TIME.SLEEP IN TKINTER MAINLOOP
 
 class HeatingPolarization:
     def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, npc3sg_input, sr7270_dual_harmonic,
-                 sr7270_single_reference, powermeter, polarizer):
+                 sr7270_single_reference, powermeter, waveplate):
         self._master = master
         self._writer = None
         self._npc3sg_input = npc3sg_input
@@ -22,7 +22,7 @@ class HeatingPolarization:
         self._filepath = filepath
         self._scan = scan
         self._device = device
-        self._polarizer = polarizer
+        self._waveplate = waveplate
         self._bias = bias
         self._osc = osc
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
@@ -38,7 +38,7 @@ class HeatingPolarization:
         self._max_iphoto_y = 0
         self._min_iphoto_y = 0
         self._iphoto = None
-        self._waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
+        self._waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
         self._fig.tight_layout()
@@ -99,10 +99,10 @@ class HeatingPolarization:
             self._master.update()
             if i > 360:
                 i = i - 360
-            self._polarizer.move(i)
+            self._waveplate.move(i)
             tk_sleep(self._master, 1500)
             self._master.update()
-            polarization = float(str(self._polarizer.read_polarization()))
+            polarization = float(str(self._waveplate.read_polarization()))
             # converts waveplate angle to polarizaiton angle
             raw = self._sr7270_single_reference.read_xy()
             self._iphoto = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]

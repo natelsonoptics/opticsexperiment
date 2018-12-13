@@ -2,15 +2,18 @@ import ctypes
 co_initialize = ctypes.windll.ole32.CoInitialize
 import tkinter as tk
 co_initialize(None)
-from optics.under_development.ccd_controller import CCDController2
-from optics.under_development.mono_controller import MonoController
-from optics.raman.single_spectrum import BaseRamanMeasurement, RamanTime, RamanTimeWaterfall
+from optics.hardware_control.ccd_controller import CCDController2
+from optics.hardware_control.mono_controller import MonoController
+from optics.raman.single_spectrum import BaseRamanMeasurement
+from optics.raman.raman_time_waterfall import RamanTimeWaterfall
+from optics.raman.raman_voltage_waterfall import RamanVoltageWaterfall
+from optics.raman.raman_time import RamanTime
 from optics.gui.base_gui import BaseGUI
 import time
 
 
 class RamanGUI(BaseGUI):
-    def __init__(self, master, mono=None, ccd_controller=None):
+    def __init__(self, master, mono, ccd_controller, sr7270_single_reference=None, sr7270_dual_harmonic=None):
         self._master = master
         super().__init__(self._master)
         self._mono = mono
@@ -26,6 +29,8 @@ class RamanGUI(BaseGUI):
         self._dark_corrected = tk.StringVar()
         self._dark_corrected.set('False')
         self._darkcurrent.set('False')
+        self._sr7270_single_reference = sr7270_single_reference
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
 
     def build_single_spectrum_gui(self):
         caption = "Single Raman spectrum"
@@ -54,7 +59,7 @@ class RamanGUI(BaseGUI):
                                    self.string_to_bool(self._darkcurrent.get()),
                                    self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
                                    self._inputs['file path'], self._fields['notes'],
-                                   int(self._fields['scan']), polarizer=None, powermeter=None)
+                                   int(self._fields['scan']), waveplate=None, powermeter=None)
         run.main()
 
     def build_time_spectrum_gui(self):
@@ -81,7 +86,7 @@ class RamanGUI(BaseGUI):
                         self._inputs['file path'], self._fields['notes'],
                         int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
                         float(self._inputs['maximum time (s)']), float(self._inputs['start wavelength']),
-                        float(self._inputs['stop wavelength']), polarizer=None, powermeter=None)
+                        float(self._inputs['stop wavelength']), waveplate=None, powermeter=None)
         run.main()
 
     def build_time_waterfall_gui(self):
@@ -98,20 +103,48 @@ class RamanGUI(BaseGUI):
     def time_waterfall(self, event=None):
         self.fetch(event)
         run = RamanTimeWaterfall(tk.Toplevel(self._master), self._ccd_controller, self._grating, self._raman_gain,
-                        self._center_wavelength, self._units.get(),
-                        float(self._inputs['integration time (s)']),
-                        int(self._inputs['acquisitions to average']),
-                        self.string_to_bool(self._shutter.get()),
-                        self.string_to_bool(self._darkcurrent.get()),
-                        self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
-                        self._inputs['file path'], self._fields['notes'],
-                        int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
-                        int(self._inputs['number of scans']), polarizer=None, powermeter=None)
+                                 self._center_wavelength, self._units.get(),
+                                 float(self._inputs['integration time (s)']),
+                                 int(self._inputs['acquisitions to average']),
+                                 self.string_to_bool(self._shutter.get()),
+                                 self.string_to_bool(self._darkcurrent.get()),
+                                 self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
+                                 self._inputs['file path'], self._fields['notes'],
+                                 int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
+                                 int(self._inputs['number of scans']), waveplate=None, powermeter=None)
+        run.main()
+
+    def build_voltage_waterfall_gui(self):
+        caption = 'Raman vs. Applied voltage waterfall spectrum'
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
+                        'acquisitions to average': 1, 'number of scans': 60,
+                        'start voltage (mV)': -100, 'stop voltage (mV)': 100, 'wait time between scans (s)': 1, }
+        self.beginform(caption)
+        self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
+        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
+        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
+        self.endform(self.voltage_waterfall)
+
+    def voltage_waterfall(self, event=None):
+        self.fetch(event)
+        run = RamanVoltageWaterfall(tk.Toplevel(self._master), self._ccd_controller, self._sr7270_dual_harmonic,
+                                    self._grating, self._raman_gain,
+                                    self._center_wavelength, self._units.get(),
+                                    float(self._inputs['integration time (s)']),
+                                    int(self._inputs['acquisitions to average']),
+                                    self.string_to_bool(self._shutter.get()),
+                                    self.string_to_bool(self._darkcurrent.get()),
+                                    self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
+                                    self._inputs['file path'], self._fields['notes'],
+                                    int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
+                                    int(self._inputs['number of scans']), float(self._inputs['start voltage (mV)']),
+                                    float(self._inputs['stop voltage (mV)']), waveplate=None, powermeter=None)
         run.main()
 
 
 class RamanBaseGUI(BaseGUI):
-    def __init__(self, master):
+    def __init__(self, master, sr7270_single_reference=None, sr7270_dual_harmonic=None):
         self._master = master
         super().__init__(self._master)
         self._master.title('Optics Raman setup measurements')
@@ -127,13 +160,17 @@ class RamanBaseGUI(BaseGUI):
         self._app = None
         self._width = tk.StringVar()
         self._center_wavelength = self._mono.read_wavelength()
+        self._sr7270_single_reference = sr7270_single_reference
+        self._sr7270_dual_harmonic = sr7270_dual_harmonic
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
-        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller)
+        self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._sr7270_single_reference,
+                             self._sr7270_dual_harmonic)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui,
                        'timespectrum': self._app.build_time_spectrum_gui,
-                       'timewaterfall': self._app.build_time_waterfall_gui}
+                       'timewaterfall': self._app.build_time_waterfall_gui,
+                       'voltagewaterfall': self._app.build_voltage_waterfall_gui}
         measurement[measurementtype]()
 
     def build(self):
@@ -141,6 +178,7 @@ class RamanBaseGUI(BaseGUI):
         self.make_measurement_button(row, 'Single Spectrum', 'singlespectrum')
         self.make_measurement_button(row, 'Time', 'timespectrum')
         self.make_measurement_button(row, 'Time Waterfall', 'timewaterfall')
+        self.make_measurement_button(row, 'Voltage Waterfall', 'voltagewaterfall')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
@@ -251,11 +289,5 @@ class RamanBaseGUI(BaseGUI):
         print('Center wavelength set to {}'.format(self._mono.read_wavelength()))
 
 
-def main():
-    root = tk.Tk()
-    app = RamanBaseGUI(root)
-    app.build()
-    root.mainloop()
 
 
-main()

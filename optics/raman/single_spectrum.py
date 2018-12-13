@@ -13,13 +13,13 @@ import tkinter as tk
 from optics.misc_utility.tkinter_utilities import tk_sleep
 from optics.raman.unit_conversions import convert_pixels_to_unit
 from optics.hardware_control.hardware_addresses_and_constants import laser_wavelength
-import time
 import matplotlib.pyplot as plt
+from optics import heating_plot
 
 
 class BaseRamanMeasurement:
     def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer=None, powermeter=None):
+                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate=None, powermeter=None):
         self._master = master
         self._ccd = ccd
         self._grating = grating
@@ -36,8 +36,8 @@ class BaseRamanMeasurement:
         self._notes = notes
         self._index = index
         self._data = []
-        if polarizer:
-            self._polarization = int(round((np.round(polarizer.read_polarization(), 0) % 180) / 10) * 10)
+        if waveplate:
+            self._polarization = int(round((np.round(waveplate.read_polarization(), 0) % 180) / 10) * 10)
         else:
             self._polarization = 'x'
         if powermeter:
@@ -124,200 +124,145 @@ class BaseRamanMeasurement:
         self.save_single_spectrum()
 
 
-class RamanTime(BaseRamanMeasurement):
+class RamanMapScan(BaseRamanMeasurement):
     def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, sleep_time, maxtime, start, stop,
-                 polarizer=None, powermeter=None):
-        super().__init__(master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer, powermeter)
-        self._sleep_time = sleep_time
-        self._maxtime = maxtime
+                 shutter, darkcurrent, darkcorrected, filepath, notes, device, index, xd, yd, xr, yr, xc, yc,
+                 npc3sg_x, npc3sg_y, npc3sg_input, start, stop, sleep_time, powermeter, waveplate, direction=True):
+        self._master = master
+        self._notes = notes
+        self._device = device
+        super().__init__(self._master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
+                         shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate, powermeter)
+        self._xd = xd  # x pixel density
+        self._yd = yd  # y pixel density
+        self._yr = yr  # y range
+        self._xr = xr  # x range
+        self._xc = xc  # x center position
+        self._yc = yc  # y center position
         self._start = start
         self._stop = stop
-        self._new_start = tk.StringVar()
-        self._new_stop = tk.StringVar()
-        self._new_start.set(self._start)
-        self._new_stop.set(self._stop)
-
-    def write_header(self):
-        with open(self._filename, 'w', newline='') as inputfile:
-            writer = csv.writer(inputfile)
-            writer.writerow(['laser wavelength:', laser_wavelength])
-            writer.writerow(['polarization:', self._polarization])
-            writer.writerow(['power (W):', self._power])
-            gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
-            writer.writerow(['raman gain:', gain_options[self._raman_gain]])
-            writer.writerow(['center wavelength:', self._center_wavelength])
-            writer.writerow(['acquisitions:', self._acquisitions])
-            writer.writerow(['integration time:', self._integration_time])
-            writer.writerow(['shutter open:', self._shutter])
-            writer.writerow(['dark current corrected:', self._dark_current])
-            writer.writerow(['dark corrected:', self._dark_corrected])
-            writer.writerow(['grating:', self._grating])
-            writer.writerow(['time between scans (s):', self._sleep_time])
-            writer.writerow(['notes:', self._notes])
-            writer.writerow(['x value units:', self._units])
-            writer.writerow(['end:', 'end of header'])
-            writer.writerow(['x values', *self._xvalues])
-
-    def plot_point(self, x, y):
-        self._single_ax1.plot(x, y, linestyle='', color='blue', marker='o', markersize=5, picker=5)
-        self._single_ax1.set_xlabel('time (s)')
-        self._single_ax1.set_ylabel('counts')
-        self._single_fig.tight_layout()
-        self._single_canvas.draw()
-        self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-    def measure(self):
-        start_time = time.time()
-        with open(self._filename, 'a', newline='') as inputfile:
-            writer = csv.writer(inputfile)
-            while time.time() - start_time < self._maxtime:
-                now = time.time() - start_time
-                self.take_spectrum()
-                writer.writerow(['time scan {}'.format(now), *[i for i in self._data]])
-                self.plot_point(now, self.integrate_spectrum(self._data, self._start, self._stop))
-                self._master.update()
-                tk_sleep(self._master, self._sleep_time * 1000)
-                if self._abort:
-                    break
-
-    def onpick(self, event):
-        thisline = event.artist
-        xdata = thisline.get_xdata()
-        ind = event.ind[0]
-        point = xdata[ind]
-        with open(self._filename) as inputfile:
-            reader = csv.reader(inputfile, delimiter=',')
-            for row in reader:
-                if 'time scan {}'.format(point) in row:
-                    title = row[0]
-                    data = [float(i) for i in row[1::]]
-                    fig = plt.figure()
-                    ax = fig.add_subplot(111)
-                    ax.set_title('{} seconds'.format(title))
-                    ax.set_xlabel(self._units)
-                    ax.set_ylabel('counts')
-                    ax.plot(self._xvalues, data)
-                    fig.show()
-
-    def replot(self):
-        start = float(self._new_start.get())
-        stop = float(self._new_stop.get())
-        time = []
-        data = []
-        with open(self._filename) as inputfile:
-            reader = csv.reader(inputfile, delimiter=',')
-            for row in reader:
-                if 'time scan' in row[0]:
-                    time.append(float(row[0].split('scan ')[1]))
-                    data.append(self.integrate_spectrum([float(i) for i in row[1::]], start, stop))
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.set_title('{} time scan, {} polarization, {} - {} {}'.format(self._device, self._polarization, start, stop,
-                                                                        self._units))
-        ax.scatter(time, data)
-        ax.set_xlabel('time (seconds)')
-        ax.set_ylabel('counts')
-        fig.show()
-
-    def main(self):
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, text='start {}'.format(self._units), anchor='w')
-        ent = tk.Entry(row, textvariable=self._new_start)
-        row.pack(side=tk.TOP)
-        lab.pack()
-        ent.pack()
-        row = tk.Frame(self._master)
-        lab = tk.Label(row, text='stop {}'.format(self._units), anchor='w')
-        ent = tk.Entry(row, textvariable=self._new_stop)
-        row.pack(side=tk.TOP)
-        lab.pack()
-        ent.pack()
-        button = tk.Button(master=row, text="Replot", command=self.replot)
-        button.pack()
-        button = tk.Button(master=self._master, text="Abort", command=self.abort)
-        button.pack(side=tk.BOTTOM)
-        self._single_ax1.set_title('{} time scan, {} polarization, {} - {} {}'.format(self._device, self._polarization,
-                                                                                      self._start, self._stop,
-                                                                                      self._units))
-        self._single_fig.tight_layout()
-        self.make_file(measurement_title='time measurement')
-        self.write_header()
-        self.measure()
-        self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
-        self._single_fig.canvas.mpl_connect('pick_event', self.onpick)
-
-class RamanTimeWaterfall(BaseRamanMeasurement):
-    def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, sleep_time, number_scans,
-                 polarizer=None, powermeter=None):
-        super().__init__(master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                         shutter, darkcurrent, darkcorrected, device, filepath, notes, index, polarizer, powermeter)
+        self._npc3sg_x = npc3sg_x
+        self._npc3sg_y = npc3sg_y
+        self._npc3sg_input = npc3sg_input
+        self._powermeter = powermeter
+        self._z1 = np.zeros((self._xd, self._yd))
+        self._z2 = np.zeros((self._xd, self._yd))
+        self._im1 = self._single_ax1.imshow(self._z1.T, cmap=plt.cm.coolwarm, interpolation='nearest', origin='lower')
+        self._clb1 = self._single_fig.colorbar(self._im1, ax=self._single_ax1)
+        self._writer = None
+        self._x_val, self._y_val = scanner.find_scan_values(self._xc, self._yc, self._xr, self._yr, self._xd, self._yd)
+        self._direction = direction
+        if not self._direction:
+            self._y_val = self._y_val[::-1]
         self._sleep_time = sleep_time
-        self._number_scans = number_scans
-        self._wf = np.zeros((self._number_scans, len(self._xvalues)))
-        self._im = self._single_ax1.imshow(self._wf, interpolation='nearest', origin='lower', aspect='auto',
-                                            extent=[self._xvalues[0], self._xvalues[-1], 0, self._number_scans])
-        self._single_ax1.set_xlabel(self._units)
-        self._single_ax1.set_ylabel('scan')
-        self._clb1 = self._single_fig.colorbar(self._im, ax=self._single_ax1)
-        self._single_fig.tight_layout()
-        self._single_canvas.draw()
-        self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+    def abort(self):
+        self._abort = True
 
     def write_header(self):
-        with open(self._filename, 'w', newline='') as inputfile:
-            writer = csv.writer(inputfile)
-            writer.writerow(['laser wavelength:', laser_wavelength])
-            writer.writerow(['polarization:', self._polarization])
-            writer.writerow(['power (W):', self._power])
-            gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
-            writer.writerow(['raman gain:', gain_options[self._raman_gain]])
-            writer.writerow(['center wavelength:', self._center_wavelength])
-            writer.writerow(['acquisitions:', self._acquisitions])
-            writer.writerow(['integration time:', self._integration_time])
-            writer.writerow(['shutter open:', self._shutter])
-            writer.writerow(['dark current corrected:', self._dark_current])
-            writer.writerow(['dark corrected:', self._dark_corrected])
-            writer.writerow(['grating:', self._grating])
-            writer.writerow(['time between scans:', self._sleep_time])
-            writer.writerow(['notes:', self._notes])
-            writer.writerow(['x value units:', self._units])
-            writer.writerow(['end:', 'end of header'])
-            writer.writerow(['x values', *self._xvalues])
+        self._writer.writerow(['x scan density:', self._xd])
+        self._writer.writerow(['y scan density:', self._yd])
+        self._writer.writerow(['x range:', self._xr])
+        self._writer.writerow(['y range:', self._yr])
+        self._writer.writerow(['x center:', self._xc])
+        self._writer.writerow(['y center:', self._yc])
+        self._writer.writerow(['polarization:', self._polarization])
+        if self._powermeter:
+            self._writer.writerow(['power (W):', self._powermeter.read_power()])
+        else:
+            self._writer.writerow(['power (W):', 'not measured'])
+        self._writer.writerow(['laser wavelength:', laser_wavelength])
+        gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
+        self._writer.writerow(['raman gain:', gain_options[self._raman_gain]])
+        self._writer.writerow(['center wavelength:', self._center_wavelength])
+        self._writer.writerow(['acquisitions:', self._acquisitions])
+        self._writer.writerow(['integration time:', self._integration_time])
+        self._writer.writerow(['shutter open:', self._shutter])
+        self._writer.writerow(['dark current corrected:', self._dark_current])
+        self._writer.writerow(['dark corrected:', self._dark_corrected])
+        self._writer.writerow(['grating:', self._grating])
+        self._writer.writerow(['time between scans:', self._sleep_time])
+        self._writer.writerow(['x value units:', self._units])
+        self._writer.writerow(['notes:', self._notes])
+        self._writer.writerow(['end:', 'end of header'])
+        self._writer.writerow(['x values', *self._xvalues])
 
-    def update_plot(self, im, data):
-        im.set_data(data)
-        values = np.unique(data)
-        im.set_clim(vmin=sorted(values)[1])
-        im.set_clim(vmax=np.amax(data))
-        self._single_canvas.draw()
 
-    def measure(self):
-        start_time = time.time()
-        with open(self._filename, 'a', newline='') as inputfile:
-            writer = csv.writer(inputfile)
-            for scan in range(self._number_scans):
-                now = time.time() - start_time
-                self.take_spectrum()
-                writer.writerow(['time scan {}'.format(now), *[i for i in self._data]])
-                self._wf[scan] = self._data
-                self.update_plot(self._im, self._wf)
+    def setup_plots(self):
+        self._clb1.set_label('counts', rotation=270, labelpad=20)
+        self._single_ax1.title.set_text('Raman signal {} - {} {}'.format(self._start, self._stop, self._units))
+
+    def update_plot(self, im, data, min_val, max_val):
+        im.set_data(data.T)
+        im.set_clim(vmin=min_val)
+        im.set_clim(vmax=max_val)
+
+    def onclick(self, event):
+        try:
+            points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(event.ydata - 0.5))]
+            if not self._direction:
+                points = [int(np.ceil(event.xdata - 0.5)), int(np.ceil(self._yd - event.ydata - 0.5 - 1))]
+            self._npc3sg_x.move(self._x_val[points[0]])
+            self._npc3sg_y.move(self._y_val[points[1]])
+            print('pixel: ' + str(points))
+            print('position: ' + str(self._x_val[points[0]]) + ', ' + str(self._y_val[points[1]]))
+        except:
+            print('invalid position')
+
+    def run_scan(self):
+        for y_ind, i in enumerate(self._y_val):
+            self._master.update()
+            if self._abort:
+                self._npc3sg_x.move(0)
+                self._npc3sg_y.move(0)
+                break
+            if not self._direction:
+                y_ind = len(self._y_val) - y_ind - 1
+            self._npc3sg_y.move(i)
+            for x_ind, j in enumerate(self._x_val):
+                self._npc3sg_x.move(j)
+                tk_sleep(self._master, 1000 * self._sleep_time)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
+                _, data = self.take_spectrum()
+                integrated = self.integrate_spectrum(data, self._start, self._stop)
+                self._writer.writerow([(x_ind, y_ind), *integrated])
+                self._z1[x_ind][y_ind] = integrated
+                self.update_plot(self._im1, self._z1, np.amin(self._z1), np.amax(self._z1))
+                self._single_fig.tight_layout()
+                self._single_canvas.draw()  # dynamically plots the data and closes automatically after completing the scan
                 self._master.update()
-                tk_sleep(self._master, self._sleep_time * 1000)
                 if self._abort:
+                    self._npc3sg_x.move(0)
+                    self._npc3sg_y.move(0)
                     break
+        self._npc3sg_x.move(0)
+        self._npc3sg_y.move(0)  # returns piezo controller position to 0,0
 
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
-        self._single_ax1.set_title('{} time waterfall, {} polarization'.format(self._device, self._polarization))
-        self._single_fig.tight_layout()
-        self.make_file(measurement_title='time waterfall measurement')
-        self.write_header()
-        self.measure()
-        self._single_fig.savefig(self._imagefile, format='png', bbox_inches='tight')
+        self.make_file('Raman map')
+        with open(self._filename, 'w', newline='') as inputfile:
+            try:
+                self._writer = csv.writer(inputfile)
+                self.setup_plots()
+                self._single_canvas.draw()
+                self.write_header()
+                self.run_scan()
+                heating_plot.plot(self._single_ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
+                self._single_canvas.draw()
+                self._single_fig.savefig(self._imagefile, format='png',
+                                  bbox_inches='tight')  # saves an image of the completed data
+                heating_plot.plot(self._single_ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
+                self._single_canvas.draw()  # shows the completed scan
+                warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
+                # that was never written
+                cid = self._single_fig.canvas.mpl_connect('button_press_event',
+                                                   self.onclick)  # click on pixel to move laser position there
+                self._npc3sg_x.move(0)
+                self._npc3sg_y.move(0)
+            except TclError:  # this is an annoying error that requires you to have tkinter events in mainloop
+                pass
+
 
 
 

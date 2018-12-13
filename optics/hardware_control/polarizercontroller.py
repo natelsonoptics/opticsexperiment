@@ -3,7 +3,7 @@ import contextlib
 import sys
 import time
 
-from optics.hardware_control.hardware_addresses_and_constants import polarizer_offset
+from optics.hardware_control.hardware_addresses_and_constants import polarizer_offset, waveplate_offset
 
 sys.path.append("C:\\Program Files\\Thorlabs\\Kinesis") #  adds DLL path to PATH
 
@@ -27,7 +27,7 @@ from System import Decimal
 
 
 @contextlib.contextmanager
-def connect_tdc001(serial_number):
+def connect_tdc001(serial_number, waveplate=False):
     device = None
     try:
         DeviceManagerCLI.BuildDeviceList()
@@ -46,17 +46,20 @@ def connect_tdc001(serial_number):
         device.EnableDevice()
         motorSettings = device.LoadMotorConfiguration(str(serial_number))
         currentDeviceSettings = device.MotorDeviceSettings
-        yield PolarizerController(device)
+        if waveplate:
+            yield WaveplateController(device)
+        else:
+            yield PolarizerController(device)
     finally:
         if device:
             device.Disconnect()
         else:
-            print('TDC101 polarizer controller communication error')
+            print('TDC101 waveplate controller communication error')
             raise ValueError
 
 
 @contextlib.contextmanager
-def connect_kdc101(serial_number):
+def connect_kdc101(serial_number, waveplate=True):
     device = None
     try:
         DeviceManagerCLI.BuildDeviceList() # Tell the device manager to get the list of all devices connected to the computer
@@ -75,33 +78,68 @@ def connect_kdc101(serial_number):
         motorSettings = device.LoadMotorConfiguration(str(serial_number))  # This is important to leave in, but I'm not sure
         # why
         currentDeviceSettings = device.MotorDeviceSettings  # This is important to leave in, but I'm not sure why
-        yield PolarizerController(device)
+        if waveplate:
+            yield WaveplateController(device)
+        else:
+            yield PolarizerController(device)
     finally:
         if device:
             device.Disconnect()
         else:
-            print('KDC101 polarizer controller communication error')
+            print('KDC101 waveplate controller communication error')
             raise ValueError
 
-
-class PolarizerController:
+class RotatorMountController:
     def __init__(self, device):
         self._device = device
+
+    def read_position(self, wait_ms=0):
+        time.sleep(wait_ms/1000)
+        position = float(str(self._device.Position))
+        return position
+
+    def home(self):
+        self._device.Home(self._device.InitializeWaitHandler())
+
+    def move(self, position):
+        if position > 360:
+            position -= 360
+        self._device.MoveTo(Decimal(position), self._device.InitializeWaitHandler())
+        # this is a System.Decimal!
+
+
+class WaveplateController(RotatorMountController):
+    def __init__(self, device):
+        self._device = device
+        super().__init__(self._device)
+
+    def move_nearest(self, position):
+        current_position = self.read_position()
+        i = 0
+        for i in range(180):
+            if position % 90 - 0.5 < (current_position + i) % 90 < position % 90 + 0.5:
+                break
+        self.move(current_position + i)
+
+    def read_polarization(self, wait_ms=0):
+        return self.read_position(wait_ms) * 2
+
+
+class PolarizerController(RotatorMountController):
+    def __init__(self, device):
+        self._device = device
+        super().__init__(self._device)
         self._polarizer_offset = polarizer_offset
 
     def move(self, position):
-        calibrated_position = self._polarizer_offset * position  # This is from Xifan and I making sure that the CR1-Z6
-        # read the *same*
-        # value as it displayed. There is an offset of around 1.183 times the value due to slipping.
+        calibrated_position = self._polarizer_offset * position  # There is an offset of around 1.183 times the value
+        # due to slipping of the CR1Z6 mount
         # This should be changed once a new motor is purchased
         self._device.MoveTo(Decimal(calibrated_position), self._device.InitializeWaitHandler())
         # this is a System.Decimal!
 
     def move_nearest(self, position):
-        calibrated_position = self._polarizer_offset * position  # This is from Xifan and I making sure that the CR1-Z6
-        # read the *same*
-        # value as it displayed. There is an offset of around 1.183 times the value due to slipping.
-        # This should be changed once a new motor is purchased
+        calibrated_position = self._polarizer_offset * position
         current_position = float(str(self._device.Position))
         if position in (0, 45):
             if calibrated_position - 1.1 < current_position % (90 * self._polarizer_offset) < calibrated_position + 1.1:
@@ -123,15 +161,6 @@ class PolarizerController:
         self._device.MoveTo(Decimal(new_position), self._device.InitializeWaitHandler())
         # this is a System.Decimal!
 
-    def home(self):  # you will need to home the device to reset the new 0 because you cannot give an input position
-        # value larger than 359 degrees
-        self._device.Home(self._device.InitializeWaitHandler())
-
-    def read_waveplate_position(self, wait_ms=0):
-        time.sleep(wait_ms/1000)
-        calibrated_position = float(str(self._device.Position)) / self._polarizer_offset
-        return calibrated_position  # polarization is 2 times this value!
-
     def read_polarization(self, wait_ms=0):
-        waveplate = self.read_waveplate_position(wait_ms)
-        return waveplate * 2
+        return self.read_position(wait_ms) / self._polarizer_offset
+

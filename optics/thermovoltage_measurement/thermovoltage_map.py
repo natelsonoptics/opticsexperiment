@@ -18,7 +18,7 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 
 class ThermovoltageScan:
     def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc,
-                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_single_reference, powermeter, polarizer,
+                 npc3sg_x, npc3sg_y, npc3sg_input, sr7270_single_reference, powermeter, waveplate,
                  direction=True,
                  axis='y'):
         self._master = master
@@ -33,9 +33,9 @@ class ThermovoltageScan:
         self._xr = xr  # x range
         self._xc = xc  # x center position
         self._yc = yc  # y center position
-        self._polarizer = polarizer
-        if self._polarizer:
-            self._measuredpolarization = self._polarizer.read_polarization()
+        self._waveplate = waveplate
+        if self._waveplate:
+            self._measuredpolarization = self._waveplate.read_polarization()
             self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         else:
             self._polarization = 'x'
@@ -90,7 +90,7 @@ class ThermovoltageScan:
         self._writer.writerow(['y range:', self._yr])
         self._writer.writerow(['x center:', self._xc])
         self._writer.writerow(['y center:', self._yc])
-        if self._polarizer:
+        if self._waveplate:
             self._writer.writerow(['polarization:', self._polarization])
             self._writer.writerow(['raw polarization:', self._measuredpolarization])
         else:

@@ -15,7 +15,7 @@ import numpy as np
 
 class ThermovoltagePolarization:
     def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, sr7270_single_reference, powermeter,
-                 polarizer):
+                 waveplate):
         self._master = master
         self._writer = None
         self._npc3sg_input = npc3sg_input
@@ -25,7 +25,7 @@ class ThermovoltagePolarization:
         self._filepath = filepath
         self._scan = scan
         self._device = device
-        self._polarizer = polarizer
+        self._waveplate = waveplate
         self._sr7270_single_reference = sr7270_single_reference
         self._imagefile = None
         self._filename = None
@@ -36,7 +36,7 @@ class ThermovoltagePolarization:
         self._max_voltage_x = 0
         self._max_voltage_y = 0
         self._voltages = None
-        self._waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
+        self._waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
         self._fig.tight_layout()
@@ -89,10 +89,10 @@ class ThermovoltagePolarization:
             self._master.update()
             if i > 360:
                 i = i - 360
-            self._polarizer.move(i)
+            self._waveplate.move(i)
             tk_sleep(self._master, 1500)
             self._master.update()
-            polarization = float(str(self._polarizer.read_polarization()))
+            polarization = float(str(self._waveplate.read_polarization()))
             # converts waveplate angle to polarizaiton angle
             raw = self._sr7270_single_reference.read_xy()
             self._voltages = [conversions.convert_x_to_iphoto(x, self._gain) for x in raw]
@@ -112,18 +112,6 @@ class ThermovoltagePolarization:
             self._canvas.draw()
             self._master.update()
 
-    def home_polarizer(self):
-        polarization = self._polarizer.read_polarization()
-        self._polarizer.move_nearest(0)
-        tk_sleep(self._master, 10000)
-        self._polarizer.home()
-        tk_sleep(self._master, 5000)
-        self._polarizer.move_nearest(174)
-        tk_sleep(self._master, 20000)
-        self._polarizer.home()
-        if not polarization < 5 and not 175 < polarization < 185 and not polarization > 355:
-            self._polarizer.move_nearest(np.round(polarization, 1))
-
     def main(self):
         button = tk.Button(master=self._master, text="Abort", command=self.abort)
         button.pack(side=tk.BOTTOM)
@@ -137,7 +125,7 @@ class ThermovoltagePolarization:
                 self.measure()
                 self._fig.savefig(self._imagefile, format='png', bbox_inches='tight')
                 if not self._abort:
-                    self.home_polarizer()
+                    self._waveplate.home()
             except KeyboardInterrupt:
                 self._fig.savefig(self._imagefile, format='png',
                                   bbox_inches='tight')  # saves an image of the completed data

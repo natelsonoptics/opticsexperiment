@@ -15,7 +15,7 @@ import tkinter as tk
 
 class ThermovoltageIntensity:
     def __init__(self, master, filepath, notes, device, scan, gain, maxtime, steps,
-                 npc3sg_input, sr7270_single_reference, powermeter, attenuatorwheel, polarizer):
+                 npc3sg_input, sr7270_single_reference, powermeter, attenuatorwheel, waveplate):
         self._master = master
         self._filepath = filepath
         self._notes = notes
@@ -23,9 +23,9 @@ class ThermovoltageIntensity:
         self._scan = scan
         self._gain = gain
         self._steps = steps
-        self._polarizer = polarizer
-        if self._polarizer:
-            self._measuredpolarization = self._polarizer.read_polarization()
+        self._waveplate = waveplate
+        if self._waveplate:
+            self._measuredpolarization = self._waveplate.read_polarization()
             self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         else:
             self._polarization = ''
@@ -64,7 +64,7 @@ class ThermovoltageIntensity:
         self._writer.writerow(['gain:', self._gain])
         self._writer.writerow(['x laser position:', position[0]])
         self._writer.writerow(['y laser position:', position[1]])
-        if self._polarizer:
+        if self._waveplate:
             self._writer.writerow(['polarization:', self._polarization])
             self._writer.writerow(['raw polarization:', self._measuredpolarization])
         else:

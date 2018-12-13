@@ -18,7 +18,7 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 
 class ThermovoltageScanDC:
     def __init__(self, master, filepath, notes, device, scan, gain, xd, yd, xr, yr, xc, yc, npc3sg_x, npc3sg_y, q,
-                 powermeter, polarizer, direction=True):
+                 powermeter, waveplate, direction=True):
         self._master = master
         self._filepath = filepath
         self._gain = gain
@@ -32,9 +32,9 @@ class ThermovoltageScanDC:
         self._xr = xr  # x range
         self._xc = xc  # x center position
         self._yc = yc  # y center position
-        self._polarizer = polarizer
-        if self._polarizer:
-            self._measuredpolarization = self._polarizer.read_polarization()
+        self._waveplate = waveplate
+        if self._waveplate:
+            self._measuredpolarization = self._waveplate.read_polarization()
             self._polarization = int(round((np.round(self._measuredpolarization, 0) % 180) / 10) * 10)
         else:
             self._polarization = ''

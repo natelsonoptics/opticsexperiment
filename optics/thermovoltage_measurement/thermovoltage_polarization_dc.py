@@ -14,7 +14,7 @@ import tkinter as tk
 
 class ThermovoltagePolarizationDC:
     def __init__(self, master, filepath, notes, device, scan, gain, npc3sg_input, powermeter,
-                 polarizer, q):
+                 waveplate, q):
         self._master = master
         self._writer = None
         self._npc3sg_input = npc3sg_input
@@ -25,7 +25,7 @@ class ThermovoltagePolarizationDC:
         self._filepath = filepath
         self._scan = scan
         self._device = device
-        self._polarizer = polarizer
+        self._waveplate = waveplate
         self._imagefile = None
         self._filename = None
         self._start_time = None
@@ -33,7 +33,7 @@ class ThermovoltagePolarizationDC:
         self._ax1 = self._fig.add_subplot(111, polar=True)
         self._max_voltage = 0
         self._voltage = None
-        self._waveplate_angle = int(round(float(str(polarizer.read_waveplate_position())))) % 360
+        self._waveplate_angle = int(round(float(str(waveplate.read_waveplate_position())))) % 360
         self._max_waveplate_angle = self._waveplate_angle + 180
         self._start_time = None
         self._fig.tight_layout()
@@ -83,10 +83,10 @@ class ThermovoltagePolarizationDC:
             self._master.update()
             if i > 360:
                 i = i - 360
-            self._polarizer.move(i)
+            self._waveplate.move(i)
             tk_sleep(self._master, 1500)
             self._master.update()
-            polarization = float(str(self._polarizer.read_polarization()))
+            polarization = float(str(self._waveplate.read_polarization()))
             # converts waveplate angle to polarizaiton angle
             data = self._q.read()
             raw = data[0] - data[1]
