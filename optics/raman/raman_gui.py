@@ -97,7 +97,8 @@ class RamanGUI(BaseGUI):
     def build_time_waterfall_gui(self):
         caption = 'Raman time waterfall spectrum'
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
-                        'acquisitions to average': 1, 'number of scans': 60, 'wait time between scans (s)': 1}
+                        'acquisitions to average': 1, 'number of scans': 60, 'wait time between scans (s)': 1,
+                        'start wavelength': '', 'stop wavelength': ''}
         self.beginform(caption)
         self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
         self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
@@ -116,7 +117,9 @@ class RamanGUI(BaseGUI):
                                  self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
                                  self._inputs['file path'], self._fields['notes'],
                                  int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
-                                 int(self._inputs['number of scans']), waveplate=self._waveplate, powermeter=self._powermeter)
+                                 int(self._inputs['number of scans']), float(self._inputs['start wavelength']),
+                                 float(self._inputs['stop wavelength']), self._waveplate, self._powermeter,
+                                 self._npc3sg_input)
         run.main()
 
     def build_voltage_waterfall_gui(self):
@@ -161,16 +164,18 @@ class RamanGUI(BaseGUI):
 
     def polarization_spectrum(self, event=None):
         self.fetch(event)
-        run = RamanPolarization(tk.Toplevel(self._master), self._ccd_controller, self._grating, self._raman_gain,
-                                self._center_wavelength, self._units.get(), float(self._inputs['integration time (s)']),
-                                int(self._inputs['acquisitions to average']), self.string_to_bool(self._shutter.get()),
-                                    self.string_to_bool(self._darkcurrent.get()),
-                                    self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
-                                    self._inputs['file path'], self._fields['notes'],
-                                    int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
-                                float(self._inputs['start wavelength']),
-                                float(self._inputs['stop wavelength']), float(self._inputs['polarization spacing']),
-                                self._waveplate, self._powermeter, self._npc3sg_input)
+        run = RamanPolarization(tk.Toplevel(self._master), self._ccd_controller, self._grating,
+                                         self._raman_gain, self._center_wavelength, self._units.get(),
+                                         float(self._inputs['integration time (s)']),
+                                         int(self._inputs['acquisitions to average']),
+                                         self.string_to_bool(self._shutter.get()),
+                                         self.string_to_bool(self._darkcurrent.get()),
+                                         self.string_to_bool(self._dark_corrected.get()), self._inputs['device'],
+                                         self._inputs['file path'], self._fields['notes'],
+                                         int(self._inputs['scan']), float(self._inputs['wait time between scans (s)']),
+                                         float(self._inputs['polarization spacing']), float(self._inputs['start wavelength']),
+                                float(self._inputs['stop wavelength']), self._waveplate, self._powermeter,
+                                         self._npc3sg_input)
         run.main()
 
 
@@ -180,8 +185,10 @@ class RamanBaseGUI(BaseGUI):
         self._master = master
         super().__init__(self._master)
         self._master.title('Optics Raman setup measurements')
+        print('connecting Raman hardware (approx. 30 seconds)')
         self._mono = MonoController()
         self._ccd_controller = CCDController2()
+        print('Raman hardware connection complete')
         self._gain = self._ccd_controller.read_gain()
         self._gain_options = tk.StringVar()
         gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
@@ -213,9 +220,10 @@ class RamanBaseGUI(BaseGUI):
         row = self.makerow('Raman measurements')
         self.make_measurement_button(row, 'single spectrum', 'singlespectrum')
         self.make_measurement_button(row, 'time', 'timespectrum')
-        self.make_measurement_button(row, 'time waterfall', 'timewaterfall')
-        self.make_measurement_button(row, 'voltage waterfall', 'voltagewaterfall')
         self.make_measurement_button(row, 'polarization', 'polarizationspectrum')
+        row = self.makerow('Raman waterfall measurements')
+        self.make_measurement_button(row, 'time', 'timewaterfall')
+        self.make_measurement_button(row, 'voltage', 'voltagewaterfall')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
@@ -282,8 +290,9 @@ class RamanBaseGUI(BaseGUI):
         while self._mono.is_busy():
             print('Moving turret')
             time.sleep(10)
-            if time.time() > now + 90:
+            if time.time() > now + 120:
                 print('Mono timeout')
+                print('Restart connection')
                 break
         print('Turret movement complete')
         print('Current turret: {}\nCurrent grating: {}\nCurrent blazes: {}'

@@ -76,7 +76,6 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         ydata = int(np.ceil(event.ydata))
         idx = (np.abs(self._voltages - ydata)).argmin()
         ydata = self._voltages[idx]
-        print(ydata)
         with open(self._filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:

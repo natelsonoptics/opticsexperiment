@@ -26,7 +26,7 @@ from os import path
 from optics.gui.base_gui import BaseGUI
 from optics.electromigrate.k2400_break import KeithleyBreak
 from optics.hardware_control import toptica_ibeam_smart
-from optics.raman.raman import RamanBaseGUI
+from optics.raman.raman_gui import RamanBaseGUI
 
 
 class BaseLockinGUI(BaseGUI):
@@ -88,7 +88,8 @@ class BaseLockinGUI(BaseGUI):
         if measurementtype != 'raman':
             measurement[measurementtype]()
         else:
-            RamanBaseGUI(self._newWindow, self._sr7270_single_reference, self._sr7270_dual_harmonic).build()
+            RamanBaseGUI(self._newWindow, self._sr7270_single_reference, self._sr7270_dual_harmonic, self._waveplate,
+                         self._powermeter, self._npc3sg_input).build()
 
     def build(self):
         row = self.makerow('map scans')
