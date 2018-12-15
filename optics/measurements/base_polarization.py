@@ -2,6 +2,7 @@ from optics.measurements.base_measurement import LockinBaseMeasurement
 import numpy as np
 import time
 import csv
+from optics.misc_utility.tkinter_utilities import tk_sleep
 
 
 class PolarizationMeasurement(LockinBaseMeasurement):
