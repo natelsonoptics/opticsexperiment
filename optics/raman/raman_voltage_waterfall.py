@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 class RamanVoltageWaterfall(BaseRamanMeasurement):
     def __init__(self, master, ccd, sr7270_dual_harmonic, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
                  shutter, darkcurrent, darkcorrected, device, filepath, notes, index, sleep_time, number_scans, start_voltage,
-                 stop_voltage, waveplate=None, powermeter=None):
+                 stop_voltage, waveplate, powermeter, gate=0):
         super().__init__(master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
                          shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate, powermeter)
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
@@ -27,9 +27,10 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         self._single_fig.tight_layout()
         self._single_canvas.draw()
         self._single_canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        self._gate = gate
 
     def write_header(self):
-        with open(self._filename, 'w', newline='') as inputfile:
+        with open(self._lockin_filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
             writer.writerow(['laser wavelength:', laser_wavelength])
             writer.writerow(['polarization:', self._polarization])
@@ -44,6 +45,7 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
             writer.writerow(['dark corrected:', self._dark_corrected])
             writer.writerow(['grating:', self._grating])
             writer.writerow(['time between scans:', self._sleep_time])
+            writer.writerow(['gate (V):', self._gate])
             writer.writerow(['notes:', self._notes])
             writer.writerow(['x value units:', self._units])
             writer.writerow(['end:', 'end of header'])
@@ -57,8 +59,7 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         self._single_canvas.draw()
 
     def measure(self):
-        start_time = time.time()
-        with open(self._filename, 'a', newline='') as inputfile:
+        with open(self._lockin_filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
             for i, voltage in enumerate(self._voltages):
                 self._sr7270_dual_harmonic.change_applied_voltage(voltage)
@@ -76,7 +77,7 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         ydata = event.ydata
         idx = (np.abs(self._voltages - ydata)).argmin()
         point = self._voltages[idx]
-        with open(self._filename) as inputfile:
+        with open(self._lockin_filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'end:' in row:

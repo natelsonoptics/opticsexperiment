@@ -26,7 +26,7 @@ class RamanIntensity(BaseRamanMeasurement):
         self._attenuatorwheel = attenuatorwheel
 
     def write_header(self):
-        with open(self._filename, 'w', newline='') as inputfile:
+        with open(self._lockin_filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
             writer.writerow(['laser wavelength:', laser_wavelength])
             writer.writerow(['polarization:', self._polarization])
@@ -55,7 +55,7 @@ class RamanIntensity(BaseRamanMeasurement):
 
     def measure(self):
         start_time = time.time()
-        with open(self._filename, 'a', newline='') as inputfile:
+        with open(self._lockin_filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
             while time.time() - start_time < self._maxtime:
                 now = time.time() - start_time
@@ -75,7 +75,7 @@ class RamanIntensity(BaseRamanMeasurement):
         xdata = thisline.get_xdata()
         ind = event.ind[0]
         point = xdata[ind]
-        with open(self._filename) as inputfile:
+        with open(self._lockin_filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'power {}'.format(point) in row:
@@ -94,7 +94,7 @@ class RamanIntensity(BaseRamanMeasurement):
         stop = float(self._new_stop.get())
         power = []
         data = []
-        with open(self._filename) as inputfile:
+        with open(self._lockin_filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'power' in row[0]:

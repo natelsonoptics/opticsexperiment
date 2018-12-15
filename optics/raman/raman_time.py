@@ -48,16 +48,12 @@ class RamanTime(BaseRamanMeasurement):
         self._times = []
 
     def write_header(self):
-        with open(self._filename, 'w', newline='') as inputfile:
+        with open(self._lockin_filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
             position = self._npc3sg_input.read()
             writer.writerow(['x laser position:', position[0]])
             writer.writerow(['y laser position:', position[1]])
             writer.writerow(['laser wavelength:', laser_wavelength])
-            if self._powermeter:
-                writer.writerow(['power (W):', self._powermeter.read_power()])
-            else:
-                writer.writerow(['power (W):', 'not measured'])
             writer.writerow(['polarization:', self._polarization])
             writer.writerow(['power (W):', self._power])
             gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
@@ -84,7 +80,7 @@ class RamanTime(BaseRamanMeasurement):
 
     def measure(self):
         start_time = time.time()
-        with open(self._filename, 'a', newline='') as inputfile:
+        with open(self._lockin_filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
             for scan in range(self._number_scans):
                 now = time.time() - start_time
@@ -108,7 +104,7 @@ class RamanTime(BaseRamanMeasurement):
         title = ''
         if ax == self._ax1:
             ydata = int(np.ceil(event.ydata - 1))
-            with open(self._filename) as inputfile:
+            with open(self._lockin_filename) as inputfile:
                 reader = csv.reader(inputfile, delimiter=',')
                 for row in reader:
                     if 'end:' in row:
@@ -121,7 +117,7 @@ class RamanTime(BaseRamanMeasurement):
             xdata = event.xdata
             ind = (np.abs(np.asarray(self._times) - xdata)).argmin()
             point = self._times[ind]
-            with open(self._filename) as inputfile:
+            with open(self._lockin_filename) as inputfile:
                 reader = csv.reader(inputfile, delimiter=',')
                 for row in reader:
                     if 'time scan {}'.format(point) in row:
@@ -140,7 +136,7 @@ class RamanTime(BaseRamanMeasurement):
         stop = float(self._new_stop.get())
         time = []
         data = []
-        with open(self._filename) as inputfile:
+        with open(self._lockin_filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'time scan' in row[0]:

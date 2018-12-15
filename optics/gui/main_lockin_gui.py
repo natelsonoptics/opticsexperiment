@@ -365,7 +365,7 @@ class LockinMeasurementGUI(BaseGUI):
         run = ThermovoltagePolarization(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
                                         self._inputs['device'], int(self._inputs['scan']),
                                         float(self._voltage_gain.get()), self._npc3sg_input,
-                                        self._sr7270_single_reference, self._powermeter, self._waveplate)
+                                        self._sr7270_single_reference, self._powermeter, self._waveplate, int(self._inputs['polarization steps']))
         run.main()
 
     def thermovoltage_polarization_dc(self, event=None):
@@ -384,8 +384,7 @@ class LockinMeasurementGUI(BaseGUI):
                                   float(self._current_amplifier_gain_options[self._current_gain.get()]),
                                   float(self._inputs['bias (mV)']), float(self._inputs['oscillator amplitude (mV)']),
                                   self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
-                                  self._powermeter,
-                                  self._waveplate)
+                                  self._powermeter, self._waveplate, int(self._inputs['polarization steps']))
         run.main()
 
     def changeposition(self, event=None):
@@ -506,7 +505,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def build_thermovoltage_polarization_gui(self):
         caption = "Thermovoltage vs. polarization"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': ""}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'polarization steps': 5}
         self.beginform(caption)
         self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
         self.endform(self.thermovoltage_polarization)
@@ -521,7 +520,7 @@ class LockinMeasurementGUI(BaseGUI):
     def build_heating_polarization_gui(self):
         caption = "Heating vs. polarization"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'bias (mV)': 5,
-                        'oscillator amplitude (mV)': 7}
+                        'oscillator amplitude (mV)': 7, 'polarization steps': 5}
         self.beginform(caption)
         self.make_option_menu('gain', self._current_gain, self._current_amplifier_gain_options.keys())
         self.endform(self.heating_polarization)

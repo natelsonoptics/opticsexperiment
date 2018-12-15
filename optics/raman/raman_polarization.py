@@ -46,15 +46,12 @@ class RamanPolarization(BaseRamanMeasurement):
         self._new_stop.set(self._stop)
 
     def write_header(self):
-        with open(self._filename, 'w', newline='') as inputfile:
+        with open(self._lockin_filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
             position = self._npc3sg_input.read()
             writer.writerow(['x laser position:', position[0]])
             writer.writerow(['y laser position:', position[1]])
-            if self._powermeter:
-                writer.writerow(['power (W):', self._powermeter.read_power()])
-            else:
-                writer.writerow(['power (W):', 'not measured'])
+            writer.writerow(['power (mW):', self._power])
             writer.writerow(['laser wavelength:', laser_wavelength])
             gain_options = {0: 'high light', 1: 'best dynamic range', 2: 'high sensitivity'}
             writer.writerow(['raman gain:', gain_options[self._raman_gain]])
@@ -79,7 +76,7 @@ class RamanPolarization(BaseRamanMeasurement):
         self._canvas.draw()
 
     def measure(self):
-        with open(self._filename, 'a', newline='') as inputfile:
+        with open(self._lockin_filename, 'a', newline='') as inputfile:
             writer = csv.writer(inputfile)
             for i, waveplate_position in enumerate(self._waveplate_positions):
                 self._master.update()
@@ -110,7 +107,7 @@ class RamanPolarization(BaseRamanMeasurement):
             xdata = event.xdata * 180 / np.pi
             idx = (np.abs(np.asarray([(i * 2) % 360 for i in self._waveplate_positions]) - xdata % 360)).argmin()
             point = self._waveplate_positions[idx] * 2
-        with open(self._filename) as inputfile:
+        with open(self._lockin_filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'end:' in row:
@@ -132,7 +129,7 @@ class RamanPolarization(BaseRamanMeasurement):
         stop = float(self._new_stop.get())
         polarization = []
         data = []
-        with open(self._filename) as inputfile:
+        with open(self._lockin_filename) as inputfile:
             reader = csv.reader(inputfile, delimiter=',')
             for row in reader:
                 if 'polarization' in row[0]:
