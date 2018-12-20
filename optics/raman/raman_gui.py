@@ -8,13 +8,15 @@ from optics.raman.single_spectrum import BaseRamanMeasurement
 from optics.raman.raman_time import RamanTime
 from optics.raman.raman_voltage_waterfall import RamanVoltageWaterfall
 from optics.raman.raman_polarization import RamanPolarization
+from optics.raman.raman_map import RamanMapScan
 from optics.gui.base_gui import BaseGUI
 import time
+from optics.raman import unit_conversions
 
 
 class RamanGUI(BaseGUI):
     def __init__(self, master, mono, ccd_controller, sr7270_single_reference, sr7270_dual_harmonic, waveplate,
-                 powermeter, npc3sg_input):
+                 powermeter, npc3sg_input, npc3sg_x, npc3sg_y):
         self._master = master
         super().__init__(self._master)
         self._mono = mono
@@ -35,6 +37,8 @@ class RamanGUI(BaseGUI):
         self._powermeter = powermeter
         self._waveplate = waveplate
         self._npc3sg_input = npc3sg_input
+        self._npc3sg_x = npc3sg_x
+        self._npc3sg_y = npc3sg_y
 
     def build_single_spectrum_gui(self):
         caption = "Single Raman spectrum"
@@ -150,10 +154,42 @@ class RamanGUI(BaseGUI):
                                          self._npc3sg_input)
         run.main()
 
+    def build_raman_map_gui(self):
+        caption = 'Raman map'
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
+                        'acquisitions to average': 1, 'start wavelength': '', 'stop wavelength': '',
+                        'wait time between scans (s)': 1, 'xd': 10, 'yd': 10,
+                        'xr': 160, 'yr': 160, 'xc': 80, 'yc': 80}
+        self.beginform(caption)
+        self.make_option_menu('shutter open', self._shutter, ['True', 'False'])
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
+        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
+        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
+        self.endform(self.polarization_spectrum)
+
+    def raman_map(self, event=None):
+        self.fetch(event)
+        run = RamanMapScan(tk.Toplevel(self._master), self._ccd_controller, self._grating,
+                                         self._raman_gain, self._center_wavelength, self._units.get(),
+                                         float(self._inputs['integration time (s)']),
+                                         int(self._inputs['acquisitions to average']),
+                                         self.string_to_bool(self._shutter.get()),
+                                         self.string_to_bool(self._darkcurrent.get()),
+                                         self.string_to_bool(self._dark_corrected.get()), self._inputs['file path'], self._fields['notes'],
+                           self._inputs['device'],
+                                         int(self._inputs['scan']), int(self._inputs['xd']),
+                           int(self._inputs['yd']), int(self._inputs['xr']), int(self._inputs['yr']),
+                           int(self._inputs['xc']), int(self._inputs['yc']),
+                            self._npc3sg_x, self._npc3sg_y,
+                           self._npc3sg_input, float(self._inputs['start wavelength']),
+                                float(self._inputs['stop wavelength']), float(self._inputs['wait time between scans (s)']), self._powermeter,
+                           self._waveplate, True)
+        run.main()
+
 
 class RamanBaseGUI(BaseGUI):
     def __init__(self, master, sr7270_single_reference=None, sr7270_dual_harmonic=None, waveplate=None, powermeter=None,
-                 npc3sg_input=None):
+                 npc3sg_input=None, npc3sg_x=None, npc3sg_y=None):
         self._master = master
         super().__init__(self._master)
         self._master.title('Optics Raman setup measurements')
@@ -176,15 +212,21 @@ class RamanBaseGUI(BaseGUI):
         self._waveplate = waveplate
         self._powermeter = powermeter
         self._npc3sg_input = npc3sg_input
+        self._npc3sg_x = npc3sg_x
+        self._npc3sg_y = npc3sg_y
+        self._units = tk.StringVar()
+        self._units.set('nm')
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
         self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._sr7270_single_reference,
-                             self._sr7270_dual_harmonic, self._waveplate, self._powermeter, self._npc3sg_input)
+                             self._sr7270_dual_harmonic, self._waveplate, self._powermeter, self._npc3sg_input,
+                             self._npc3sg_x, self._npc3sg_y)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui,
                        'timespectrum': self._app.build_time_spectrum_gui,
                        'voltagewaterfall': self._app.build_voltage_waterfall_gui,
-                       'polarizationspectrum': self._app.build_polarization_spectrum_gui}
+                       'polarizationspectrum': self._app.build_polarization_spectrum_gui,
+                       'ramanmap': self._app.build_raman_map_gui}
         measurement[measurementtype]()
 
     def build(self):
@@ -194,6 +236,7 @@ class RamanBaseGUI(BaseGUI):
         self.make_measurement_button(row, 'polarization', 'polarizationspectrum')
         row = self.makerow('Raman waterfall measurements')
         self.make_measurement_button(row, 'voltage', 'voltagewaterfall')
+        self.make_measurement_button(row, 'map', 'ramanmap')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)
@@ -286,14 +329,20 @@ class RamanBaseGUI(BaseGUI):
     def change_center_wavelength_gui(self):
         self._newWindow = tk.Toplevel(self._master)
         self._newWindow.title('Change center wavelength')
-        self._fields = {'Center wavelength (nm)': '785'}
+        self._fields = {'Center wavelength': '785'}
         self.beginform('Change center wavelength', False, self._newWindow)
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'], master=self._newWindow)
         self.makebutton('Run', self.change_center_wavelength, master=self._newWindow)
         self.makebutton('Quit', self._newWindow.destroy, master=self._newWindow)
 
     def change_center_wavelength(self, event=None):
         self.fetch(event)
-        self._center_wavelength = float(self._inputs['Center wavelength (nm)'])
+        unit = self._units.get()
+        self._center_wavelength = float(self._inputs['Center wavelength'])
+        if unit == 'cm^-1':
+            self._center_wavelength = unit_conversions.convert_wavenumber_to_nm(self._center_wavelength)
+        if unit == 'eV':
+            self._center_wavelength = unit_conversions.convert_ev_to_nm(self._center_wavelength)
         self._mono.set_wavelength(self._center_wavelength)
         now = time.time()
         while self._mono.is_busy():
@@ -302,7 +351,11 @@ class RamanBaseGUI(BaseGUI):
                 break
             time.sleep(1)
             print('monochrometer moving to center position')
-        print('Center wavelength set to {}'.format(self._mono.read_wavelength()))
+        wavelength = self._mono.read_wavelength()
+        print('Center wavelength set to {} nm, \n {} cm^-1, \n {} eV'.format(wavelength,
+                                                                       unit_conversions.convert_nm_to_wavenumber(wavelength),
+                                                                       unit_conversions.convert_nm_to_ev(wavelength)))
+
 
 
 

@@ -68,8 +68,11 @@ class MonoController:
         self._current_grating = self._grating[self._current_turret]
         self._current_blazes = self._blazes[self._current_turret]
         self._current_description = self._description[self._current_turret]
+        while not self.is_ready():
+            time.sleep(2)
         self._mono.MovetoTurret(turret_index)
-        self.stop()
+        while self.is_busy():
+            time.sleep(2)
         return self._current_turret, self._current_grating, self._current_blazes, self._current_description
 
     def is_busy(self):
@@ -81,4 +84,8 @@ class MonoController:
     def stop(self):
         return self._mono.Stop()
 
+    def reboot(self):
+        self._mono.RebootDevice()
+
     #TODO GetMinMaxRange
+

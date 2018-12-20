@@ -89,8 +89,10 @@ class BaseGUI:
         self._textbox.insert(tk.END, displaytext)
         self._textbox.pack(side=tk.RIGHT, expand=tk.YES, fill=tk.X)
 
-    def make_option_menu(self, label, parameter, option_list):
-        row = tk.Frame(self._master)
+    def make_option_menu(self, label, parameter, option_list, master=None):
+        if not master:
+            master = self._master
+        row = tk.Frame(master)
         row.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
         lab = tk.Label(row, width=15, text=label, anchor='w')
         lab.pack(side=tk.LEFT)

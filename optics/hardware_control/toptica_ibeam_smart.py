@@ -88,11 +88,13 @@ if __name__ == '__main__':
     import csv
     import os
     import datetime
-    from optics.hardware_control.hardware_addresses_and_constants import laser_log_path
+    from optics.hardware_control.hardware_addresses_and_constants import laser_log_path, pm100d_address
+    from optics.hardware_control.pm100d import connect
 
     filename = os.path.join(laser_log_path, '{} laser log.csv'.format(str(datetime.date.today())))
     try:
         with connect_laser() as laser:
+            print('here')
             if os.path.exists(filename):
                 with open(filename, 'a', newline='') as inputfile:
                     writer = csv.writer(inputfile)

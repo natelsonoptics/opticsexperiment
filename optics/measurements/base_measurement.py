@@ -131,6 +131,12 @@ class LockinBaseMeasurement:
             button = tk.Button(master=master, text="Abort", command=self.abort)
             button.pack(side=tk.BOTTOM)
 
+    def tk_sleep(self, ms):
+        self._master.after(int(np.round(ms, 0)), self.do_nothing())
+
+    def do_nothing(self):
+        pass
+
 
 
 

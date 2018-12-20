@@ -1,3 +1,12 @@
+from optics.raman.single_spectrum import BaseRamanMeasurement
+import numpy as np
+from optics.misc_utility import scanner
+from optics.hardware_control.hardware_addresses_and_constants import laser_wavelength
+from optics.misc_utility.tkinter_utilities import tk_sleep
+import csv
+from optics.heating_plot import heating_plot
+
+
 class RamanMapScan(BaseRamanMeasurement):
     def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
                  shutter, darkcurrent, darkcorrected, filepath, notes, device, index, xd, yd, xr, yr, xc, yc,
@@ -20,7 +29,6 @@ class RamanMapScan(BaseRamanMeasurement):
         self._npc3sg_input = npc3sg_input
         self._powermeter = powermeter
         self._z1 = np.zeros((self._xd, self._yd))
-        self._z2 = np.zeros((self._xd, self._yd))
         self._im1 = self._single_ax1.imshow(self._z1.T, cmap=plt.cm.coolwarm, interpolation='nearest', origin='lower')
         self._clb1 = self._single_fig.colorbar(self._im1, ax=self._single_ax1)
         self._writer = None
@@ -61,11 +69,11 @@ class RamanMapScan(BaseRamanMeasurement):
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['x values', *self._xvalues])
 
-
     def setup_plots(self):
         self._clb1.set_label('counts', rotation=270, labelpad=20)
         self._single_ax1.title.set_text('Raman signal {} - {} {}'.format(self._start, self._stop, self._units))
 
+    @staticmethod
     def update_plot(self, im, data, min_val, max_val):
         im.set_data(data.T)
         im.set_clim(vmin=min_val)
@@ -98,7 +106,7 @@ class RamanMapScan(BaseRamanMeasurement):
                 tk_sleep(self._master, 1000 * self._sleep_time)  # DO NOT USE TIME.SLEEP IN TKINTER LOOP
                 _, data = self.take_spectrum()
                 integrated = self.integrate_spectrum(data, self._start, self._stop)
-                self._writer.writerow([(x_ind, y_ind), *integrated])
+                #self._writer.writerow([(x_ind, y_ind), *integrated])
                 self._z1[x_ind][y_ind] = integrated
                 self.update_plot(self._im1, self._z1, np.amin(self._z1), np.amax(self._z1))
                 self._single_fig.tight_layout()
@@ -113,25 +121,17 @@ class RamanMapScan(BaseRamanMeasurement):
 
     def main(self):
         self.pack_buttons(True, False, False)
-        self.make_file('Raman map')
-        with open(self._filename, 'w', newline='') as inputfile:
-            try:
-                self._writer = csv.writer(inputfile)
-                self.setup_plots()
-                self._single_canvas.draw()
-                self.write_header()
-                self.run_scan()
-                heating_plot.plot(self._single_ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
-                self._single_canvas.draw()
-                self._single_fig.savefig(self._imagefile, format='png',
-                                  bbox_inches='tight')  # saves an image of the completed data
-                heating_plot.plot(self._single_ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
-                self._single_canvas.draw()  # shows the completed scan
-                warnings.filterwarnings("ignore", ".*GUI is implemented.*")  # this warning relates to code \
-                # that was never written
-                cid = self._single_fig.canvas.mpl_connect('button_press_event',
-                                                   self.onclick)  # click on pixel to move laser position there
-                self._npc3sg_x.move(0)
-                self._npc3sg_y.move(0)
-            except TclError:  # this is an annoying error that requires you to have tkinter events in mainloop
-                pass
+        self.setup_plots()
+        self._single_canvas.draw()
+        self.run_scan()
+        heating_plot.plot(self._single_ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
+        self._single_canvas.draw()
+        self._single_fig.savefig(self._imagefile, format='png',
+                          bbox_inches='tight')  # saves an image of the completed data
+        heating_plot.plot(self._single_ax1, self._im1, self._z1, np.amax(self._z1), np.amin(self._z1))
+        self._single_canvas.draw()  # shows the completed scan
+        cid = self._single_fig.canvas.mpl_connect('button_press_event',
+                                           self.onclick)  # click on pixel to move laser position there
+        self._npc3sg_x.move(0)
+        self._npc3sg_y.move(0)
+

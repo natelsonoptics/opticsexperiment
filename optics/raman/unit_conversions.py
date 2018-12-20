@@ -40,6 +40,15 @@ def convert_nm_to_ev(nm):
     return hc / (nm * 1e-9)
 
 
+def convert_wavenumber_to_nm(wavenumber, laser_wavelength=785):
+    return 1 / (1 / laser_wavelength - wavenumber / 1e7)
+
+
+def convert_ev_to_nm(ev):
+    hc = 1.2398424468e-6
+    return hc / (ev * 1e-9)
+
+
 def convert_pixels_to_unit(unit, groove_density, center_wavelength, laser_wavelength=785, pixels=1024):
     nm = convert_pixels_to_wavelength(groove_density, center_wavelength, pixels)
     if unit == 'nm':
