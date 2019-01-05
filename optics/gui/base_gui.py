@@ -32,7 +32,7 @@ class BaseGUI:
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
 
-    def make_measurement_button(self, master, text, measurement_type):
+    def make_measurement_button(self, master: object, text: object, measurement_type: object) -> object:
         b1 = tk.Button(master, text=text,
                        command=lambda measurementtype=measurement_type: self.new_window(measurementtype))
         b1.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
