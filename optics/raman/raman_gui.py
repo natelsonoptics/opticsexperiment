@@ -195,6 +195,7 @@ class RamanBaseGUI(BaseGUI):
         self._master.title('Optics Raman setup measurements')
         print('connecting Raman hardware (approx. 30 seconds)')
         self._mono = MonoController()
+        print('MonoControl Success')
         self._ccd_controller = CCDController2()
         print('Raman hardware connection complete')
         self._gain = self._ccd_controller.read_gain()
