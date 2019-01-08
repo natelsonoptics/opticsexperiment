@@ -88,4 +88,3 @@ class MonoController:
         self._mono.RebootDevice()
 
     #TODO GetMinMaxRange
-

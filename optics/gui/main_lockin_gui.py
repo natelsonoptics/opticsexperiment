@@ -25,6 +25,8 @@ import os
 from os import path
 from optics.gui.base_gui import BaseGUI
 from optics.electromigrate.k2400_break import KeithleyBreak
+from optics.hardware_control import keithley_k2400
+from optics.hardware_control import hardware_addresses_and_constants
 from optics.hardware_control import toptica_ibeam_smart
 from optics.raman.raman_gui import RamanBaseGUI
 
@@ -781,13 +783,13 @@ def main():
             daq_switch_ai = cm.enter_context(daq.create_ai_task(hw.ai_switch, sleep=0))
             daq_switch_ao = cm.enter_context(daq.create_ao_task(hw.ao_switch))
             laser = cm.enter_context(toptica_ibeam_smart.connect_laser())
-            #keithley = cm.enter_context(keithley_k2400.connect(hardware_addresses_and_constants.keithley_address))
-            #print('keithley')
-            #try:
-            #    keithley.reset()
-            #except Exception:
-            #    keithley = None
-            #    print('Warning: Keithley K2400 not connected')
+            keithley = cm.enter_context(keithley_k2400.connect(hardware_addresses_and_constants.keithley_address))
+            print('keithley')
+            try:
+                keithley.reset()
+            except Exception:
+                keithley = None
+                print('Warning: Keithley K2400 not connected')
             print('hardware connection complete')
             root = tk.Tk()
             app = BaseLockinGUI(root, npc3sg_x=npc3sg_x, npc3sg_y=npc3sg_y, npc3sg_input=npc3sg_input,
@@ -795,7 +797,7 @@ def main():
                                 sr7270_single_reference=sr7270_single_reference,
                                 powermeter=powermeter, attenuatorwheel=attenuatorwheel, waveplate=waveplate,
                                 daq_input=daq_input, daq_switch_ai=daq_switch_ai, daq_switch_ao=daq_switch_ao,
-                                keithley=None, laser=laser)
+                                keithley=keithley, laser=laser)
             app.build()
             root.mainloop()
     except Exception as err:
