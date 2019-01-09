@@ -52,16 +52,20 @@ class MonoController:
     def set_wavelength(self, wavelength):
         self._mono.MovetoWavelength(wavelength)
         self._wavelength = wavelength
+        self.read_string()
 
     def read_wavelength(self):
-        self._wavelength = self._mono.GetCurrentWavelength()
+        #self._wavelength = self._mono.GetCurrentWavelength()
         return self._wavelength
 
     def set_front_slit_width(self, width):
-        self._mono.MovetoSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance, width)
+        print(self._mono.MovetoSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance, width))
+        self._slit_width = width
+        self.read_string()
 
     def read_front_slit_width(self):
-        return self._mono.GetCurrentSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance)
+        #return self._mono.GetCurrentSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance)
+        return self._slit_width
 
     def set_turret(self, turret_index):
         self._current_turret = turret_index
@@ -73,6 +77,7 @@ class MonoController:
         self._mono.MovetoTurret(turret_index)
         while self.is_busy():
             time.sleep(2)
+        print(self.read_string())
         return self._current_turret, self._current_grating, self._current_blazes, self._current_description
 
     def is_busy(self):
@@ -86,5 +91,8 @@ class MonoController:
 
     def reboot(self):
         self._mono.RebootDevice()
+
+    def read_string(self):
+        print(self._mono.ReadString(1))
 
     #TODO GetMinMaxRange

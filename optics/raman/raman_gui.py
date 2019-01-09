@@ -16,16 +16,19 @@ from optics.raman import unit_conversions
 
 class RamanGUI(BaseGUI):
     def __init__(self, master, mono, ccd_controller, sr7270_single_reference, sr7270_dual_harmonic, waveplate,
-                 powermeter, npc3sg_input, npc3sg_x, npc3sg_y):
+                 powermeter, npc3sg_input, npc3sg_x, npc3sg_y, raman_gain, center_wavelength, grating):
         self._master = master
         super().__init__(self._master)
         self._mono = mono
         self._ccd_controller = ccd_controller
-        self._raman_gain = self._ccd_controller.read_gain()
-        self._grating = self._mono.get_current_turret()[1]
+        #self._raman_gain = self._ccd_controller.read_gain()
+        #self._grating = self._mono.get_current_turret()[1]
         self._shutter = tk.StringVar()
         self._shutter.set('True')
-        self._center_wavelength = self._mono.read_wavelength()
+        #self._center_wavelength = self._mono.read_wavelength()
+        self._raman_gain = raman_gain
+        self._center_wavelength = center_wavelength
+        self._grating = grating
         self._units = tk.StringVar()
         self._units.set('cm^-1')
         self._darkcurrent = tk.StringVar()
@@ -222,7 +225,7 @@ class RamanBaseGUI(BaseGUI):
         self._newWindow = tk.Toplevel(self._master)
         self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._sr7270_single_reference,
                              self._sr7270_dual_harmonic, self._waveplate, self._powermeter, self._npc3sg_input,
-                             self._npc3sg_x, self._npc3sg_y)
+                             self._npc3sg_x, self._npc3sg_y, self._gain, self._center_wavelength, self._current_grating)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui,
                        'timespectrum': self._app.build_time_spectrum_gui,
                        'voltagewaterfall': self._app.build_voltage_waterfall_gui,
@@ -316,7 +319,7 @@ class RamanBaseGUI(BaseGUI):
         self._newWindow = tk.Toplevel(self._master)
         self._newWindow.title('Change slit width')
         self._fields = {'slit width': self._mono.read_front_slit_width()}
-        self.beginform('Change slit width', False, self._newWindow)
+        self.beginform('Change slit width', True, self._newWindow)
         self.makebutton('Run', self.change_slit_width, master=self._newWindow)
         self.makebutton('Quit', self._newWindow.destroy, master=self._newWindow)
 
@@ -330,7 +333,7 @@ class RamanBaseGUI(BaseGUI):
     def change_center_wavelength_gui(self):
         self._newWindow = tk.Toplevel(self._master)
         self._newWindow.title('Change center wavelength')
-        self._fields = {'Center wavelength': '785'}
+        self._fields = {'Center wavelength': self._center_wavelength}
         self.beginform('Change center wavelength', False, self._newWindow)
         self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'], master=self._newWindow)
         self.makebutton('Run', self.change_center_wavelength, master=self._newWindow)

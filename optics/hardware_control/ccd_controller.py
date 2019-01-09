@@ -50,7 +50,7 @@ class CCDController:
         return self._ccd.Name
 
     def set_integration_time(self, seconds):
-        self._ccd.IntegrationTime = seconds * 1000  #  milliseconds
+        self._ccd.IntegrationTime = int(seconds * 1000)  #  milliseconds
 
     def set_adc(self):
         self._ccd.SelectADC(JYSYSTEMLIBLib.jyADCType.JY_ADC_16_BIT)
@@ -65,7 +65,7 @@ class CCDController:
         self._ccd.DefineAcquisitionFormat(JYSYSTEMLIBLib.jyCCDDataType.JYMCD_ACQ_FORMAT_SCAN, 1)
 
     def set_area(self, size):
-        self._ccd.DefineArea(1, 1, 120, size, 16, 1, 16)
+        self._ccd.DefineArea(1, 1, 1, size, 256, 1, 256)
 
     def read_data_size(self):
         return self._ccd.DataSize
@@ -154,14 +154,13 @@ class CCDController2(CCDController):
         self._xpixels, _ = self.read_chip_size()
 
     def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True, darksubstract=True):
-        self.dark_subtract(darksubstract)
+        #self.dark_subtract(darksubstract)
         self.set_integration_time(integration_time_seconds)
         self.set_adc()
         self.set_gain(gain)
         self.set_acquisition_format()
         self.set_area(self._xpixels)
-        data_size = self.read_data_size()
-        raw_data = np.zeros([scans, data_size])
+        raw_data = np.zeros([scans, self._xpixels])
         self.set_acquisition_mode(True)
         self.set_operating_mode()
         self.set_acquisition_count(scans)
@@ -178,7 +177,8 @@ class CCDController2(CCDController):
     def stop(self):
         self.stop_acquisition()
 
-
+    def error(self):
+        self._ccd.SendString(self._ccd.PassThruSendTerminationCharacter, 1)
 
 
 # TODO getminmaxwavelengthrange
