@@ -6,10 +6,12 @@ import time
 import matplotlib.pyplot as plt
 
 
-sys.path.append("C:\\Users\\NatLabUser\\Desktop\\python") #  adds DLL path to PATH
+sys.path.append("C:\\Users\\NatLabUser\\Desktop\\python\\SynerJY DLL") #  adds DLL path to PATH
 
-#  DOTNET (x64) DLLs. These need to be UNBLOCKED to be found (right click -> properties -> unblock
+#  DOTNET (x86) DLLs. These need to be UNBLOCKED to be found (right click -> properties -> unblock
 #  This uses Python For DotNet NOT IronPython
+#  SynerJY lies and says that it is 64 bit compatible. It is not. The DLLs hang in 64 bit due to the fact
+#  that the software engineers used a COM interface to use 32 bit DLLs on a 64 bit server - very slow
 
 clr.AddReference("System")
 clr.AddReference("Interop.JYCONFIGBROWSERCOMPONENTLib")
@@ -179,9 +181,3 @@ class CCDController2(CCDController):
 
     def error(self):
         self._ccd.SendString(self._ccd.PassThruSendTerminationCharacter, 1)
-
-
-# TODO getminmaxwavelengthrange
-# TODO convert pixels to wavelength
-# TODO intensity
-# TODO Spectrum

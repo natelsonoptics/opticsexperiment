@@ -3,8 +3,10 @@ import sys
 
 sys.path.append("C:\\Users\\NatLabUser\\Desktop\\python") #  adds DLL path to PATH
 
-#  DOTNET (x64) DLLs. These need to be UNBLOCKED to be found (right click -> properties -> unblock
+#  DOTNET (x86) DLLs. These need to be UNBLOCKED to be found (right click -> properties -> unblock
 #  This uses Python For DotNet NOT IronPython
+#  SynerJY lies and says that it is 64 bit compatible. It is not. The DLLs hang in 64 bit due to the fact
+#  that the software engineers used a COM interface to use 32 bit DLLs on a 64 bit server - very slow
 
 clr.AddReference("System")
 clr.AddReference("Interop.JYCONFIGBROWSERCOMPONENTLib")
@@ -52,19 +54,17 @@ class MonoController:
     def set_wavelength(self, wavelength):
         self._mono.MovetoWavelength(wavelength)
         self._wavelength = wavelength
-        self.read_string()
 
     def read_wavelength(self):
-        #self._wavelength = self._mono.GetCurrentWavelength()
+        self._wavelength = self._mono.GetCurrentWavelength()
         return self._wavelength
 
     def set_front_slit_width(self, width):
         print(self._mono.MovetoSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance, width))
         self._slit_width = width
-        self.read_string()
 
     def read_front_slit_width(self):
-        #return self._mono.GetCurrentSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance)
+        self._slit_width = self._mono.GetCurrentSlitWidth(JYSYSTEMLIBLib.SlitLocation.Front_Entrance)
         return self._slit_width
 
     def set_turret(self, turret_index):
@@ -77,7 +77,6 @@ class MonoController:
         self._mono.MovetoTurret(turret_index)
         while self.is_busy():
             time.sleep(2)
-        print(self.read_string())
         return self._current_turret, self._current_grating, self._current_blazes, self._current_description
 
     def is_busy(self):
@@ -91,8 +90,3 @@ class MonoController:
 
     def reboot(self):
         self._mono.RebootDevice()
-
-    def read_string(self):
-        print(self._mono.ReadString(1))
-
-    #TODO GetMinMaxRange

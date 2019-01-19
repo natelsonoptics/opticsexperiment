@@ -1,3 +1,5 @@
+import ctypes
+co_initialize = ctypes.windll.ole32.CoInitialize
 import matplotlib
 
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
@@ -774,7 +776,7 @@ def main():
                     print('Warning: {}'.format(err))
                 powermeter = None
             try:
-                waveplate = cm.enter_context(polarizercontroller.connect_kdc101(hw.kdc101_serial_number))
+                waveplate = cm.enter_context(polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=True))
             except Exception:
                 waveplate = None
                 print('Warning: Waveplate controller not connected')
@@ -784,7 +786,6 @@ def main():
             daq_switch_ao = cm.enter_context(daq.create_ao_task(hw.ao_switch))
             laser = cm.enter_context(toptica_ibeam_smart.connect_laser())
             keithley = cm.enter_context(keithley_k2400.connect(hardware_addresses_and_constants.keithley_address))
-            print('keithley')
             try:
                 keithley.reset()
             except Exception:

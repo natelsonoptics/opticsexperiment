@@ -5,7 +5,7 @@ import time
 
 from optics.hardware_control.hardware_addresses_and_constants import polarizer_offset, waveplate_offset
 
-sys.path.append("C:\\Program Files\\Thorlabs\\Kinesis") #  adds DLL path to PATH
+sys.path.append("C:\\Program Files (x86)\\Thorlabs\\Kinesis") #  adds DLL path to PATH
 
 #  DOTNET (x64) DLLs. These need to be UNBLOCKED to be found (right click -> properties -> unblock
 #  This uses Python For DotNet NOT IronPython
@@ -102,7 +102,7 @@ class RotatorMountController:
         self._device.Home(self._device.InitializeWaitHandler())
 
     def move(self, position):
-        if position > 360:
+        while position > 360:
             position -= 360
         self._device.MoveTo(Decimal(position), self._device.InitializeWaitHandler())
         # this is a System.Decimal!

@@ -17,7 +17,10 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sleep_time = sleep_time
         self._voltages = np.linspace(start_voltage, stop_voltage, number_scans)
-        self._wf = np.zeros((number_scans, len(self._xvalues)))
+        self._voltages_rev = np.linspace(stop_voltage, start_voltage, number_scans)
+        self.number_scans = number_scans
+        #self._voltages = [*self._voltages_for, *self._voltages_rev]
+        self._wf = np.zeros((number_scans*2, len(self._xvalues)))
         self._im = self._single_ax1.imshow(self._wf, interpolation='nearest', origin='lower', aspect='auto',
                                             extent=[self._xvalues[0], self._xvalues[-1], self._voltages[0],
                                                     self._voltages[-1]])
@@ -30,6 +33,7 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
         self._gate = gate
 
     def write_header(self):
+
         with open(self._lockin_filename, 'w', newline='') as inputfile:
             writer = csv.writer(inputfile)
             writer.writerow(['laser wavelength:', laser_wavelength])
@@ -65,13 +69,28 @@ class RamanVoltageWaterfall(BaseRamanMeasurement):
                 self._sr7270_dual_harmonic.change_applied_voltage(voltage)
                 self.take_spectrum()
                 writer.writerow(['applied voltage {}'.format(voltage), *[i for i in self._data]])
+                writer.writerow(['applied voltage {}'.format(voltage), *self._sr7270_dual_harmonic.read_adc(3)])
+                writer.writerow(['applied voltage {}'.format(voltage), *self._sr7270_dual_harmonic.read_xy1()])
                 self._wf[i] = self._data
                 self.update_plot(self._im, self._wf)
                 self._master.update()
                 tk_sleep(self._master, self._sleep_time * 1000)
                 if self._abort:
                     break
-            self._sr7270_dual_harmonic.change_applied_voltage(0)
+            for i, voltage in enumerate(self._voltages_rev):
+                self._sr7270_dual_harmonic.change_applied_voltage(voltage)
+                self.take_spectrum()
+                writer.writerow(['applied voltage {}'.format(voltage), *[i for i in self._data]])
+                writer.writerow(['applied voltage {}'.format(voltage), *self._sr7270_dual_harmonic.read_adc(3)])
+                writer.writerow(['applied voltage {}'.format(voltage), *self._sr7270_dual_harmonic.read_xy1()])
+                self._wf[i + int(self.number_scans)] = self._data
+                self.update_plot(self._im, self._wf)
+                self._master.update()
+                tk_sleep(self._master, self._sleep_time * 1000)
+                if self._abort:
+                    break
+
+
 
     def onpick(self, event):
         ydata = event.ydata
