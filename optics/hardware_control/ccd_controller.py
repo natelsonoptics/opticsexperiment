@@ -155,8 +155,8 @@ class CCDController2(CCDController):
         time.sleep(1)
         self._xpixels, _ = self.read_chip_size()
 
-    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True, darksubstract=True):
-        #self.dark_subtract(darksubstract)
+    def take_spectrum(self, integration_time_seconds=1, gain=1, scans=1, shutter_open=True, darksubstract=False):
+        self.dark_subtract(darksubstract)
         self.set_integration_time(integration_time_seconds)
         self.set_adc()
         self.set_gain(gain)

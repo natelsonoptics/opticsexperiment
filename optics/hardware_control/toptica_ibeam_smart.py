@@ -94,7 +94,6 @@ if __name__ == '__main__':
     filename = os.path.join(laser_log_path, '{} laser log.csv'.format(str(datetime.date.today())))
     try:
         with connect_laser() as laser:
-            print('here')
             if os.path.exists(filename):
                 with open(filename, 'a', newline='') as inputfile:
                     writer = csv.writer(inputfile)
