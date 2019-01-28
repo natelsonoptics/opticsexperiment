@@ -8,21 +8,24 @@ from matplotlib.figure import Figure
 from optics.misc_utility import conversions
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-class LockinBaseMeasurement:
+class BaseMeasurement:
     def __init__(self, master, filepath, device, npc3sg_input=None, npc3sg_x=None, npc3sg_y=None, sr7270_dual_harmonic=None,
                  sr7270_single_reference=None, powermeter=None, attenuator_wheel=None, waveplate=None, keithley=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, laser=None, gain=None, notes=None):
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, laser=None, gain=None, notes=None, polarizer=None):
         self._master = master
         self._filepath = filepath
         self._device = device
         self._gain = gain
         self._notes = notes
+        self._writer = None
+        self._start_time = None
         self._npc3sg_input = npc3sg_input
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
+        self._polarizer = polarizer
         if self._powermeter:
             self._power = self._powermeter.read_power()
         else:
@@ -136,6 +139,19 @@ class LockinBaseMeasurement:
 
     def do_nothing(self):
         pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def setup_plots(self):
+        pass
+
+    def measure(self):
+        pass
+
 
 
 

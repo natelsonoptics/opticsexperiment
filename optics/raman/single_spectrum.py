@@ -14,7 +14,7 @@ from optics.hardware_control.hardware_addresses_and_constants import laser_wavel
 
 class BaseRamanMeasurement:
     def __init__(self, master, ccd, grating, raman_gain, center_wavelength, units, integration_time, acquisitions,
-                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index, waveplate=None, powermeter=None,
+                 shutter, darkcurrent, darkcorrected, device, filepath, notes, index=None, waveplate=None, powermeter=None,
                  single_plot=True, polar=False):
         self._master = master
         self._ccd = ccd

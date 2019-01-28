@@ -12,21 +12,21 @@ from optics.raman.raman_map import RamanMapScan
 from optics.gui.base_gui import BaseGUI
 import time
 from optics.raman import unit_conversions
+from optics.under_development.sandbox import RamanLockinOutgoingPolarizationSweepBias
 
 
 class RamanGUI(BaseGUI):
     def __init__(self, master, mono, ccd_controller, sr7270_single_reference, sr7270_dual_harmonic, waveplate,
-                 powermeter, npc3sg_input, npc3sg_x, npc3sg_y, raman_gain, center_wavelength, grating):
+                 powermeter, npc3sg_input, npc3sg_x, npc3sg_y, center_wavelength, grating, polarizer):
         self._master = master
         super().__init__(self._master)
         self._mono = mono
         self._ccd_controller = ccd_controller
-        #self._raman_gain = self._ccd_controller.read_gain()
-        #self._grating = self._mono.get_current_turret()[1]
+        self._raman_gain = self._ccd_controller.read_gain()
+        self._grating = self._mono.get_current_turret()[1]
         self._shutter = tk.StringVar()
         self._shutter.set('True')
-        #self._center_wavelength = self._mono.read_wavelength()
-        self._raman_gain = raman_gain
+        self._center_wavelength = self._mono.read_wavelength()
         self._center_wavelength = center_wavelength
         self._grating = grating
         self._units = tk.StringVar()
@@ -42,6 +42,7 @@ class RamanGUI(BaseGUI):
         self._npc3sg_input = npc3sg_input
         self._npc3sg_x = npc3sg_x
         self._npc3sg_y = npc3sg_y
+        self._polarizer = polarizer
 
     def build_single_spectrum_gui(self):
         caption = "Single Raman spectrum"
@@ -178,7 +179,7 @@ class RamanGUI(BaseGUI):
                                          int(self._inputs['acquisitions to average']),
                                          self.string_to_bool(self._shutter.get()),
                                          self.string_to_bool(self._darkcurrent.get()),
-                                         self.string_to_bool(self._dark_corrected.get()), self._inputs['file path'], self._fields['notes'],
+                                         self.string_to_bool(self._dark_corrected.get()), self._inputs['file path'], self._inputs['notes'],
                            self._inputs['device'],
                                          int(self._inputs['scan']), int(self._inputs['xd']),
                            int(self._inputs['yd']), int(self._inputs['xr']), int(self._inputs['yr']),
@@ -189,10 +190,38 @@ class RamanGUI(BaseGUI):
                            self._waveplate, True)
         run.main()
 
+    def build_bias_light_emission_gui(self):
+        caption = 'Bias polarization light emission measurement'
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'integration time (s)': 1,
+                        'acquisitions to average': 1, 'start wavelength': '', 'stop wavelength': '',
+                        'wait time (ms)': 10, 'start bias (mV)': 0, 'stop bias (mV)': 1000, 'bias steps': 10,
+                        'osc (mV)': 7, 'polarization steps': 50, 'lock in measurements to average': 1}
+        self.beginform(caption)
+        self.make_option_menu('units', self._units, ['cm^-1', 'nm', 'eV'])
+        self.make_option_menu('dark current', self._darkcurrent, ['True', 'False'])
+        self.make_option_menu('subtract background', self._dark_corrected, ['True', 'False'])
+        self.endform(self.biaslightemission)
+
+    def biaslightemission(self, event=None):
+        self.fetch(event)
+        run = RamanLockinOutgoingPolarizationSweepBias(tk.Toplevel(self._master), self._inputs['file path'],
+                                                       self._inputs['notes'], self._inputs['device'],  int(self._inputs['scan']),
+                                                       float(self._inputs['start bias (mV)']), float(self._inputs['stop bias (mV)']),
+                                                       int(self._inputs['bias steps']), float(self._inputs['osc (mV)']),
+                                                       self._npc3sg_input, self._sr7270_dual_harmonic, self._sr7270_single_reference,
+                                                       self._powermeter, self._waveplate, int(self._inputs['polarization steps']),
+                                                       self._polarizer, int(self._inputs['lock in measurements to average']),
+                                                       float(self._inputs['wait time (ms)']), self._ccd_controller, float(self._inputs['integration time (s)']),
+                                                       self._raman_gain, int(self._inputs['acquisitons to average']), self._units.get(),
+                                                       self._grating, self._center_wavelength, float(self._inputs['start wavelength']),
+                                                       float(self._inputs['stop wavelength']), self.string_to_bool(self._darkcurrent.get()),
+                                                       self.string_to_bool(self._dark_corrected.get()))
+        run.main()
+
 
 class RamanBaseGUI(BaseGUI):
     def __init__(self, master, sr7270_single_reference=None, sr7270_dual_harmonic=None, waveplate=None, powermeter=None,
-                 npc3sg_input=None, npc3sg_x=None, npc3sg_y=None):
+                 npc3sg_input=None, npc3sg_x=None, npc3sg_y=None, polarizer=None):
         self._master = master
         super().__init__(self._master)
         self._master.title('Optics Raman setup measurements')
@@ -220,17 +249,19 @@ class RamanBaseGUI(BaseGUI):
         self._npc3sg_y = npc3sg_y
         self._units = tk.StringVar()
         self._units.set('nm')
+        self._polarizer = polarizer
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
         self._app = RamanGUI(self._newWindow, self._mono, self._ccd_controller, self._sr7270_single_reference,
                              self._sr7270_dual_harmonic, self._waveplate, self._powermeter, self._npc3sg_input,
-                             self._npc3sg_x, self._npc3sg_y, self._gain, self._center_wavelength, self._current_grating)
+                             self._npc3sg_x, self._npc3sg_y, self._center_wavelength, self._current_grating, self._polarizer)
         measurement = {'singlespectrum': self._app.build_single_spectrum_gui,
                        'timespectrum': self._app.build_time_spectrum_gui,
                        'voltagewaterfall': self._app.build_voltage_waterfall_gui,
                        'polarizationspectrum': self._app.build_polarization_spectrum_gui,
-                       'ramanmap': self._app.build_raman_map_gui}
+                       'ramanmap': self._app.build_raman_map_gui,
+                       'biaslightemission': self._app.build_bias_light_emission_gui}
         measurement[measurementtype]()
 
     def build(self):
@@ -241,6 +272,8 @@ class RamanBaseGUI(BaseGUI):
         row = self.makerow('Raman waterfall measurements')
         self.make_measurement_button(row, 'voltage', 'voltagewaterfall')
         self.make_measurement_button(row, 'map', 'ramanmap')
+        row = self.makerow('Light emission')
+        self.make_measurement_button(row, 'bias polarization', 'biaslightemission')
         row = self.makerow('change paramaters')
         b1 = tk.Button(row, text='Raman gain',
                        command=self.change_gain_gui)

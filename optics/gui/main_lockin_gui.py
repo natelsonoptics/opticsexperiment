@@ -37,7 +37,7 @@ class BaseLockinGUI(BaseGUI):
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
                  sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None,
                  waveplate=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, keithley=None, laser=None):
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, keithley=None, laser=None, polarizer=None):
         self._master = master
         super().__init__(self._master)
         self._master.title('Optics setup measurements')
@@ -56,6 +56,7 @@ class BaseLockinGUI(BaseGUI):
         self._daq_switch_ao = daq_switch_ao
         self._newWindow = None
         self._app = None
+        self._polarizer = polarizer
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
@@ -93,7 +94,7 @@ class BaseLockinGUI(BaseGUI):
             measurement[measurementtype]()
         else:
             RamanBaseGUI(self._newWindow, self._sr7270_single_reference, self._sr7270_dual_harmonic, self._waveplate,
-                         self._powermeter, self._npc3sg_input).build()
+                         self._powermeter, self._npc3sg_input, self._polarizer).build()
 
     def build(self):
         row = self.makerow('map scans')
@@ -780,6 +781,11 @@ def main():
             except Exception:
                 waveplate = None
                 print('Warning: Waveplate controller not connected')
+            try:
+                polarizer = cm.enter_context(polarizercontroller.connect_kdc101(hw.kdc101_serial_number, waveplate=False))
+            except Exception:
+                polarizer = None
+                print('Warning: Polarizer controller not connected')
             attenuatorwheel = cm.enter_context(attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs))
             daq_input = cm.enter_context(daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000))
             daq_switch_ai = cm.enter_context(daq.create_ai_task(hw.ai_switch, sleep=0))
@@ -798,7 +804,7 @@ def main():
                                 sr7270_single_reference=sr7270_single_reference,
                                 powermeter=powermeter, attenuatorwheel=attenuatorwheel, waveplate=waveplate,
                                 daq_input=daq_input, daq_switch_ai=daq_switch_ai, daq_switch_ao=daq_switch_ao,
-                                keithley=keithley, laser=laser)
+                                keithley=keithley, laser=laser, polarizer=polarizer)
             app.build()
             root.mainloop()
     except Exception as err:
