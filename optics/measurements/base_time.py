@@ -1,6 +1,7 @@
 from optics.measurements.base_measurement import LockinBaseMeasurement
 import time
 import csv
+from optics.misc_utility.tkinter_utilities import tk_sleep
 
 
 class TimeMeasurement(LockinBaseMeasurement):

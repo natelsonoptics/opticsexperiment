@@ -54,9 +54,9 @@ class BaseLockinGUI(BaseGUI):
         self._daq_input = daq_input
         self._daq_switch_ai = daq_switch_ai
         self._daq_switch_ao = daq_switch_ao
+        self._polarizer = polarizer
         self._newWindow = None
         self._app = None
-        self._polarizer = polarizer
 
     def new_window(self, measurementtype):
         self._newWindow = tk.Toplevel(self._master)
@@ -67,7 +67,7 @@ class BaseLockinGUI(BaseGUI):
                                          powermeter=self._powermeter, attenuatorwheel=self._attenuatorwheel,
                                          waveplate=self._waveplate, daq_input=self._daq_input,
                                          daq_switch_ai=self._daq_switch_ai,
-                                         daq_switch_ao=self._daq_switch_ao, keithley=self._keithley, laser=self._laser)
+                                         daq_switch_ao=self._daq_switch_ao, keithley=self._keithley, laser=self._laser, polarizer=self._polarizer)
         measurement = {'heatmap': self._app.build_heating_scan_gui,
                        'ptemap': self._app.build_thermovoltage_scan_gui,
                        'ptemapdc': self._app.build_thermovoltage_scan_dc_gui,
@@ -81,6 +81,7 @@ class BaseLockinGUI(BaseGUI):
                        'position': self._app.build_change_position_gui,
                        'intensity': self._app.build_change_intensity_gui,
                        'polarization': self._app.build_change_polarization_gui,
+                       'polarizer': self._app.build_change_polarizer_gui,
                        'ivsweep': self._app.build_sweep_iv_gui,
                        'ivsweepgate': self._app.build_sweep_iv_gate_gui,
                        'singlereference': self._app.build_single_reference_gui,
@@ -94,7 +95,7 @@ class BaseLockinGUI(BaseGUI):
             measurement[measurementtype]()
         else:
             RamanBaseGUI(self._newWindow, self._sr7270_single_reference, self._sr7270_dual_harmonic, self._waveplate,
-                         self._powermeter, self._npc3sg_input, self._polarizer).build()
+                         self._powermeter, self._npc3sg_input, polarizer=self._polarizer).build()
 
     def build(self):
         row = self.makerow('map scans')
@@ -135,6 +136,7 @@ class BaseLockinGUI(BaseGUI):
         self.make_measurement_button(row, 'position', 'position')
         self.make_measurement_button(row, 'intensity', 'intensity')
         self.make_measurement_button(row, 'polarization', 'polarization')
+        self.make_measurement_button(row, 'polarizer', 'polarizer')
         self.make_measurement_button(row, 'laser', 'laserparameters')
         row = self.makerow('measure resistance')
         self.make_measurement_button(row, 'lock in', 'measureresistance')
@@ -159,7 +161,7 @@ class LockinMeasurementGUI(BaseGUI):
     def __init__(self, master, npc3sg_x=None, npc3sg_y=None, npc3sg_input=None,
                  sr7270_dual_harmonic=None, sr7270_single_reference=None, powermeter=None, attenuatorwheel=None,
                  waveplate=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, keithley=None, laser=None):
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, keithley=None, laser=None, polarizer=None):
         self._master = master
         super().__init__(self._master)
         self._npc3sg_x = npc3sg_x
@@ -191,6 +193,7 @@ class LockinMeasurementGUI(BaseGUI):
         self._sen2 = tk.StringVar()
         self._abort = tk.StringVar()
         self._increase = tk.StringVar()
+        self._polarizer = polarizer
 
     def electromigrate(self, event=None):
         self.fetch(event)
@@ -501,6 +504,33 @@ class LockinMeasurementGUI(BaseGUI):
         self.makebutton('Home', self.homewaveplate)
         self.makebutton('Quit', self._master.destroy)
 
+    def build_change_polarizer_gui(self):  # TODO fix this
+        caption = "Change POLARIZER position"
+        self._fields = {'desired polarization': 90}
+        self.beginform(caption, False)
+        self.maketextbox('current position', self._polarizer.read_polarization())
+        self.maketextbox2('modulus polarization', (self._polarizer.read_position() % 90))
+        self.makebutton('Change polarization', self.changepolarization_polarizer)
+        self.makebutton('Read polarization', self.readpolarization_polarizer)
+        self.makebutton('Home', self.homepolarizer)
+        self.makebutton('Quit', self._master.destroy)
+
+    def changepolarization_polarizer(self):
+        self.fetch()
+        self._polarizer.move(float(float(self._inputs['desired polarization'])))
+        self.readpolarization_polarizer()
+
+    def readpolarization_polarizer(self):
+        self._textbox.delete(1.0, tk.END)
+        self._textbox.insert(tk.END, self._polarizer.read_polarization())
+        self._textbox.pack()
+        self._textbox2.delete(1.0, tk.END)
+        self._textbox2.insert(tk.END, (self._polarizer.read_position() % 180))
+        self._textbox2.pack()
+
+    def homepolarizer(self):
+        self._polarizer.home()
+
     def build_thermovoltage_intensity_gui(self):
         caption = "Thermovoltage vs. laser intensity"
         self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'steps': 2, 'max time (s)': 300}
@@ -776,13 +806,15 @@ def main():
                 else:
                     print('Warning: {}'.format(err))
                 powermeter = None
+            #try:
+            #    waveplate = cm.enter_context(polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=True))
+            #except Exception:
+            #    waveplate = None
+            #   print('Warning: Waveplate controller not connected')
+            waveplate = None
             try:
-                waveplate = cm.enter_context(polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=True))
-            except Exception:
-                waveplate = None
-                print('Warning: Waveplate controller not connected')
-            try:
-                polarizer = cm.enter_context(polarizercontroller.connect_kdc101(hw.kdc101_serial_number, waveplate=False))
+                polarizer = cm.enter_context(
+                    polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=False))
             except Exception:
                 polarizer = None
                 print('Warning: Polarizer controller not connected')

@@ -8,7 +8,7 @@ from optics.measurements.base_polarization import PolarizationMeasurement
 
 class HeatingPolarization(PolarizationMeasurement):
     def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, npc3sg_input, sr7270_dual_harmonic,
-                 sr7270_single_reference, powermeter, waveplate, steps, polarizer):
+                 sr7270_single_reference, powermeter, waveplate, steps):
         super().__init__(master, filepath, notes, device, scan, gain, npc3sg_input,
                          sr7270_single_reference, powermeter, waveplate, steps,
                          sr7270_dual_harmonic=sr7270_dual_harmonic)
