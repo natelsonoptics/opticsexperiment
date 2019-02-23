@@ -87,6 +87,10 @@ class HeatingIntensity:
         self._writer.writerow(['end:', 'end of header'])
         self._writer.writerow(['time', 'power', 'x_raw', 'y_raw', 'iphoto_x', 'iphoto_y'])
 
+    def end_header(self, writer):
+        writer.writerow(['end:', 'end of header'])
+        writer.writerow(['time', 'power', 'x_raw', 'y_raw', 'iphoto_x', 'iphoto_y'])
+
     def makefile(self):
         os.makedirs(self._filepath, exist_ok=True)
         index = self._scan

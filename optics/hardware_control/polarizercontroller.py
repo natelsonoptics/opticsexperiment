@@ -75,9 +75,8 @@ def connect_kdc101(serial_number, waveplate=True):
         device.LoadMotorConfiguration(str(serial_number))
         device.StartPolling(250)
         device.EnableDevice()
-        motorSettings = device.LoadMotorConfiguration(str(serial_number))  # This is important to leave in, but I'm not sure
-        # why
-        currentDeviceSettings = device.MotorDeviceSettings  # This is important to leave in, but I'm not sure why
+        motorSettings = device.LoadMotorConfiguration(str(serial_number))
+        currentDeviceSettings = device.MotorDeviceSettings
         if waveplate:
             yield WaveplateController(device)
         else:
@@ -104,6 +103,8 @@ class RotatorMountController:
     def move(self, position):
         while position > 360:
             position -= 360
+        while self._device.State == 1:
+            time.sleep(0.1)
         self._device.MoveTo(Decimal(position), self._device.InitializeWaitHandler())
         # this is a System.Decimal!
 
@@ -114,12 +115,15 @@ class WaveplateController(RotatorMountController):
         super().__init__(self._device)
 
     def move_nearest(self, position):
-        current_position = self.read_position()
-        i = 0
-        for i in range(180):
-            if position % 90 - 0.5 < (current_position + i) % 90 < position % 90 + 0.5:
-                break
-        self.move(current_position + i)
+        #current_position = self.read_position()
+        #i = 0
+        #for i in range(180):
+        #    if position % 90 - 0.5 < (current_position + i) % 90 < position % 90 + 0.5:
+        #        break
+        #self.move(current_position + i)
+        while self._device.State == 1:
+            time.sleep(0.1)
+        self.move(position)
 
     def read_polarization(self, wait_ms=0):
         return self.read_position(wait_ms) * 2

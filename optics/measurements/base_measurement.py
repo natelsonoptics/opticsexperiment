@@ -11,7 +11,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 class LockinBaseMeasurement:
     def __init__(self, master, filepath, device, npc3sg_input=None, npc3sg_x=None, npc3sg_y=None, sr7270_dual_harmonic=None,
                  sr7270_single_reference=None, powermeter=None, attenuator_wheel=None, waveplate=None, keithley=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, laser=None, gain=None, notes=None):
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, laser=None, gain=None, notes=None, mono=None,
+                 ccd=None, scan=None):
         self._master = master
         self._filepath = filepath
         self._device = device
@@ -23,6 +24,11 @@ class LockinBaseMeasurement:
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
+        self._mono = mono
+        self._ccd = ccd
+        self._writer = None
+        self._start_time = None
+        self._scan = scan
         if self._powermeter:
             self._power = self._powermeter.read_power()
         else:
@@ -136,6 +142,37 @@ class LockinBaseMeasurement:
 
     def do_nothing(self):
         pass
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def do_measurement(self):
+        pass
+
+    def setup_plots(self):
+        pass
+
+    def measure(self):
+        pass
+
+    def main2(self, scan_name, record_polarization=True, record_power=True, record_position=True):
+        self.pack_buttons(self._master)
+        filename, imagefile, self._scan = self.make_file(scan_name, self._scan, record_polarization=record_polarization)
+        with open(filename, 'w', newline='') as inputfile:
+            self.start()
+            self._start_time = time.time()
+            self._writer = csv.writer(inputfile)
+            self.write_header(self._writer, record_polarization=record_polarization, record_power=record_power, record_position=record_position)
+            self.setup_plots()
+            self._canvas.draw()
+            self.measure()
+            self._fig.savefig(imagefile, format='png', bbox_inches='tight')
+            self.stop()
+
+
 
 
 
