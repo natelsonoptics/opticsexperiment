@@ -12,7 +12,7 @@ class IntensityMeasurement(LockinBaseMeasurement):
                          ccd=ccd, mono=mono, attenuator_wheel=attenuator_wheel)
         self._maxtime = maxtime
         self._scan = scan
-        self._sleep = 1 / rate * 1000
+        self._steps = steps
 
     def load(self):
         self._ax1 = self._fig.add_subplot(311)
@@ -21,6 +21,7 @@ class IntensityMeasurement(LockinBaseMeasurement):
 
     def measure(self):
         self._master.update()
+        self._attenuator_wheel.step(self._steps, 0.005)
         self.do_measurement()
         self._master.update()
         if not self._abort and time.time() - self._start_time < self._maxtime:

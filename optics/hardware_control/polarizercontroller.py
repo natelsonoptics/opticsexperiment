@@ -2,7 +2,6 @@ import clr  # installs DOTNET DLLs
 import contextlib
 import sys
 import time
-
 from optics.hardware_control.hardware_addresses_and_constants import polarizer_offset, waveplate_offset
 
 sys.path.append("C:\\Program Files (x86)\\Thorlabs\\Kinesis") #  adds DLL path to PATH
@@ -123,10 +122,10 @@ class WaveplateController(RotatorMountController):
         #self.move(current_position + i)
         while self._device.State == 1:
             time.sleep(0.1)
-        self.move(position)
+        self.move(position + waveplate_offset / 2)
 
     def read_polarization(self, wait_ms=0):
-        return self.read_position(wait_ms) * 2
+        return self.read_position(wait_ms) * 2 - waveplate_offset
 
 
 class PolarizerController(RotatorMountController):

@@ -1,7 +1,5 @@
 from optics.measurements.base_measurement import LockinBaseMeasurement
 import numpy as np
-import time
-import csv
 from optics.misc_utility.tkinter_utilities import tk_sleep
 
 
@@ -13,8 +11,7 @@ class PolarizationMeasurement(LockinBaseMeasurement):
                          sr7270_dual_harmonic=sr7270_dual_harmonic, sr7270_single_reference=sr7270_single_reference,
                          powermeter=powermeter, waveplate=waveplate, notes=notes, gain=gain, scan=scan, ccd=ccd,
                          mono=mono, daq_input=daq_input)
-        if self._waveplate:
-            self._waveplate_angle = int(round(float(str(self._waveplate.read_position())))) % 360
+        self._waveplate_angle = int(round(float(str(self._waveplate.read_position())))) % 360
         self._steps = steps / 2  # 1/2 wave plate
         self._gain = gain
         self._vmax_x = 0
