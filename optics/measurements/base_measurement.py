@@ -7,14 +7,11 @@ from optics.misc_utility.tkinter_utilities import tk_sleep
 from matplotlib.figure import Figure
 from optics.misc_utility import conversions
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from optics.hardware_control import hardware_addresses_and_constants as hw
-
 
 class LockinBaseMeasurement:
     def __init__(self, master, filepath, device, npc3sg_input=None, npc3sg_x=None, npc3sg_y=None, sr7270_dual_harmonic=None,
                  sr7270_single_reference=None, powermeter=None, attenuator_wheel=None, waveplate=None, keithley=None,
-                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, laser=None, gain=None, notes=None, mono=None,
-                 ccd=None, scan=None):
+                 daq_input=None, daq_switch_ai=None, daq_switch_ao=None, laser=None, gain=None, notes=None):
         self._master = master
         self._filepath = filepath
         self._device = device
@@ -26,11 +23,6 @@ class LockinBaseMeasurement:
         self._sr7270_dual_harmonic = sr7270_dual_harmonic
         self._sr7270_single_reference = sr7270_single_reference
         self._powermeter = powermeter
-        self._mono = mono
-        self._ccd = ccd
-        self._writer = None
-        self._start_time = None
-        self._scan = scan
         if self._powermeter:
             self._power = self._powermeter.read_power()
         else:
@@ -55,10 +47,6 @@ class LockinBaseMeasurement:
         self._ax2 = None
         self._ax3 = None
         self._ax4 = None
-        self._im1 = None
-        self._im2 = None
-        self._clb1 = None
-        self._clb2 = None
         self._fig = Figure()
         self.load()
         self._fig.tight_layout()
@@ -125,14 +113,14 @@ class LockinBaseMeasurement:
     def rescale(self):
         pass
 
-    def pack_buttons(self, master, abort_button=True, colormap_rescale=False, center_laser=False):
+    def pack_buttons(self, master, abort_button=True, colormap_rescale=False):
         if colormap_rescale:
             row = tk.Frame(master)
-            lab = tk.Label(row, text='max value', anchor='w')
+            lab = tk.Label(row, text='max counts', anchor='w')
             ent = tk.Entry(row, textvariable=self._new_max)
             lab.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
             ent.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
-            lab = tk.Label(row, text='min value', anchor='w')
+            lab = tk.Label(row, text='min counts', anchor='w')
             ent = tk.Entry(row, textvariable=self._new_min)
             row.pack(side=tk.TOP)
             lab.pack(side=tk.LEFT, fill=tk.X, padx=5, pady=5)
@@ -142,52 +130,12 @@ class LockinBaseMeasurement:
         if abort_button:
             button = tk.Button(master=master, text="Abort", command=self.abort)
             button.pack(side=tk.BOTTOM)
-        if center_laser:
-            button = tk.Button(master=self._master, text="Go to center", command=self.centerbeam)
-            button.pack(side=tk.BOTTOM)
-
-    def centerbeam(self):
-        self._npc3sg_y.move(80)
-        self._npc3sg_x.move(80)
 
     def tk_sleep(self, ms):
         self._master.after(int(np.round(ms, 0)), self.do_nothing())
 
     def do_nothing(self):
         pass
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def do_measurement(self, *kwargs):
-        pass
-
-    def setup_plots(self):
-        pass
-
-    def measure(self):
-        pass
-
-    def main2(self, scan_name, record_polarization=True, record_power=True, record_position=True, abort_button=True,
-              colormap_rescale=False, center_laser=False):
-        self.pack_buttons(self._master, abort_button=abort_button, colormap_rescale=colormap_rescale,
-                          center_laser=center_laser)
-        filename, imagefile, self._scan = self.make_file(scan_name, self._scan, record_polarization=record_polarization)
-        with open(filename, 'w', newline='') as inputfile:
-            self.start()
-            self._start_time = time.time()
-            self._writer = csv.writer(inputfile)
-            self.write_header(self._writer, record_polarization=record_polarization, record_power=record_power, record_position=record_position)
-            self.setup_plots()
-            self._canvas.draw()
-            self.measure()
-            self._fig.savefig(imagefile, format='png', bbox_inches='tight')
-            self.stop()
-
-
 
 
 

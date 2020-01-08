@@ -1,7 +1,6 @@
 import ctypes
 co_initialize = ctypes.windll.ole32.CoInitialize
 import matplotlib
-import time
 
 matplotlib.use('Qt4Agg')  # this allows you to see the interactive plots!
 import tkinter as tk
@@ -382,8 +381,7 @@ class LockinMeasurementGUI(BaseGUI):
         run = ThermovoltagePolarizationDC(tk.Toplevel(self._master), self._inputs['file path'], self._inputs['notes'],
                                           self._inputs['device'], int(self._inputs['scan']),
                                           float(self._voltage_gain.get()),
-                                          self._npc3sg_input, self._powermeter, self._waveplate, self._daq_input,
-                                          int(self._inputs['steps']))
+                                          self._npc3sg_input, self._powermeter, self._waveplate, self._daq_input)
         run.main()
 
     def heating_polarization(self, event=None):
@@ -549,7 +547,7 @@ class LockinMeasurementGUI(BaseGUI):
 
     def build_thermovoltage_polarization_dc_gui(self):
         caption = "Thermovoltage DC vs. polarization"
-        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': "", 'steps': 5}
+        self._fields = {'file path': "", 'device': "", 'scan': 0, 'notes': ""}
         self.beginform(caption)
         self.make_option_menu('gain', self._voltage_gain, self._voltage_gain_options)
         self.endform(self.thermovoltage_polarization_dc)
@@ -808,19 +806,18 @@ def main():
                 else:
                     print('Warning: {}'.format(err))
                 powermeter = None
-            try:
-                waveplate = cm.enter_context(polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=True))
-            except Exception:
-                waveplate = None
-                print('Warning: Waveplate controller not connected')
-
             #try:
-            #    polarizer = cm.enter_context(
-            #        polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=False))
+            #    waveplate = cm.enter_context(polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=True))
             #except Exception:
-            #    polarizer = None
-            #    print('Warning: Polarizer controller not connected')
-            polarizer=None
+            #    waveplate = None
+            #   print('Warning: Waveplate controller not connected')
+            waveplate = None
+            try:
+                polarizer = cm.enter_context(
+                    polarizercontroller.connect_tdc001(hw.tdc001_serial_number, waveplate=False))
+            except Exception:
+                polarizer = None
+                print('Warning: Polarizer controller not connected')
             attenuatorwheel = cm.enter_context(attenuator_wheel.create_do_task(hw.attenuator_wheel_outputs))
             daq_input = cm.enter_context(daq.create_ai_task([hw.ai_dc1, hw.ai_dc2], points=1000))
             daq_switch_ai = cm.enter_context(daq.create_ai_task(hw.ai_switch, sleep=0))
@@ -845,9 +842,9 @@ def main():
     except Exception as err:
         if 'VI_ERROR_NLISTENERS' in str(err):  # this error occurs if Keithley isn't connected and you exit the stack
             pass
+
         else:
             print(err)
-            time.sleep(30)
             input('Press enter to exit')
 
 

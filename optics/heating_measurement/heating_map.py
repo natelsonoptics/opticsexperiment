@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import tkinter as tk
 from optics.misc_utility.tkinter_utilities import tk_sleep
-from optics.measurements.base_map import MapMeasurement
+
 
 class HeatingScan:
     def __init__(self, master, filepath, notes, device, scan, gain, bias, osc, xd, yd, xr, yr, xc, yc,

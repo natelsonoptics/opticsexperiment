@@ -123,7 +123,8 @@ class LockIn:
 
     def change_applied_voltage(self, millivolts, channel=3):
         """Changes the applied voltage of the DAC channel. Default is channel 3."""
-        self._ep0.write('dac {} {}'.format(channel, millivolts / 10))
+        # if millivolts < 25:
+        self._ep0.write('dac {} {}'.format(channel, millivolts/10))
         #  it is unclear why the input needs to be divided by 10. The manual shows mV input but the command yields a
         #  voltage 10x higher
         self.read_dev()  # throws away junk
